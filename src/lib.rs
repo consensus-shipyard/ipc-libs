@@ -40,15 +40,43 @@ impl JsonrpcClient for ReqwestJsonrpcClient {
 
 #[cfg(test)]
 mod tests {
+    use std::io;
+    use std::io::Write;
     use serde_json::Value;
+    use tokio_tungstenite::tungstenite::{connect, Message};
 
     use super::*;
 
     #[tokio::test]
-    async fn test_jsonrpc() {
+    async fn test_http() {
         let url = "https://api.calibration.node.glif.io/rpc/v0";
         let client = ReqwestJsonrpcClient::new(Client::new(), url);
         client.request("Filecoin.ChainHead").await.unwrap();
+    }
+
+    #[test]
+    fn test_websocket_mirror() {
+        let url = "wss://ws.vi-server.org/mirror";
+        let (mut ws, _) = connect(url).unwrap();
+        println!("WebSocket handshake has been successfully completed");
+        let request_text = "Olá Websocket!";
+        ws.write_message(Message::text(request_text)).unwrap();
+        let response_text = ws.read_message().unwrap().into_text().unwrap();
+        println!("Server replied back with: {}", response_text);
+        assert_eq!(request_text.to_string(), response_text);
+    }
+
+    #[test]
+    fn test_websocket_filecoin() {
+        let url = "wss://wss.node.glif.io/apigw/lotus/rpc/v0";
+        let (mut ws, _) = connect(url).unwrap();
+        println!("WebSocket handshake has been successfully completed");
+        let request_text = r#"{"jsonrpc":"2.0","id":1,"method":"Filecoin.ChainNotify"}"#;
+        ws.write_message(Message::text(request_text)).unwrap();
+        for _ in 1..3 {
+            let response_text = ws.read_message().unwrap().into_text().unwrap();
+            println!("Server replied back with: {}", response_text);
+        }
     }
 
     #[test]
