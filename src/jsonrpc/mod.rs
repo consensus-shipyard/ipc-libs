@@ -108,13 +108,12 @@ async fn handle_stream(
             }
             Some(result) => match result {
                 Ok(msg) => {
-                    println!("{}", msg);
                     log::trace!("Read message from websocket stream: {}", msg);
                     let value = serde_json::from_str(msg.to_text().unwrap()).unwrap();
                     chan.send(value).await.unwrap();
                 }
                 Err(err) => {
-                    log::error!("Error reading message from websocket stream: {}", err);
+                    log::error!("Error reading message from websocket stream: {:?}", err);
                     break;
                 }
             },
