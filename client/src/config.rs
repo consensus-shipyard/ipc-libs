@@ -3,7 +3,8 @@ use serde::Deserialize;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
-const DEFAULT_NODE_ADDR: &str = "127.0.0.1:3030";
+pub(crate) const DEFAULT_NODE_ADDR: &str = "127.0.0.1:3030";
+pub(crate) const DEFAULT_PROTOCOL: &str = "http";
 
 /// The Client Node Configuration. Should be loaded from a static file.
 #[derive(Deserialize, Debug, Default)]

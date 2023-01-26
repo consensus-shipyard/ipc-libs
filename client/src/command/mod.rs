@@ -3,6 +3,7 @@ mod node;
 
 use clap::{Arg, Command};
 
+use crate::command::health::HEALTH_CHECK_ENDPOINT_KEY;
 use crate::command::node::NODE_CONFIG_KEY;
 
 pub use health::health_check;
@@ -20,7 +21,13 @@ pub fn cli() -> Command {
         .subcommand(
             Command::new(HEALTH_CHECK)
                 .about("Checking the health of the node")
-                .arg_required_else_help(false),
+                .arg_required_else_help(false)
+                .arg(
+                    Arg::new(HEALTH_CHECK_ENDPOINT_KEY)
+                        .long("node")
+                        .help("The IPC client node endpoint to perform the check")
+                        .env("IPC_CLIENT_NODE_ENDPOINT"),
+                ),
         )
         .subcommand(
             Command::new(NODE)
