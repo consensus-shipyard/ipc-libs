@@ -1,5 +1,5 @@
-mod command;
+mod cli;
 mod config;
 mod node;
 
-pub use command::{cli, health_check, start_node, HEALTH_CHECK, NODE};
+pub use cli::cli;

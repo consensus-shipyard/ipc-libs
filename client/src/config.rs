@@ -1,10 +1,10 @@
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
 pub(crate) const DEFAULT_NODE_ADDR: &str = "127.0.0.1:3030";
 pub(crate) const DEFAULT_PROTOCOL: &str = "http";
+pub(crate) const DEFAULT_HEALTH_ENDPOINT: &str = "health";
 
 /// The Client Node Configuration. Should be loaded from a static file.
 #[derive(Deserialize, Debug, Default)]
@@ -20,24 +20,4 @@ impl ClientNodeConfig {
             .map(|r| SocketAddr::from_str(r).expect("invalid socket addr"))
             .unwrap_or_else(|| SocketAddr::from_str(DEFAULT_NODE_ADDR).unwrap())
     }
-}
-
-/// The config struct used parsed from cli
-#[derive(Deserialize, Debug, Default)]
-pub(crate) struct NodeLaunchConfig {
-    pub config_path: Option<String>,
-}
-
-impl NodeLaunchConfig {
-    pub fn client_node_config(&self) -> ClientNodeConfig {
-        self.config_path
-            .as_ref()
-            .map(|s| parse_yaml(s))
-            .unwrap_or_default()
-    }
-}
-
-fn parse_yaml<T: DeserializeOwned>(path: &str) -> T {
-    let raw = std::fs::read_to_string(path).expect("cannot read config yaml");
-    serde_yaml::from_str(&raw).expect("cannot parse yaml")
 }
