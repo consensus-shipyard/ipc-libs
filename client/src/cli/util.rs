@@ -30,7 +30,7 @@ macro_rules! register_command {
             let args = IPCNode::parse();
             let r = match &args.command {
             $(
-                Commands::$name(n) => $handler::handle(n).await,
+                Commands::$name(n) => <$handler as CommandLineHandler>::handle(n).await,
             )*
             };
 
