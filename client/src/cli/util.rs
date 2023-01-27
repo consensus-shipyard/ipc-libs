@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! register_command {
-    ( $($name:ident, $handler:ident, $description:expr), *) => {
+    ( $({$name:ident, $handler:ident, $description:expr}), *) => {
         use clap::{Parser, Subcommand};
 
         /// The overall command line struct
