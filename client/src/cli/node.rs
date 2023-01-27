@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 /// The config struct used parsed from cli
 #[derive(Deserialize, Debug, Default, Args)]
-#[command(about = "Launchs the IPC node")]
+#[command(about = "Launches the IPC node")]
 pub(crate) struct NodeLaunch {
     #[arg(
         long = "config",
