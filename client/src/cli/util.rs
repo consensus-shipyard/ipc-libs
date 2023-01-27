@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! register_command {
-    ( $({$name:ident, $handler:ident, $description:expr}), *) => {
+    ( $({$name:ident, $handler:ident}), *) => {
         use clap::{Parser, Subcommand};
 
         /// The overall command line struct
@@ -20,7 +20,6 @@ macro_rules! register_command {
         #[derive(Debug, Subcommand)]
         enum Commands {
             $(
-                #[command(about = $description)]
                 $name(<$handler as CommandLineHandler>::Request),
             )*
 

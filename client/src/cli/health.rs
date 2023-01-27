@@ -14,6 +14,7 @@ lazy_static! {
 }
 
 #[derive(Debug, Args)]
+#[command(about = "Performs a health check of the running IPC node")]
 pub(crate) struct HealthCheck {
     #[arg(
         long,

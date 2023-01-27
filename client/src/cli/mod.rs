@@ -11,11 +11,10 @@ mod util;
 //
 // First attribute is the name of the command.
 // Second attribute is the handler.
-// Third attribute is the description.
 crate::register_command!(
-    // { COMMAND NAME, HANDLER, DESCRIPTION }
-    {HealthCheck, HealthCheckHandler, "Performs a health check of the running IPC node"},
-    {Node, NodeHandler, "Launch the IPC node"}
+    // { COMMAND NAME, HANDLER }
+    {HealthCheck, HealthCheckHandler},
+    {Node, NodeHandler}
 );
 
 /// The common trait to handle command line functions
