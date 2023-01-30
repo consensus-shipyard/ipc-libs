@@ -1,7 +1,10 @@
+///! This contains the CLI related helper functions
+
 #[macro_export]
-macro_rules! register_command {
+macro_rules! register_cli_command {
     ( $({$name:ident, $handler:ident}), *) => {
         use clap::{Parser, Subcommand};
+        use client::CommandLineHandler;
 
         /// The overall command line struct
         #[derive(std::fmt::Debug, Parser)]

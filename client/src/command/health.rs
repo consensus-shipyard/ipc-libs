@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use clap::Args;
 use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 
-use crate::cli::CommandLineHandler;
 use crate::config::{DEFAULT_HEALTH_ENDPOINT, DEFAULT_NODE_ADDR, DEFAULT_PROTOCOL};
-use crate::node::HealthResponse;
+use crate::{CommandLineHandler, RPCNodeHandler};
 
 lazy_static! {
     static ref DEFAULT_URL: String = format!(
@@ -15,7 +15,7 @@ lazy_static! {
 
 #[derive(Debug, Args)]
 #[command(about = "Performs a health check of the running IPC node")]
-pub(crate) struct HealthCheck {
+pub struct HealthCheck {
     #[arg(
         long,
         value_name = "NODE_ENDPOINT",
@@ -25,7 +25,12 @@ pub(crate) struct HealthCheck {
     node_endpoint: Option<String>,
 }
 
-pub(crate) struct HealthCheckHandler {}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct HealthResponse {
+    pub is_healthy: bool,
+}
+
+pub struct HealthCheckHandler {}
 
 #[async_trait]
 impl CommandLineHandler for HealthCheckHandler {
@@ -40,6 +45,17 @@ impl CommandLineHandler for HealthCheckHandler {
             println!("node: {:} is not healthy", node);
         }
         Ok(())
+    }
+}
+
+#[async_trait]
+impl RPCNodeHandler for HealthCheckHandler {
+    type Request = ();
+    type Output = HealthResponse;
+    type Error = ();
+
+    async fn handle(&self, _request: &Self::Request) -> Result<Self::Output, Self::Error> {
+        Ok(HealthResponse { is_healthy: true })
     }
 }
 
