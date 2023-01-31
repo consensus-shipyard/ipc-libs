@@ -28,7 +28,7 @@ pub trait CommandLineHandler {
 
 /// The common trait for json-rpc handler
 #[async_trait]
-pub trait RPCNodeHandler {
+pub trait RPCNodeHandler: Send + Sync {
     /// The request to process.
     type Request: std::fmt::Debug;
     /// The output of the handler
