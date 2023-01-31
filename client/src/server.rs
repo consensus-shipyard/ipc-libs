@@ -1,17 +1,24 @@
 #[macro_export]
 macro_rules! register_server_routes {
     ( $({$method:ident, $path:expr, $handler:ident}), *) => {
+        mod node {
             use std::convert::Infallible;
-            use client::ClientNodeConfig;
             use std::sync::Arc;
             use warp::Filter;
-            use client::RPCNodeHandler;
             use paste::paste;
+            use async_trait::async_trait;
+            use clap::Args;
+            use serde::de::DeserializeOwned;
+            use serde::Deserialize;
+
+            use $crate::RPCNodeHandler;
+            use $crate::CommandLineHandler;
+            use $crate::ClientNodeConfig;
 
             $(
             paste!{
                 async fn [<$handler:snake>]() -> Result<impl warp::Reply, Infallible> {
-                    Ok(warp::reply::json(&$handler.handle(&()).await.unwrap()))
+                    Ok(warp::reply::json(&super::$handler.handle(&()).await.unwrap()))
                 }
             }
 
@@ -53,13 +60,6 @@ macro_rules! register_server_routes {
                 }
             }
 
-            // use $crate::CommandLineHandler;
-            // use $crate::ClientNodeConfig;
-            use async_trait::async_trait;
-            use clap::Args;
-            use serde::de::DeserializeOwned;
-            use serde::Deserialize;
-
             /// The config struct used parsed from cli
             #[derive(Deserialize, Debug, Default, Args)]
             #[command(about = "Launches the IPC node")]
@@ -100,6 +100,6 @@ macro_rules! register_server_routes {
                 let raw = std::fs::read_to_string(path).expect("cannot read config yaml");
                 serde_yaml::from_str(&raw).expect("cannot parse yaml")
             }
-
+        }
     }
 }

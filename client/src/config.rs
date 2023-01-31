@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 pub(crate) const DEFAULT_NODE_ADDR: &str = "127.0.0.1:3030";
 pub(crate) const DEFAULT_PROTOCOL: &str = "http";
-pub(crate) const DEFAULT_HEALTH_ENDPOINT: &str = "health";
+pub(crate) const DEFAULT_HEALTH_ENDPOINT: &str = "health-check";
 
 /// The Client Node Configuration. Should be loaded from a static file.
 #[derive(Deserialize, Debug, Default)]
