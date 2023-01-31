@@ -3,13 +3,13 @@ use clap::Args;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use crate::config::{DEFAULT_HEALTH_ENDPOINT, DEFAULT_NODE_ADDR, DEFAULT_PROTOCOL};
-use crate::{CommandLineHandler, RPCNodeHandler};
+use crate::config::{DEFAULT_NODE_ADDR, DEFAULT_PROTOCOL, DEFAULT_RPC_ENDPOINT};
+use crate::{CommandLineHandler, JSONRPCParam, JSONRPCResponse, RPCNodeHandler};
 
 lazy_static! {
     static ref DEFAULT_URL: String = format!(
         "{}://{}/{}",
-        DEFAULT_PROTOCOL, DEFAULT_NODE_ADDR, DEFAULT_HEALTH_ENDPOINT
+        DEFAULT_PROTOCOL, DEFAULT_NODE_ADDR, DEFAULT_RPC_ENDPOINT
     );
 }
 
@@ -52,7 +52,7 @@ impl CommandLineHandler for HealthCheckHandler {
 impl RPCNodeHandler for HealthCheckHandler {
     type Request = ();
     type Output = HealthResponse;
-    type Error = ();
+    type Error = String;
 
     async fn handle(&self, _request: &Self::Request) -> Result<Self::Output, Self::Error> {
         Ok(HealthResponse { is_healthy: true })
@@ -62,18 +62,29 @@ impl RPCNodeHandler for HealthCheckHandler {
 async fn is_health(node: &str) -> bool {
     log::debug!("health check endpoint: {:}", node);
 
-    let r = match reqwest::get(node).await {
+    let client = reqwest::Client::new();
+    match client
+        .post(node)
+        .json(&JSONRPCParam {
+            id: 0,
+            jsonrpc: "2.0".to_string(),
+            method: "health-check".to_string(),
+            params: serde_json::Value::Null,
+        })
+        .send()
+        .await
+    {
         Err(e) => {
             log::debug!("cannot query health endpoint: {:?} due to {:?}", node, e);
-            return false;
+            false
         }
-        Ok(r) => r,
-    };
-
-    r.json::<HealthResponse>()
-        .await
-        .map(|n| n.is_healthy)
-        // this would be a parsing error, which we will treat as unhealthy
-        // should be quite rare for this to happen
-        .unwrap_or(false)
+        Ok(r) => {
+            r.json::<JSONRPCResponse<HealthResponse>>()
+                .await
+                .map(|n| n.result.is_healthy)
+                // this would be a parsing error, which we will treat as unhealthy
+                // should be quite rare for this to happen
+                .unwrap_or(false)
+        }
+    }
 }

@@ -11,7 +11,7 @@ lazy_static! {
 
 // define the routes here
 register_server_routes!(
-    {get, "health-check", HEALTH}
+    {"health-check", HEALTH, HealthCheckHandler}
 );
 
 // register the cli command handlers here
