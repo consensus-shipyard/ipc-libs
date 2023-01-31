@@ -2,7 +2,7 @@
 
 #[macro_export]
 macro_rules! register_cli_command {
-    ( $({$name:ident, $handler:ident}), *) => {
+    ( $({$name:ident, $handler:ty}), *) => {
         use clap::{Parser, Subcommand};
         use client::CommandLineHandler;
 
@@ -44,5 +44,5 @@ macro_rules! register_cli_command {
                 )
             }
         }
-    };
+    }
 }

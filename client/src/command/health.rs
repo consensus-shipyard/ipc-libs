@@ -68,7 +68,7 @@ async fn is_health(node: &str) -> bool {
         .json(&JSONRPCParam {
             id: 0,
             jsonrpc: "2.0".to_string(),
-            method: "health-check".to_string(),
+            method: "health_check".to_string(),
             params: serde_json::Value::Null,
         })
         .send()

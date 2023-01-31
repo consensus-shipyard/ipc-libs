@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! register_server_routes {
-    ( $({$method:expr, $handler:ident, $struct:ident}), *) => {
+    ( init: $init:block, commands: $($method:tt), *) => {
         mod node {
             use std::convert::Infallible;
             use std::sync::Arc;
@@ -20,18 +20,22 @@ macro_rules! register_server_routes {
             async fn process(bytes: bytes::Bytes) -> Result<impl warp::Reply, Infallible> {
                 log::debug!("received bytes = {:?}", bytes);
 
+                let (
+                    $($method,)*
+                ) = $init;
+
                 let r = match serde_json::from_slice::<JSONRPCParam>(bytes.as_ref()) {
                     Ok(p) => {
-                        let JSONRPCParam { id, method, params, jsonrpc, .. } = p;
+                        let JSONRPCParam { id, method, params, jsonrpc } = p;
                         match method.as_str() {
                             $(
-                            $method => match serde_json::from_value::<<super::$struct as RPCNodeHandler>::Request>(params) {
-                                Ok(v) => match super::$handler.handle(&v).await {
+                             stringify!($method) => match serde_json::from_value(params) {
+                                Ok(v) => match $method.handle(&v).await {
                                     Ok(res) => {
                                         let j = serde_json::to_value(res).unwrap();
                                         warp::reply::json(&JSONRPCResponse {
-                                            id: id,
-                                            jsonrpc: jsonrpc,
+                                            id,
+                                            jsonrpc,
                                             result: j
                                         })
                                     },
@@ -52,7 +56,7 @@ macro_rules! register_server_routes {
                                         result: serde_json::Value::String(String::from("Cannot parse parameters"))
                                     })
                                 }
-                            },
+                            }
                             )*
                             _ => {
                                 log::error!("method not supported {method:?}");
@@ -63,7 +67,7 @@ macro_rules! register_server_routes {
                                 })
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         log::error!("cannot parse parameter due to {e:?}");
                         warp::reply::json(&JSONRPCResponse {
