@@ -32,7 +32,7 @@ pub trait RPCNodeHandler: Send + Sync {
     /// The request to process.
     type Request: std::fmt::Debug;
     /// The output of the handler
-    type Output: std::fmt::Debug;
+    type Output: std::fmt::Debug + serde::Serialize;
     /// The error thrown
     type Error: std::fmt::Debug + std::fmt::Display;
 
