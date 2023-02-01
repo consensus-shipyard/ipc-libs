@@ -3,16 +3,9 @@ macro_rules! register_server_routes {
     ( init: $init:block, commands: $($method:tt), *) => {
         mod node {
             use std::convert::Infallible;
-            use std::sync::Arc;
-            use paste::paste;
-            use async_trait::async_trait;
-            use clap::Args;
-            use serde::de::DeserializeOwned;
-            use serde::{Deserialize, Serialize};
             use warp::Filter;
 
             use $crate::common::handlers::RPCNodeHandler;
-            use $crate::common::handlers::CommandLineHandler;
             use $crate::common::config::ClientNodeConfig;
             use $crate::common::rpc::JSONRPCResponse;
             use $crate::common::rpc::JSONRPCParam;
@@ -99,47 +92,6 @@ macro_rules! register_server_routes {
                     warp::serve(json_rpc).run(self.config.addr()).await;
                 }
             }
-
-            /// The config struct used parsed from cli
-            #[derive(Deserialize, Debug, Default, Args)]
-            #[command(about = "Launches the IPC node")]
-            pub struct NodeLaunch {
-                #[arg(
-                    long = "config",
-                    value_name = "CONFIG_FILE_PATH",
-                    help = "The config file path for the IPC client node",
-                    env = "IPC_CLIENT_NODE_CONFIG"
-                )]
-                config_path: Option<String>,
-            }
-
-            impl NodeLaunch {
-                pub fn client_node_config(&self) -> ClientNodeConfig {
-                    self.config_path
-                        .as_ref()
-                        .map(|s| parse_yaml(s))
-                        .unwrap_or_default()
-                }
-            }
-
-            pub struct NodeCmd {}
-
-            #[async_trait]
-            impl CommandLineHandler for NodeCmd {
-                type Request = NodeLaunch;
-                type Error = ();
-
-                async fn handle(request: &Self::Request) -> Result<(), Self::Error> {
-                    let node_config = request.client_node_config();
-                    IPCClientNode::new(node_config).run().await;
-                    Ok(())
-                }
-            }
-
-            fn parse_yaml<T: DeserializeOwned>(path: &str) -> T {
-                let raw = std::fs::read_to_string(path).expect("cannot read config yaml");
-                serde_yaml::from_str(&raw).expect("cannot parse yaml")
-            }
         }
     }
 }
@@ -181,11 +133,13 @@ macro_rules! register_cli_command {
             };
 
             if r.is_err() {
-                println!(
-                    "process command: {:?} failed due to {:?}",
+                log::error!(
+                    "process command: {:?} failed due to error: {:?}",
                     args.command,
                     r.unwrap_err()
                 )
+            } else {
+                log::info!("{}", r.unwrap())
             }
         }
     }

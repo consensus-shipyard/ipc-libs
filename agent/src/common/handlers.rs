@@ -1,3 +1,4 @@
+use crate::common::error::Error;
 use async_trait::async_trait;
 use clap::Args;
 
@@ -10,11 +11,9 @@ pub trait CommandLineHandler {
     /// Currently we are directly integrating with `clap` crate. In the future we can use our own
     /// implementation to abstract away external crates. But this should be good for now.
     type Request: std::fmt::Debug + Args;
-    /// The error thrown
-    type Error: std::fmt::Debug;
 
     /// Handles the request and produces a response
-    async fn handle(request: &Self::Request) -> Result<(), Self::Error>;
+    async fn handle(request: &Self::Request) -> Result<String, Error>;
 }
 
 /// The common trait for json-rpc handler

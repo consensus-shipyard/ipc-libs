@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use crate::common::config::{DEFAULT_NODE_ADDR, DEFAULT_PROTOCOL, DEFAULT_RPC_ENDPOINT};
+use crate::common::error::Error;
 use crate::common::handlers::{CommandLineHandler, RPCNodeHandler};
 use crate::common::rpc::{JSONRPCParam, JSONRPCResponse};
 
@@ -36,16 +37,14 @@ pub struct HealthCheckCmd {}
 #[async_trait]
 impl CommandLineHandler for HealthCheckCmd {
     type Request = HealthCheck;
-    type Error = ();
 
-    async fn handle(request: &Self::Request) -> Result<(), Self::Error> {
+    async fn handle(request: &Self::Request) -> Result<String, Error> {
         let node = request.node_endpoint.as_ref().unwrap_or(&DEFAULT_URL);
         if is_health(node).await {
-            println!("node: {:} is healthy", node);
+            Ok(format!("node: {:} is healthy", node))
         } else {
-            println!("node: {:} is not healthy", node);
+            Err(Error::Custom(format!("node: {:} is down", node)))
         }
-        Ok(())
     }
 }
 
@@ -66,12 +65,11 @@ async fn is_health(node: &str) -> bool {
     let client = reqwest::Client::new();
     match client
         .post(node)
-        .json(&JSONRPCParam {
-            id: 0,
-            jsonrpc: "2.0".to_string(),
-            method: "health_check".to_string(),
-            params: serde_json::Value::Null,
-        })
+        .json(&JSONRPCParam::new(
+            0,
+            "health_check".to_string(),
+            serde_json::Value::Null,
+        ))
         .send()
         .await
     {
