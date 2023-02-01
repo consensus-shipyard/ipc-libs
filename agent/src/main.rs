@@ -15,6 +15,9 @@ register_server_routes!(
 
         (h1, h2)
     },
+    // health_check method is associated with h1
+    // health_check2 method is associated with h2
+    // TODO: find a clearer way to association and not by convention
     commands: health_check, health_check2
 );
 
