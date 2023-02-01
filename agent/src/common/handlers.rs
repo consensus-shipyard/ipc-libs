@@ -1,14 +1,5 @@
-mod cli;
-mod command;
-mod config;
-mod server;
-
 use async_trait::async_trait;
 use clap::Args;
-use serde::{Deserialize, Serialize};
-
-pub use command::health::HealthCheckHandler;
-pub use config::ClientNodeConfig;
 
 /// The common trait to handle command line functions
 #[async_trait]
@@ -38,20 +29,4 @@ pub trait RPCNodeHandler: Send + Sync {
 
     /// Handles the request and produces a response
     async fn handle(&self, request: &Self::Request) -> Result<Self::Output, Self::Error>;
-}
-
-/// Follows: https://ethereum.org/en/developers/docs/apis/json-rpc/#curl-examples
-#[derive(Serialize, Deserialize)]
-pub struct JSONRPCParam {
-    pub id: u16,
-    pub jsonrpc: String,
-    pub method: String,
-    pub params: serde_json::Value,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct JSONRPCResponse<T: Serialize> {
-    pub id: u16,
-    pub jsonrpc: String,
-    pub result: T,
 }

@@ -2,7 +2,7 @@ use futures_util::StreamExt;
 use serde_json::json;
 use url::Url;
 
-use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
+use crate::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 
 const HTTP_ENDPOINT: &str = "https://api.node.glif.io/rpc/v0";
 const WS_ENDPOINT: &str = "wss://wss.node.glif.io/apigw/lotus/rpc/v0";

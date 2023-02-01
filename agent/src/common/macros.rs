@@ -11,11 +11,11 @@ macro_rules! register_server_routes {
             use serde::{Deserialize, Serialize};
             use warp::Filter;
 
-            use $crate::RPCNodeHandler;
-            use $crate::CommandLineHandler;
-            use $crate::ClientNodeConfig;
-            use $crate::JSONRPCResponse;
-            use $crate::JSONRPCParam;
+            use $crate::common::handlers::RPCNodeHandler;
+            use $crate::common::handlers::CommandLineHandler;
+            use $crate::common::config::ClientNodeConfig;
+            use $crate::common::rpc::JSONRPCResponse;
+            use $crate::common::rpc::JSONRPCParam;
 
             async fn process(bytes: bytes::Bytes) -> Result<impl warp::Reply, Infallible> {
                 log::debug!("received bytes = {:?}", bytes);
@@ -122,10 +122,10 @@ macro_rules! register_server_routes {
                 }
             }
 
-            pub struct NodeHandler {}
+            pub struct NodeCmd {}
 
             #[async_trait]
-            impl CommandLineHandler for NodeHandler {
+            impl CommandLineHandler for NodeCmd {
                 type Request = NodeLaunch;
                 type Error = ();
 
@@ -139,6 +139,53 @@ macro_rules! register_server_routes {
             fn parse_yaml<T: DeserializeOwned>(path: &str) -> T {
                 let raw = std::fs::read_to_string(path).expect("cannot read config yaml");
                 serde_yaml::from_str(&raw).expect("cannot parse yaml")
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! register_cli_command {
+    ( $({$name:ident, $handler:ty}), *) => {
+        use clap::{Parser, Subcommand};
+        use $crate::common::handlers::CommandLineHandler;
+
+        /// The overall command line struct
+        #[derive(std::fmt::Debug, Parser)]
+        #[command(
+            name = "ipc",
+            about = "The IPC node command line tool",
+            version = "v0.0.1"
+        )]
+        #[command(propagate_version = true)]
+        struct IPCNode {
+            #[command(subcommand)]
+            command: Commands,
+        }
+
+        /// The subcommand to be called
+        #[derive(Debug, Subcommand)]
+        enum Commands {
+            $(
+                $name(<$handler as CommandLineHandler>::Request),
+            )*
+
+        }
+
+        pub async fn cli() {
+            let args = IPCNode::parse();
+            let r = match &args.command {
+            $(
+                Commands::$name(n) => <$handler as CommandLineHandler>::handle(n).await,
+            )*
+            };
+
+            if r.is_err() {
+                println!(
+                    "process command: {:?} failed due to {:?}",
+                    args.command,
+                    r.unwrap_err()
+                )
             }
         }
     }

@@ -1,13 +1,14 @@
-use client::{register_cli_command, register_server_routes, HealthCheckHandler};
+use agent::command::health::HealthCheckCmd;
+use agent::{register_cli_command, register_server_routes};
 
 // define the routes here
 register_server_routes!(
     // initialize your server RPC handlers here, returns the handlers as a tuple
     init: {
-        use client::HealthCheckHandler;
+        use agent::command::health::HealthCheckCmd;
 
-        let h1 = HealthCheckHandler {};
-        let h2 = HealthCheckHandler {};
+        let h1 = HealthCheckCmd {};
+        let h2 = HealthCheckCmd {};
 
         (h1, h2)
     },
@@ -17,8 +18,8 @@ register_server_routes!(
 // register the cli command handlers here
 register_cli_command!(
     // { COMMAND NAME, HANDLER }
-    {HealthCheck, HealthCheckHandler},
-    {Node, node::NodeHandler}
+    {HealthCheck, HealthCheckCmd},
+    {Node, node::NodeCmd}
 );
 
 #[tokio::main]

@@ -3,8 +3,9 @@ use clap::Args;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use crate::config::{DEFAULT_NODE_ADDR, DEFAULT_PROTOCOL, DEFAULT_RPC_ENDPOINT};
-use crate::{CommandLineHandler, JSONRPCParam, JSONRPCResponse, RPCNodeHandler};
+use crate::common::config::{DEFAULT_NODE_ADDR, DEFAULT_PROTOCOL, DEFAULT_RPC_ENDPOINT};
+use crate::common::handlers::{CommandLineHandler, RPCNodeHandler};
+use crate::common::rpc::{JSONRPCParam, JSONRPCResponse};
 
 lazy_static! {
     static ref DEFAULT_URL: String = format!(
@@ -30,10 +31,10 @@ pub struct HealthResponse {
     pub is_healthy: bool,
 }
 
-pub struct HealthCheckHandler {}
+pub struct HealthCheckCmd {}
 
 #[async_trait]
-impl CommandLineHandler for HealthCheckHandler {
+impl CommandLineHandler for HealthCheckCmd {
     type Request = HealthCheck;
     type Error = ();
 
@@ -49,7 +50,7 @@ impl CommandLineHandler for HealthCheckHandler {
 }
 
 #[async_trait]
-impl RPCNodeHandler for HealthCheckHandler {
+impl RPCNodeHandler for HealthCheckCmd {
     type Request = ();
     type Output = HealthResponse;
     type Error = String;
