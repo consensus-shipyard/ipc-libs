@@ -9,10 +9,8 @@ use crate::common::handlers::{CommandLineHandler, RPCNodeHandler};
 use crate::common::rpc::{JSONRPCParam, JSONRPCResponse};
 
 lazy_static! {
-    static ref DEFAULT_URL: String = format!(
-        "{}://{}/{}",
-        DEFAULT_PROTOCOL, DEFAULT_NODE_ADDR, DEFAULT_RPC_ENDPOINT
-    );
+    static ref DEFAULT_URL: String =
+        format!("{DEFAULT_PROTOCOL}://{DEFAULT_NODE_ADDR}/{DEFAULT_RPC_ENDPOINT}");
 }
 
 #[derive(Debug, Args)]
@@ -41,9 +39,9 @@ impl CommandLineHandler for HealthCheckCmd {
     async fn handle(request: &Self::Request) -> Result<String, Error> {
         let node = request.node_endpoint.as_ref().unwrap_or(&DEFAULT_URL);
         if is_health(node).await {
-            Ok(format!("node: {:} is healthy", node))
+            Ok(format!("node: {node:} is healthy"))
         } else {
-            Err(Error::Custom(format!("node: {:} is down", node)))
+            Err(Error::Custom(format!("node: {node:} is down")))
         }
     }
 }
@@ -60,7 +58,7 @@ impl RPCNodeHandler for HealthCheckCmd {
 }
 
 async fn is_health(node: &str) -> bool {
-    log::debug!("health check endpoint: {:}", node);
+    log::debug!("health check endpoint: {node:}");
 
     let client = reqwest::Client::new();
     match client
