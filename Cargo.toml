@@ -21,6 +21,7 @@ url = "2.3.1"
 derive_builder = "0.12.0"
 num-traits = "0.2.15"
 fvm_shared = {workspace = true}
+env_logger = "0.10.0"
 
 [workspace.dependencies]
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false }

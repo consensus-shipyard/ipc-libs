@@ -3,6 +3,8 @@ use ipc_client::{JsonRpcClientImpl, LotusApi, MpoolPushMessage};
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let h = JsonRpcClientImpl::new("".parse().unwrap(), None);
     let n = LotusApi::new(h);
     n.mpool_push_message(MpoolPushMessage::new(
