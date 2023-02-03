@@ -46,7 +46,7 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
             {
                 "to": msg.to.to_string(),
                 "from": from.to_string(),
-                "value": msg.value.to_string(),
+                "value": msg.value.atto().to_string(),
                 "method": msg.method,
                 "params": msg.params,
 
