@@ -67,6 +67,7 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
             .inner
             .request(endpoints::MEM_PUSH_MESSAGE_ENDPOINT, to_send)
             .await?;
+        log::debug!("received response: {r:}");
         let m = parse_response::<MpoolPushMessageResponse>(r.get(MESSAGE_KEY).unwrap().clone())?;
         m.get_root_cid().ok_or_else(|| anyhow!("No cid in result"))
     }
