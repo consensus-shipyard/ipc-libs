@@ -52,7 +52,7 @@ pub struct MpoolPushMessageResponse {
     pub method: MethodNum,
     pub params: Vec<u8>,
 
-    pub nonce: Option<u64>,
+    pub nonce: u64,
     pub gas_limit: Option<TokenAmount>,
     pub gas_fee_cap: Option<TokenAmount>,
     pub gas_premium: Option<TokenAmount>,
@@ -103,6 +103,13 @@ impl MpoolPushMessage {
             version: None,
             max_fee: None,
         }
+    }
+}
+
+impl From<CIDMap> for Option<Cid> {
+    fn from(m: CIDMap) -> Self {
+        m.cid
+            .map(|cid| Cid::from_str(&cid).expect("invalid cid str"))
     }
 }
 

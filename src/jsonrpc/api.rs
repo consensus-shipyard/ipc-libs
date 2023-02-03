@@ -25,7 +25,10 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
         Self { inner }
     }
 
-    pub async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<Cid> {
+    pub async fn mpool_push_message(
+        &self,
+        msg: MpoolPushMessage,
+    ) -> Result<MpoolPushMessageResponse> {
         let from = msg.from;
 
         let nonce = msg
@@ -71,12 +74,12 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
         log::debug!("received response: {r:}");
 
         let m = parse_response::<MpoolPushMessageResponse>(r.get(MESSAGE_KEY).unwrap().clone())?;
-        m.get_root_cid().ok_or_else(|| anyhow!("No cid in result"))
+        Ok(m)
     }
 
-    pub async fn state_wait_msg(&self, cid: Cid) -> Result<StateWaitMsgResponse> {
+    pub async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
-        let to_send = json!([CIDMap::from(cid)]);
+        let to_send = json!([CIDMap::from(cid), nonce]);
 
         let r = self
             .inner
