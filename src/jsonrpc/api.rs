@@ -1,36 +1,31 @@
 use crate::jsonrpc::types::{MpoolPushMessage, MpoolPushMessageResponse};
-use crate::jsonrpc::JsonRpcClient;
+use crate::jsonrpc::{CIDMap, JsonRpcClient};
 use anyhow::{anyhow, Result};
 use cid::Cid;
 use fvm_shared::econ::TokenAmount;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
-use std::collections::HashMap;
 
 const DEFAULT_VERSION: u16 = 42;
 const MESSAGE_KEY: &str = "Message";
 
 // RPC endpoints
-const MEM_PUSH_MESSAGE_ENDPOINT: &str = "Filecoin.MpoolPushMessage";
+mod endpoints {
+    pub const MEM_PUSH_MESSAGE_ENDPOINT: &str = "Filecoin.MpoolPushMessage";
+}
 
-pub struct NodeApi<Inner: JsonRpcClient> {
+pub struct LotusApi<Inner: JsonRpcClient> {
     inner: Inner,
 }
 
-impl<Inner: JsonRpcClient> NodeApi<Inner> {
+impl<Inner: JsonRpcClient> LotusApi<Inner> {
     pub fn new(inner: Inner) -> Self {
         Self { inner }
     }
 
     pub async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<Cid> {
         let from = msg.from;
-
-        let cid = if let Some(cid) = msg.cid {
-            HashMap::from([(String::from("/"), cid.to_string())])
-        } else {
-            HashMap::new()
-        };
 
         let nonce = msg
             .nonce
@@ -60,7 +55,7 @@ impl<Inner: JsonRpcClient> NodeApi<Inner> {
                 "gas_limit": gas_limit,
                 "gas_fee_cap": gas_fee_cap,
                 "gas_premium": gas_premium,
-                "cid": cid,
+                "cid": CIDMap::from(msg.cid),
                 "version": DEFAULT_VERSION
             },
             {
@@ -70,7 +65,7 @@ impl<Inner: JsonRpcClient> NodeApi<Inner> {
 
         let r = self
             .inner
-            .request(MEM_PUSH_MESSAGE_ENDPOINT, to_send)
+            .request(endpoints::MEM_PUSH_MESSAGE_ENDPOINT, to_send)
             .await?;
         let m = parse_response::<MpoolPushMessageResponse>(r.get(MESSAGE_KEY).unwrap().clone())?;
         m.get_root_cid().ok_or_else(|| anyhow!("No cid in result"))

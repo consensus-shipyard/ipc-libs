@@ -19,7 +19,7 @@ mod api;
 mod tests;
 mod types;
 
-pub use api::NodeApi;
+pub use api::LotusApi;
 pub use types::*;
 
 /// A convenience constant that represents empty params in a JSON-RPC request.

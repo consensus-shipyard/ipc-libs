@@ -2,13 +2,15 @@ use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
-use serde::Deserialize;
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-const CID_ROOT_KEY: &str = "/";
-
-pub type CIDResponse = HashMap<String, String>;
+#[derive(Deserialize, Serialize)]
+pub struct CIDMap {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "/")]
+    pub cid: Option<String>,
+}
 
 #[derive(Deserialize)]
 pub struct MpoolPushMessageResponse {
@@ -25,13 +27,14 @@ pub struct MpoolPushMessageResponse {
     pub version: Option<u16>,
     pub max_fee: Option<TokenAmount>,
 
-    pub cid: CIDResponse,
+    pub cid: CIDMap,
 }
 
 impl MpoolPushMessageResponse {
     pub fn get_root_cid(&self) -> Option<Cid> {
         self.cid
-            .get(CID_ROOT_KEY)
+            .cid
+            .as_ref()
             .map(|s| Cid::from_str(s).expect("server sent invalid cid"))
     }
 }
@@ -53,7 +56,7 @@ pub struct MpoolPushMessage {
 }
 
 impl MpoolPushMessage {
-    pub fn zero_value(to: Address, from: Address, method: MethodNum, params: Vec<u8>) -> Self {
+    pub fn new(to: Address, from: Address, method: MethodNum, params: Vec<u8>) -> Self {
         MpoolPushMessage {
             to,
             from,
@@ -68,5 +71,14 @@ impl MpoolPushMessage {
             version: None,
             max_fee: None,
         }
+    }
+}
+
+impl From<Option<Cid>> for CIDMap {
+    fn from(c: Option<Cid>) -> Self {
+        c.map(|cid| CIDMap {
+            cid: Some(cid.to_string()),
+        })
+        .unwrap_or(CIDMap { cid: None })
     }
 }
