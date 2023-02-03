@@ -1,5 +1,5 @@
 use crate::jsonrpc::types::{MpoolPushMessage, MpoolPushMessageResponse};
-use crate::jsonrpc::{CIDMap, JsonRpcClient};
+use crate::jsonrpc::{CIDMap, JsonRpcClient, StateWaitMsgResponse};
 use anyhow::{anyhow, Result};
 use cid::Cid;
 use fvm_shared::econ::TokenAmount;
@@ -13,6 +13,7 @@ const MESSAGE_KEY: &str = "Message";
 // RPC endpoints
 mod endpoints {
     pub const MEM_PUSH_MESSAGE_ENDPOINT: &str = "Filecoin.MpoolPushMessage";
+    pub const STATE_WAIT_MSG: &str = "Filecoin.StateWaitMsg";
 }
 
 pub struct LotusApi<Inner: JsonRpcClient> {
@@ -68,8 +69,24 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
             .request(endpoints::MEM_PUSH_MESSAGE_ENDPOINT, to_send)
             .await?;
         log::debug!("received response: {r:}");
+
         let m = parse_response::<MpoolPushMessageResponse>(r.get(MESSAGE_KEY).unwrap().clone())?;
         m.get_root_cid().ok_or_else(|| anyhow!("No cid in result"))
+    }
+
+    pub async fn state_wait_msg(&self, cid: Cid) -> Result<StateWaitMsgResponse> {
+        // refer to: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
+        let to_send = json!([CIDMap::from(cid)]);
+
+        let r = self
+            .inner
+            .request(endpoints::STATE_WAIT_MSG, to_send)
+            .await?;
+        log::debug!("received response: {r:}");
+
+        let m = serde_json::from_value::<StateWaitMsgResponse>(r)
+            .map_err(|_| anyhow!("Cannot parse response"))?;
+        Ok(m)
     }
 }
 

@@ -21,7 +21,10 @@ url = "2.3.1"
 derive_builder = "0.12.0"
 num-traits = "0.2.15"
 fvm_shared = {workspace = true}
+fil_actors_runtime = {workspace = true}
 env_logger = "0.10.0"
+base64 = "0.21.0"
 
 [workspace.dependencies]
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false }
+fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }

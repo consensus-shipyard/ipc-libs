@@ -5,14 +5,46 @@ use fvm_shared::MethodNum;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ExecParams {
+    pub code_cid: Cid,
+    pub constructor_params: Vec<u8>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 pub struct CIDMap {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "/")]
     pub cid: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct StateWaitMsgResponse {
+    #[allow(dead_code)]
+    message: CIDMap,
+    #[allow(dead_code)]
+    receipt: Receipt,
+    #[allow(dead_code)]
+    tip_set: Vec<CIDMap>,
+    #[allow(dead_code)]
+    height: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Receipt {
+    #[allow(dead_code)]
+    exit_code: u32,
+    #[allow(dead_code)]
+    r#return: String,
+    #[allow(dead_code)]
+    gas_used: u64,
+}
+
 #[derive(Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct MpoolPushMessageResponse {
     pub to: Address,
     pub from: Address,
@@ -80,5 +112,13 @@ impl From<Option<Cid>> for CIDMap {
             cid: Some(cid.to_string()),
         })
         .unwrap_or(CIDMap { cid: None })
+    }
+}
+
+impl From<Cid> for CIDMap {
+    fn from(c: Cid) -> Self {
+        CIDMap {
+            cid: Some(c.to_string()),
+        }
     }
 }
