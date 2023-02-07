@@ -4,6 +4,19 @@ use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use strum::{AsRefStr, Display, EnumString};
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Display, EnumString, AsRefStr)]
+pub enum WalletKeyType {
+    #[strum(serialize = "bls")]
+    BLS,
+    #[strum(serialize = "secp256k1")]
+    Secp256k1,
+    #[strum(serialize = "secp256k1-ledger")]
+    Secp256k1Ledger,
+}
+
+pub type WalletListResponse = Vec<String>;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -127,5 +140,20 @@ impl From<Cid> for CIDMap {
         CIDMap {
             cid: Some(c.to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::WalletKeyType;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_key_types() {
+        let t = WalletKeyType::Secp256k1;
+        assert_eq!(t.as_ref(), "secp256k1");
+
+        let t = WalletKeyType::from_str(t.as_ref()).unwrap();
+        assert_eq!(t, WalletKeyType::Secp256k1);
     }
 }

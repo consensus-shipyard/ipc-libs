@@ -1,5 +1,6 @@
 use crate::jsonrpc::types::{MpoolPushMessage, MpoolPushMessageResponse};
 use crate::jsonrpc::{CIDMap, JsonRpcClient, StateWaitMsgResponse};
+use crate::{WalletKeyType, WalletListResponse};
 use anyhow::{anyhow, Result};
 use cid::Cid;
 use fvm_shared::econ::TokenAmount;
@@ -89,6 +90,33 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
 
         let m = serde_json::from_value::<StateWaitMsgResponse>(r)
             .map_err(|_| anyhow!("Cannot parse response"))?;
+        Ok(m)
+    }
+
+    pub async fn wallet_list(&self) -> Result<WalletListResponse> {
+        // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletlist
+        let r = self
+            .inner
+            .request(endpoints::STATE_WAIT_MSG, json!({}))
+            .await?;
+        log::debug!("received response: {r:}");
+
+        let m = serde_json::from_value::<WalletListResponse>(r)
+            .map_err(|_| anyhow!("Cannot parse response"))?;
+        Ok(m)
+    }
+
+    pub async fn wallet_new(&self, key_type: WalletKeyType) -> Result<String> {
+        let s = key_type.as_ref();
+        // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletnew
+        let r = self
+            .inner
+            .request(endpoints::STATE_WAIT_MSG, json!([s]))
+            .await?;
+        log::debug!("received response: {r:}");
+
+        let m =
+            serde_json::from_value::<String>(r).map_err(|_| anyhow!("Cannot parse response"))?;
         Ok(m)
     }
 }

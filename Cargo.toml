@@ -24,6 +24,7 @@ fvm_shared = {workspace = true}
 fil_actors_runtime = {workspace = true}
 env_logger = "0.10.0"
 base64 = "0.21.0"
+strum = { version = "0.24", features = ["derive"] }
 
 [workspace.dependencies]
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false }
