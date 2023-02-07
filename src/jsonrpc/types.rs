@@ -47,6 +47,17 @@ pub struct StateWaitMsgResponse {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
+pub struct ReadStateResponse<State> {
+    #[allow(dead_code)]
+    pub balance: u64,
+    #[allow(dead_code)]
+    pub code: CIDMap,
+    #[allow(dead_code)]
+    pub state: State,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct Receipt {
     #[allow(dead_code)]
     exit_code: u32,
