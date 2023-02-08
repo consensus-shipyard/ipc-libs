@@ -57,7 +57,7 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
         let to_send = json!([
             {
                 "to": msg.to.to_string(),
-                "from": from,
+                "from": from.to_string(),
                 "value": msg.value.atto().to_string(),
                 "method": msg.method,
                 "params": msg.params,
