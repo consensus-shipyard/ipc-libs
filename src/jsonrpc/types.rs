@@ -110,7 +110,7 @@ impl MpoolPushMessageInner {
 
 pub struct MpoolPushMessage {
     pub to: Address,
-    pub from: Address,
+    pub from: Option<Address>,
     pub value: TokenAmount,
     pub method: MethodNum,
     pub params: Vec<u8>,
@@ -125,7 +125,7 @@ pub struct MpoolPushMessage {
 }
 
 impl MpoolPushMessage {
-    pub fn new(to: Address, from: Address, method: MethodNum, params: Vec<u8>) -> Self {
+    pub fn new(to: Address, from: Option<Address>, method: MethodNum, params: Vec<u8>) -> Self {
         MpoolPushMessage {
             to,
             from,

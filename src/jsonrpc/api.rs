@@ -9,6 +9,7 @@ use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 use std::fmt::Debug;
+use std::str::FromStr;
 
 const DEFAULT_VERSION: u16 = 42;
 
@@ -18,6 +19,7 @@ mod endpoints {
     pub const STATE_WAIT_MSG: &str = "Filecoin.StateWaitMsg";
     pub const WALLET_NEW: &str = "Filecoin.WalletNew";
     pub const WALLET_LIST: &str = "Filecoin.WalletList";
+    pub const WALLET_DEFAULT_ADDRESS: &str = "Filecoin.WalletDefaultAddress";
     pub const READ_STATE: &str = "Filecoin.StateReadState";
 }
 
@@ -31,7 +33,11 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
     }
 
     pub async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner> {
-        let from = msg.from;
+        let from = if let Some(f) = msg.from {
+            f
+        } else {
+            self.wallet_default().await?
+        };
 
         let nonce = msg
             .nonce
@@ -51,7 +57,7 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
         let to_send = json!([
             {
                 "to": msg.to.to_string(),
-                "from": from.to_string(),
+                "from": from,
                 "value": msg.value.atto().to_string(),
                 "method": msg.method,
                 "params": msg.params,
@@ -88,6 +94,18 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
             .await?;
         log::debug!("received response: {r:?}");
         Ok(r)
+    }
+
+    pub async fn wallet_default(&self) -> Result<Address> {
+        // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletdefaultaddress
+        let r = self
+            .inner
+            .request::<String>(endpoints::WALLET_DEFAULT_ADDRESS, json!({}))
+            .await?;
+        log::debug!("received response: {r:?}");
+
+        let addr = Address::from_str(&r)?;
+        Ok(addr)
     }
 
     pub async fn wallet_list(&self) -> Result<WalletListResponse> {
