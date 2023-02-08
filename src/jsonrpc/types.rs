@@ -77,25 +77,27 @@ pub struct Receipt {
 #[serde(rename_all = "PascalCase")]
 pub struct MpoolPushMessageResponse {
     pub message: MpoolPushMessageInner,
+    #[serde(rename = "CID")]
     pub cid: CIDMap,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct MpoolPushMessageInner {
-    pub to: Address,
-    pub from: Address,
+    to: String,
+    from: String,
     pub value: TokenAmount,
     pub method: MethodNum,
     pub params: Vec<u8>,
 
     pub nonce: u64,
-    pub gas_limit: Option<TokenAmount>,
-    pub gas_fee_cap: Option<TokenAmount>,
-    pub gas_premium: Option<TokenAmount>,
-    pub version: Option<u16>,
-    pub max_fee: Option<TokenAmount>,
+    pub gas_limit: TokenAmount,
+    pub gas_fee_cap: TokenAmount,
+    pub gas_premium: TokenAmount,
+    pub version: u16,
+    pub max_fee: TokenAmount,
 
+    #[serde(rename = "CID")]
     pub cid: CIDMap,
 }
 
@@ -105,6 +107,14 @@ impl MpoolPushMessageInner {
             .cid
             .as_ref()
             .map(|s| Cid::from_str(s).expect("server sent invalid cid"))
+    }
+
+    pub fn to(&self) -> anyhow::Result<Address> {
+        Ok(Address::from_str(&self.to)?)
+    }
+
+    pub fn from(&self) -> anyhow::Result<Address> {
+        Ok(Address::from_str(&self.from)?)
     }
 }
 
