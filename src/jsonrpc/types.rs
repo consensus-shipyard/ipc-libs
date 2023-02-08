@@ -86,20 +86,18 @@ pub struct MpoolPushMessageResponse {
 pub struct MpoolPushMessageInner {
     to: String,
     from: String,
-    pub value: TokenAmount,
+    pub value: String,
     pub method: MethodNum,
-    pub params: Vec<u8>,
+    pub params: String,
 
     pub nonce: u64,
     #[serde(rename = "GasLimit")]
-    pub gas_limit: TokenAmount,
+    pub gas_limit: u64,
     #[serde(rename = "GasFeeCap")]
-    pub gas_fee_cap: TokenAmount,
+    pub gas_fee_cap: String,
     #[serde(rename = "GasPremium")]
-    pub gas_premium: TokenAmount,
+    pub gas_premium: String,
     pub version: u16,
-    #[serde(rename = "MaxFee")]
-    pub max_fee: TokenAmount,
 
     #[serde(rename = "CID")]
     pub cid: CIDMap,
