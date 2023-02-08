@@ -91,10 +91,14 @@ pub struct MpoolPushMessageInner {
     pub params: Vec<u8>,
 
     pub nonce: u64,
+    #[serde(rename = "GasLimit")]
     pub gas_limit: TokenAmount,
+    #[serde(rename = "GasFeeCap")]
     pub gas_fee_cap: TokenAmount,
+    #[serde(rename = "GasPremium")]
     pub gas_premium: TokenAmount,
     pub version: u16,
+    #[serde(rename = "MaxFee")]
     pub max_fee: TokenAmount,
 
     #[serde(rename = "CID")]
