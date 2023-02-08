@@ -55,7 +55,7 @@ pub struct StateWaitMsgResponse {
 #[serde(rename_all = "PascalCase")]
 pub struct ReadStateResponse<State> {
     #[allow(dead_code)]
-    pub balance: u64,
+    pub balance: String,
     #[allow(dead_code)]
     pub code: CIDMap,
     #[allow(dead_code)]
