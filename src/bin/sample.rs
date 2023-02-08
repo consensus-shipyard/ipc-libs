@@ -6,5 +6,8 @@ async fn main() {
 
     let h = JsonRpcClientImpl::new("".parse().unwrap(), None);
     let n = LotusApi::new(h);
-    println!("wallets: {:?}", n.wallet_list().await);
+    println!(
+        "wallets: {:?}",
+        n.wallet_new(ipc_client::WalletKeyType::Secp256k1).await
+    );
 }

@@ -85,11 +85,7 @@ impl JsonRpcClient for JsonRpcClientImpl {
             "json rpc version should match"
         );
 
-        if value.error.is_some() {
-            Err(anyhow!("json_rpc error: {:}", value.error.unwrap()))
-        } else {
-            Ok(value.result.unwrap())
-        }
+        Result::from(value)
     }
 
     async fn subscribe(&self, method: &str) -> Result<Receiver<Value>> {
@@ -124,6 +120,16 @@ struct JsonRpcResponse<T> {
     // we could have encountered success or error, request is handling both cases
     result: Option<T>,
     error: Option<serde_json::Value>,
+}
+
+impl<T> From<JsonRpcResponse<T>> for Result<T> {
+    fn from(j: JsonRpcResponse<T>) -> Self {
+        if j.error.is_some() {
+            Err(anyhow!("json_rpc error: {:}", j.error.unwrap()))
+        } else {
+            Ok(j.result.unwrap())
+        }
+    }
 }
 
 // Processes a websocket stream by reading messages from the stream `ws_stream` and sending
