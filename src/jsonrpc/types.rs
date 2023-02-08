@@ -25,6 +25,12 @@ pub struct ExecParams {
     pub constructor_params: Vec<u8>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct InstallActorParams {
+    pub code: Vec<u8>,
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CIDMap {
     #[serde(skip_serializing_if = "Option::is_none")]
