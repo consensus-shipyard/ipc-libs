@@ -11,8 +11,6 @@ use serde_json::json;
 use std::fmt::Debug;
 use std::str::FromStr;
 
-const DEFAULT_VERSION: u16 = 42;
-
 // RPC endpoints
 mod endpoints {
     pub const MEM_PUSH_MESSAGE_ENDPOINT: &str = "Filecoin.MpoolPushMessage";
@@ -68,7 +66,7 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
                 "gas_fee_cap": gas_fee_cap,
                 "gas_premium": gas_premium,
                 "cid": CIDMap::from(msg.cid),
-                "version": DEFAULT_VERSION
+                "version": serde_json::Value::Null,
             },
             {
                 "max_fee": max_fee
