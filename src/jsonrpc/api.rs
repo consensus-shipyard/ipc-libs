@@ -1,16 +1,16 @@
-use crate::jsonrpc::types::{MpoolPushMessage, MpoolPushMessageResponse};
+use crate::jsonrpc::types::{MpoolPushMessage, MpoolPushMessageInner};
 use crate::jsonrpc::{CIDMap, JsonRpcClient, StateWaitMsgResponse};
-use crate::{ReadStateResponse, WalletKeyType, WalletListResponse};
-use anyhow::{anyhow, Result};
+use crate::{MpoolPushMessageResponse, ReadStateResponse, WalletKeyType, WalletListResponse};
+use anyhow::Result;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
+use std::fmt::Debug;
 
 const DEFAULT_VERSION: u16 = 42;
-const MESSAGE_KEY: &str = "Message";
 
 // RPC endpoints
 mod endpoints {
@@ -30,10 +30,7 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
         Self { inner }
     }
 
-    pub async fn mpool_push_message(
-        &self,
-        msg: MpoolPushMessage,
-    ) -> Result<MpoolPushMessageResponse> {
+    pub async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner> {
         let from = msg.from;
 
         let nonce = msg
@@ -74,12 +71,11 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
 
         let r = self
             .inner
-            .request(endpoints::MEM_PUSH_MESSAGE_ENDPOINT, to_send)
+            .request::<MpoolPushMessageResponse>(endpoints::MEM_PUSH_MESSAGE_ENDPOINT, to_send)
             .await?;
-        log::debug!("received response: {r:}");
+        log::debug!("received response: {r:?}");
 
-        let m = parse_response::<MpoolPushMessageResponse>(r.get(MESSAGE_KEY).unwrap().clone())?;
-        Ok(m)
+        Ok(r.message)
     }
 
     pub async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse> {
@@ -88,26 +84,20 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
 
         let r = self
             .inner
-            .request(endpoints::STATE_WAIT_MSG, to_send)
+            .request::<StateWaitMsgResponse>(endpoints::STATE_WAIT_MSG, to_send)
             .await?;
-        log::debug!("received response: {r:}");
-
-        let m = serde_json::from_value::<StateWaitMsgResponse>(r)
-            .map_err(|_| anyhow!("Cannot parse response"))?;
-        Ok(m)
+        log::debug!("received response: {r:?}");
+        Ok(r)
     }
 
     pub async fn wallet_list(&self) -> Result<WalletListResponse> {
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletlist
         let r = self
             .inner
-            .request(endpoints::WALLET_LIST, json!({}))
+            .request::<WalletListResponse>(endpoints::WALLET_LIST, json!({}))
             .await?;
-        log::debug!("received response: {r:}");
-
-        let m = serde_json::from_value::<WalletListResponse>(r)
-            .map_err(|_| anyhow!("Cannot parse response"))?;
-        Ok(m)
+        log::debug!("received response: {r:?}");
+        Ok(r)
     }
 
     pub async fn wallet_new(&self, key_type: WalletKeyType) -> Result<String> {
@@ -115,16 +105,13 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletnew
         let r = self
             .inner
-            .request(endpoints::WALLET_NEW, json!([s]))
+            .request::<String>(endpoints::WALLET_NEW, json!([s]))
             .await?;
-        log::debug!("received response: {r:}");
-
-        let m =
-            serde_json::from_value::<String>(r).map_err(|_| anyhow!("Cannot parse response"))?;
-        Ok(m)
+        log::debug!("received response: {r:?}");
+        Ok(r)
     }
 
-    pub async fn read_state<State: DeserializeOwned>(
+    pub async fn read_state<State: DeserializeOwned + Debug>(
         &self,
         address: Address,
         tipset: Cid,
@@ -132,24 +119,12 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statereadstate
         let r = self
             .inner
-            .request(
+            .request::<ReadStateResponse<State>>(
                 endpoints::READ_STATE,
                 json!([address.to_string(), [CIDMap::from(tipset)]]),
             )
             .await?;
-        log::debug!("received response: {r:}");
-
-        let m = serde_json::from_value::<ReadStateResponse<State>>(r)
-            .map_err(|_| anyhow!("Cannot parse response"))?;
-        Ok(m)
+        log::debug!("received response: {r:?}");
+        Ok(r)
     }
-}
-
-fn parse_response<T: DeserializeOwned>(r: serde_json::Value) -> Result<T> {
-    let message = r
-        .get("Message")
-        .ok_or_else(|| anyhow!("Invalid response"))?;
-    let message =
-        serde_json::from_value(message.clone()).map_err(|_| anyhow!("Cannot parse response"))?;
-    Ok(message)
 }

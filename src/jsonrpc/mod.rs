@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::header::HeaderValue;
 use reqwest::Client;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde_json::json;
 use serde_json::Value;
 use tokio::net::TcpStream;
@@ -22,6 +24,9 @@ mod types;
 pub use api::LotusApi;
 pub use types::*;
 
+const DEFAULT_JSON_RPC_VERSION: &str = "2.0";
+const DEFAULT_JSON_RPC_ID: u8 = 1;
+
 /// A convenience constant that represents empty params in a JSON-RPC request.
 pub const NO_PARAMS: Value = json!([]);
 
@@ -31,7 +36,7 @@ pub const NO_PARAMS: Value = json!([]);
 #[async_trait]
 pub trait JsonRpcClient {
     /// Sends a JSON-RPC request with `method` and `params` via HTTP/HTTPS.
-    async fn request(&self, method: &str, params: Value) -> Result<Value>;
+    async fn request<Res: DeserializeOwned>(&self, method: &str, params: Value) -> Result<Res>;
 
     /// Subscribes to notifications via a Websocket. This returns a [`Receiver`]
     /// channel that is used to receive the messages sent by the server.
@@ -58,7 +63,7 @@ impl JsonRpcClientImpl {
 
 #[async_trait]
 impl JsonRpcClient for JsonRpcClientImpl {
-    async fn request(&self, method: &str, params: Value) -> Result<Value> {
+    async fn request<Res: DeserializeOwned>(&self, method: &str, params: Value) -> Result<Res> {
         let request_body = build_jsonrpc_request(method, params)?;
         let mut builder = self.http_client.post(self.url.as_str()).json(&request_body);
 
@@ -70,9 +75,21 @@ impl JsonRpcClient for JsonRpcClientImpl {
         let response = builder.send().await?;
 
         let response_body = response.text().await?;
-        let value = serde_json::from_str(response_body.as_str())?;
+        log::debug!("received raw response body: {:?}", response_body);
 
-        Ok(value)
+        let value = serde_json::from_str::<JsonRpcResponse<Res>>(response_body.as_ref())?;
+
+        debug_assert!(value.id == DEFAULT_JSON_RPC_ID, "json rpc id should match");
+        debug_assert!(
+            value.jsonrpc == DEFAULT_JSON_RPC_VERSION,
+            "json rpc version should match"
+        );
+
+        if value.error.is_some() {
+            Err(anyhow!("json_rpc error: {:}", value.error.unwrap()))
+        } else {
+            Ok(value.result.unwrap())
+        }
     }
 
     async fn subscribe(&self, method: &str) -> Result<Receiver<Value>> {
@@ -97,6 +114,16 @@ impl JsonRpcClient for JsonRpcClientImpl {
 
         Ok(recv_chan)
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct JsonRpcResponse<T> {
+    id: u8,
+    jsonrpc: String,
+
+    // we could have encountered success or error, request is handling both cases
+    result: Option<T>,
+    error: Option<serde_json::Value>,
 }
 
 // Processes a websocket stream by reading messages from the stream `ws_stream` and sending
@@ -142,15 +169,15 @@ fn build_jsonrpc_request(method: &str, params: Value) -> Result<Value> {
 
     let request_value = if has_params {
         json!({
-            "jsonrpc": "2.0",
-            "id": 1,
+            "jsonrpc": DEFAULT_JSON_RPC_VERSION,
+            "id": DEFAULT_JSON_RPC_ID,
             "method": method,
             "params": params,
         })
     } else {
         json!({
-            "jsonrpc": "2.0",
-            "id": 1,
+            "jsonrpc": DEFAULT_JSON_RPC_VERSION,
+            "id": DEFAULT_JSON_RPC_ID,
             "method": method,
         })
     };

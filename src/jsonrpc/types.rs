@@ -67,9 +67,16 @@ pub struct Receipt {
     gas_used: u64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct MpoolPushMessageResponse {
+    pub message: MpoolPushMessageInner,
+    pub cid: CIDMap,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct MpoolPushMessageInner {
     pub to: Address,
     pub from: Address,
     pub value: TokenAmount,
@@ -86,7 +93,7 @@ pub struct MpoolPushMessageResponse {
     pub cid: CIDMap,
 }
 
-impl MpoolPushMessageResponse {
+impl MpoolPushMessageInner {
     pub fn get_root_cid(&self) -> Option<Cid> {
         self.cid
             .cid
