@@ -16,13 +16,8 @@ use tokio_tungstenite::MaybeTlsStream;
 use tokio_tungstenite::{connect_async, WebSocketStream};
 use url::Url;
 
-mod api;
 #[cfg(test)]
 mod tests;
-mod types;
-
-pub use api::LotusApi;
-pub use types::*;
 
 const DEFAULT_JSON_RPC_VERSION: &str = "2.0";
 const DEFAULT_JSON_RPC_ID: u8 = 1;
@@ -152,7 +147,7 @@ async fn handle_stream(
                     chan.send(value).await.unwrap();
                 }
                 Err(err) => {
-                    log::error!("Error reading message from websocket stream: {}", err);
+                    log::error!("Error reading message from websocket stream: {:?}", err);
                     break;
                 }
             },

@@ -1,7 +1,11 @@
-use crate::jsonrpc::types::{MpoolPushMessage, MpoolPushMessageInner};
-use crate::jsonrpc::{CIDMap, JsonRpcClient, StateWaitMsgResponse};
-use crate::{MpoolPushMessageResponse, ReadStateResponse, WalletKeyType, WalletListResponse};
+use crate::types::{
+    CIDMap, MpoolPushMessage, MpoolPushMessageInner, MpoolPushMessageResponse, ReadStateResponse,
+    StateWaitMsgResponse, WalletKeyType, WalletListResponse,
+};
+use crate::JsonRpcClient;
+use crate::LotusApi;
 use anyhow::Result;
+use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
@@ -21,16 +25,20 @@ mod endpoints {
     pub const READ_STATE: &str = "Filecoin.StateReadState";
 }
 
-pub struct LotusApi<Inner: JsonRpcClient> {
+/// The lotus client
+pub struct LotusClient<Inner> {
     inner: Inner,
 }
 
-impl<Inner: JsonRpcClient> LotusApi<Inner> {
+impl<Inner> LotusClient<Inner> {
     pub fn new(inner: Inner) -> Self {
         Self { inner }
     }
+}
 
-    pub async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner> {
+#[async_trait]
+impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
+    async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner> {
         let from = if let Some(f) = msg.from {
             f
         } else {
@@ -77,12 +85,12 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
             .inner
             .request::<MpoolPushMessageResponse>(endpoints::MEM_PUSH_MESSAGE_ENDPOINT, to_send)
             .await?;
-        log::debug!("received response: {r:?}");
+        log::debug!("received mpool_push_message response: {r:?}");
 
         Ok(r.message)
     }
 
-    pub async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse> {
+    async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
         let to_send = json!([CIDMap::from(cid), nonce]);
 
@@ -90,44 +98,44 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
             .inner
             .request::<StateWaitMsgResponse>(endpoints::STATE_WAIT_MSG, to_send)
             .await?;
-        log::debug!("received response: {r:?}");
+        log::debug!("received state_wait_msg response: {r:?}");
         Ok(r)
     }
 
-    pub async fn wallet_default(&self) -> Result<Address> {
+    async fn wallet_default(&self) -> Result<Address> {
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletdefaultaddress
         let r = self
             .inner
             .request::<String>(endpoints::WALLET_DEFAULT_ADDRESS, json!({}))
             .await?;
-        log::debug!("received response: {r:?}");
+        log::debug!("received wallet_default response: {r:?}");
 
         let addr = Address::from_str(&r)?;
         Ok(addr)
     }
 
-    pub async fn wallet_list(&self) -> Result<WalletListResponse> {
+    async fn wallet_list(&self) -> Result<WalletListResponse> {
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletlist
         let r = self
             .inner
             .request::<WalletListResponse>(endpoints::WALLET_LIST, json!({}))
             .await?;
-        log::debug!("received response: {r:?}");
+        log::debug!("received wallet_list response: {r:?}");
         Ok(r)
     }
 
-    pub async fn wallet_new(&self, key_type: WalletKeyType) -> Result<String> {
+    async fn wallet_new(&self, key_type: WalletKeyType) -> Result<String> {
         let s = key_type.as_ref();
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletnew
         let r = self
             .inner
             .request::<String>(endpoints::WALLET_NEW, json!([s]))
             .await?;
-        log::debug!("received response: {r:?}");
+        log::debug!("received wallet_new response: {r:?}");
         Ok(r)
     }
 
-    pub async fn read_state<State: DeserializeOwned + Debug>(
+    async fn read_state<State: DeserializeOwned + Debug>(
         &self,
         address: Address,
         tipset: Cid,
@@ -140,7 +148,7 @@ impl<Inner: JsonRpcClient> LotusApi<Inner> {
                 json!([address.to_string(), [CIDMap::from(tipset)]]),
             )
             .await?;
-        log::debug!("received response: {r:?}");
+        log::debug!("received read_state response: {r:?}");
         Ok(r)
     }
 }

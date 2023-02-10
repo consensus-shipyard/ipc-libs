@@ -6,18 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use strum::{AsRefStr, Display, EnumString};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Display, EnumString, AsRefStr)]
-pub enum WalletKeyType {
-    #[strum(serialize = "bls")]
-    BLS,
-    #[strum(serialize = "secp256k1")]
-    Secp256k1,
-    #[strum(serialize = "secp256k1-ledger")]
-    Secp256k1Ledger,
-}
-
-pub type WalletListResponse = Vec<String>;
-
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ExecParams {
@@ -31,6 +19,19 @@ pub struct InstallActorParams {
     pub code: Vec<u8>,
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Display, EnumString, AsRefStr)]
+pub enum WalletKeyType {
+    #[strum(serialize = "bls")]
+    BLS,
+    #[strum(serialize = "secp256k1")]
+    Secp256k1,
+    #[strum(serialize = "secp256k1-ledger")]
+    Secp256k1Ledger,
+}
+
+pub type WalletListResponse = Vec<String>;
+
+/// Helper struct to interact with lotus node
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CIDMap {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -181,7 +182,7 @@ impl From<Cid> for CIDMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::WalletKeyType;
+    use crate::lotus::types::WalletKeyType;
     use std::str::FromStr;
 
     #[test]
