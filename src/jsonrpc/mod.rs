@@ -35,6 +35,7 @@ pub trait JsonRpcClient {
 
     /// Subscribes to notifications via a Websocket. This returns a [`Receiver`]
     /// channel that is used to receive the messages sent by the server.
+    /// TODO: update this to use typed generics instead of `serde_json::Value`.
     async fn subscribe(&self, method: &str) -> Result<Receiver<Value>>;
 }
 
