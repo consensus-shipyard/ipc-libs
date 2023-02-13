@@ -1,0 +1,12 @@
+[subnets]
+
+[subnets.P]
+path = "/P"
+rpc_api = "https://api.node.glif.io/rpc/v0"
+auth_token = "poJ9eZB"
+
+[subnets.C]
+path = "/P/C"
+rpc_api = "https://api.node.glif.io/rpc/v0"
+auth_token = "Nk40raR"
+accounts = ["f16tugakjlpyoomxy5uv2d6bdj7wcyr3ueofu7w7a"]
