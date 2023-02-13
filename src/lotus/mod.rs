@@ -1,6 +1,6 @@
 pub mod client;
 ///! The lotus api to interact with lotus node
-pub mod types;
+pub mod response;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -10,8 +10,8 @@ use serde::de::DeserializeOwned;
 use std::fmt::Debug;
 
 pub use crate::lotus::client::LotusClient;
-pub use crate::lotus::types::{MpoolPushMessage, MpoolPushMessageInner};
-pub use crate::lotus::types::{
+pub use crate::lotus::response::{MpoolPushMessage, MpoolPushMessageInner};
+pub use crate::lotus::response::{
     ReadStateResponse, StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
 

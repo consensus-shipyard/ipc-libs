@@ -114,7 +114,7 @@ struct JsonRpcResponse<T> {
 
     // we could have encountered success or error, request is handling both cases
     result: Option<T>,
-    error: Option<serde_json::Value>,
+    error: Option<Value>,
 }
 
 impl<T> From<JsonRpcResponse<T>> for Result<T> {

@@ -1,3 +1,5 @@
+//! This file contains the various response types to be used byt the lotus api.
+
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
@@ -182,7 +184,7 @@ impl From<Cid> for CIDMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::lotus::types::WalletKeyType;
+    use crate::lotus::response::WalletKeyType;
     use std::str::FromStr;
 
     #[test]

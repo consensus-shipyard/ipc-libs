@@ -1,4 +1,4 @@
-use crate::types::{
+use crate::response::{
     CIDMap, MpoolPushMessage, MpoolPushMessageInner, MpoolPushMessageResponse, ReadStateResponse,
     StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
@@ -15,14 +15,14 @@ use serde_json::json;
 use std::fmt::Debug;
 use std::str::FromStr;
 
-// RPC endpoints
-mod endpoints {
-    pub const MEM_PUSH_MESSAGE_ENDPOINT: &str = "Filecoin.MpoolPushMessage";
+// RPC methods
+mod methods {
+    pub const MPOOL_PUSH_MESSAGE: &str = "Filecoin.MpoolPushMessage";
     pub const STATE_WAIT_MSG: &str = "Filecoin.StateWaitMsg";
     pub const WALLET_NEW: &str = "Filecoin.WalletNew";
     pub const WALLET_LIST: &str = "Filecoin.WalletList";
     pub const WALLET_DEFAULT_ADDRESS: &str = "Filecoin.WalletDefaultAddress";
-    pub const READ_STATE: &str = "Filecoin.StateReadState";
+    pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
 }
 
 /// The lotus client
@@ -50,14 +50,14 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
             .map(|n| serde_json::Value::Number(n.into()))
             .unwrap_or(serde_json::Value::Null);
 
-        let f = |t: Option<TokenAmount>| {
+        let to_value = |t: Option<TokenAmount>| {
             t.map(|n| serde_json::Value::Number(n.atto().to_u64().unwrap().into()))
                 .unwrap_or(serde_json::Value::Null)
         };
-        let gas_limit = f(msg.gas_limit);
-        let gas_premium = f(msg.gas_premium);
-        let gas_fee_cap = f(msg.gas_fee_cap);
-        let max_fee = f(msg.max_fee);
+        let gas_limit = to_value(msg.gas_limit);
+        let gas_premium = to_value(msg.gas_premium);
+        let gas_fee_cap = to_value(msg.gas_fee_cap);
+        let max_fee = to_value(msg.max_fee);
 
         // refer to: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
         let to_send = json!([
@@ -83,7 +83,7 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
 
         let r = self
             .inner
-            .request::<MpoolPushMessageResponse>(endpoints::MEM_PUSH_MESSAGE_ENDPOINT, to_send)
+            .request::<MpoolPushMessageResponse>(methods::MPOOL_PUSH_MESSAGE, to_send)
             .await?;
         log::debug!("received mpool_push_message response: {r:?}");
 
@@ -96,7 +96,7 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
 
         let r = self
             .inner
-            .request::<StateWaitMsgResponse>(endpoints::STATE_WAIT_MSG, to_send)
+            .request::<StateWaitMsgResponse>(methods::STATE_WAIT_MSG, to_send)
             .await?;
         log::debug!("received state_wait_msg response: {r:?}");
         Ok(r)
@@ -106,7 +106,7 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletdefaultaddress
         let r = self
             .inner
-            .request::<String>(endpoints::WALLET_DEFAULT_ADDRESS, json!({}))
+            .request::<String>(methods::WALLET_DEFAULT_ADDRESS, json!({}))
             .await?;
         log::debug!("received wallet_default response: {r:?}");
 
@@ -118,7 +118,7 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletlist
         let r = self
             .inner
-            .request::<WalletListResponse>(endpoints::WALLET_LIST, json!({}))
+            .request::<WalletListResponse>(methods::WALLET_LIST, json!({}))
             .await?;
         log::debug!("received wallet_list response: {r:?}");
         Ok(r)
@@ -129,7 +129,7 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletnew
         let r = self
             .inner
-            .request::<String>(endpoints::WALLET_NEW, json!([s]))
+            .request::<String>(methods::WALLET_NEW, json!([s]))
             .await?;
         log::debug!("received wallet_new response: {r:?}");
         Ok(r)
@@ -144,7 +144,7 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
         let r = self
             .inner
             .request::<ReadStateResponse<State>>(
-                endpoints::READ_STATE,
+                methods::STATE_READ_STATE,
                 json!([address.to_string(), [CIDMap::from(tipset)]]),
             )
             .await?;

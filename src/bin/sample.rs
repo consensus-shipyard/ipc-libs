@@ -4,7 +4,7 @@ use ipc_client::{JsonRpcClientImpl, LotusApi, LotusClient};
 async fn main() {
     env_logger::init();
 
-    let h = JsonRpcClientImpl::new("".parse().unwrap(), None);
+    let h = JsonRpcClientImpl::new("<DEFINE YOUR URL HERE>".parse().unwrap(), None);
     let n = LotusClient::new(h);
     println!(
         "wallets: {:?}",
