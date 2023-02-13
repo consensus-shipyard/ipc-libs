@@ -12,11 +12,11 @@
 /// In this case, this macro is divided into two parts, one is the initialization of the handlers and
 /// the other is the association with the method names. See below for an example.
 ///
-/// TODO: The current association of the handler and the method should be improved.
-///
 /// # Examples
 ///
-/// ```
+/// ```no_run
+/// use agent::node::ClientNodeConfig;
+///
 /// agent::create_json_rpc_server!({
 ///     use agent::node::RPCNodeHandler;
 ///     use async_trait::async_trait;
@@ -177,7 +177,25 @@ macro_rules! create_json_rpc_server {
 /// First entry is the method name, second is the type of the instance, third is the instance itself.
 ///
 /// Note that currently we need to pass in `$type`, as we cannot derive the type of the instance handler
-/// in this macro. TODO: maybe we can use Derive procedure macro, can simplify the syntax a little.
+/// in this macro.
+///
+/// TODO: maybe we can use Derive procedure macro, can simplify the syntax a little.
+///
+/// # Examples
+/// This macro takes comma separated tuple. Each tuple represents one association.
+///
+/// ```ignore
+/// agent::associate!(
+///     // first entry `"bar"` is the json rpc method name.
+///     // second entry `Bar` is the type of the handle
+///     // third entry `bar` is the instance
+///     ("bar", Bar, bar),
+///     // first entry `"foo"` is the json rpc method name.
+///     // second entry `Foo` is the type of the handle
+///     // third entry `foo` is the instance
+///     ("foo", Foo, foo)
+/// );
+/// ```
 #[macro_export]
 macro_rules! associate {
     ( $(($method_name:expr, $type:ident, $handler:tt)),*) => {
