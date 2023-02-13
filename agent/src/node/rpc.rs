@@ -17,8 +17,63 @@
 /// # Examples
 ///
 /// ```
+/// agent::create_json_rpc_server!({
+///     use agent::node::RPCNodeHandler;
+///     use async_trait::async_trait;
+///
+///     pub struct Foo {}
+///
+///     #[async_trait]
+///     impl RPCNodeHandler for Foo {
+///         type Request = ();
+///         type Output = String;
+///         type Error = String;
+///
+///         async fn handle(&self, _request: &Self::Request) -> Result<Self::Output, Self::Error> {
+///             Ok(String::from("foo"))
+///         }
+///     }
+///
+///     pub struct Bar {}
+///
+///     #[async_trait]
+///     impl RPCNodeHandler for Bar {
+///         type Request = ();
+///         type Output = String;
+///         type Error = String;
+///
+///         async fn handle(&self, _request: &Self::Request) -> Result<Self::Output, Self::Error> {
+///             Ok(String::from("bar"))
+///         }
+///     }
+///
+///     let bar = Bar {};
+///     let foo = Foo {};
+///
+///     agent::associate!(("bar", Bar, bar), ("foo", Foo, foo))
+/// });
+///
 /// #[tokio::main]
-/// fn main() {
+/// async fn main() {
+///     let config = ClientNodeConfig::default();
+///     let rpc_node = node::IPCClientNode::new(config);
+///
+///     // Run on command line:
+///     // curl --location --request POST 'http://localhost:3030/json_rpc' \
+///     // --header 'Content-Type: application/json' \
+///     // --data-raw '{
+///     //     "id": 1,
+///     //     "method": "bar",
+///     //     "params": null,
+///     //     "jsonrpc": "2.0"
+///     // }'
+///     // It should print:
+///     //   {
+///     //     "id": 1,
+///     //     "jsonrpc": "2.0",
+///     //     "result": "bar"
+///     //   }
+///     rpc_node.run().await;
 /// }
 /// ```
 #[macro_export]
@@ -105,7 +160,7 @@ macro_rules! create_json_rpc_server {
                     };
 
                     let json_rpc = warp::post()
-                        .and(warp::path(crate::node::config::DEFAULT_RPC_ENDPOINT))
+                        .and(warp::path($crate::node::config::DEFAULT_RPC_ENDPOINT))
                         .and(warp::body::bytes())
                         .and_then(f);
 
@@ -158,13 +213,12 @@ macro_rules! associate {
 
 #[cfg(test)]
 mod test {
-    use crate::create_json_rpc_server;
     use crate::node::config::{DEFAULT_NODE_ADDR, DEFAULT_PROTOCOL, DEFAULT_RPC_ENDPOINT};
     use crate::node::ClientNodeConfig;
     use std::thread::sleep;
     use std::time::Duration;
 
-    create_json_rpc_server!({
+    crate::create_json_rpc_server!({
         use crate::node::RPCNodeHandler;
         use async_trait::async_trait;
 
@@ -209,18 +263,22 @@ mod test {
             rpc_node.run().await;
         });
 
-        sleep(Duration::new(10, 0));
+        sleep(Duration::new(1, 0));
 
-        let client = reqwest::Client::new();
-        let res = client
-            .post(format!(
-                "{}://{}/{}",
-                DEFAULT_PROTOCOL, DEFAULT_NODE_ADDR, DEFAULT_RPC_ENDPOINT
-            ))
-            .body("the exact body that is sent")
-            .send()
-            .await;
-        println!("{res:?}");
+        tokio::spawn(async {
+            let client = reqwest::Client::new();
+            let res = client
+                .post(format!(
+                    "{}://{}/{}",
+                    DEFAULT_PROTOCOL, DEFAULT_NODE_ADDR, DEFAULT_RPC_ENDPOINT
+                ))
+                .body("the exact body that is sent")
+                .send()
+                .await;
+            println!("{res:?}");
+        });
+
+        sleep(Duration::new(2, 0));
         h.abort();
     }
 }

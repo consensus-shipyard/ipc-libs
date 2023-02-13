@@ -2,9 +2,9 @@
 //! handler, represented by `RPCNodeHandler`. One must implement the `RPCNodeHandler` so that it
 //! can be registered to the node using `register_server_routes!`.
 
-mod config;
-mod rpc;
-mod types;
+pub mod config;
+pub mod rpc;
+pub mod types;
 
 use async_trait::async_trait;
 

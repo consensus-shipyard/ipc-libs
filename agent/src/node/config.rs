@@ -2,9 +2,11 @@ use serde::Deserialize;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
-pub(crate) const DEFAULT_NODE_ADDR: &str = "127.0.0.1:3030";
-pub(crate) const DEFAULT_PROTOCOL: &str = "http";
-pub(crate) const DEFAULT_RPC_ENDPOINT: &str = "json_rpc";
+pub const DEFAULT_NODE_ADDR: &str = "127.0.0.1:3030";
+#[allow(dead_code)]
+pub const DEFAULT_PROTOCOL: &str = "http";
+#[allow(dead_code)]
+pub const DEFAULT_RPC_ENDPOINT: &str = "json_rpc";
 
 /// The Client Node Configuration. This can be loaded from a static file.
 #[derive(Deserialize, Debug, Default)]
