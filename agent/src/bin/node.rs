@@ -1,6 +1,6 @@
 use agent::node::ClientNodeConfig;
 
-agent::create_json_rpc_server!({
+mod foo {
     use agent::node::RPCNodeHandler;
     use async_trait::async_trait;
 
@@ -16,6 +16,11 @@ agent::create_json_rpc_server!({
             Ok(String::from("foo"))
         }
     }
+}
+
+mod bar {
+    use agent::node::RPCNodeHandler;
+    use async_trait::async_trait;
 
     pub struct Bar {}
 
@@ -29,10 +34,14 @@ agent::create_json_rpc_server!({
             Ok(String::from("bar"))
         }
     }
+}
+
+agent::create_json_rpc_server!({
+    use crate::bar::Bar;
+    use crate::foo::Foo;
 
     let b = Bar {};
     let f = Foo {};
-
     agent::associate!(("bar", Bar, b), ("foo", Foo, f))
 });
 

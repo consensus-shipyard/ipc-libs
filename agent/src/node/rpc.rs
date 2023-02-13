@@ -173,6 +173,11 @@ macro_rules! create_json_rpc_server {
     };
 }
 
+/// Associate the instance of the RPC handler to method name.
+/// First entry is the method name, second is the type of the instance, third is the instance itself.
+///
+/// Note that currently we need to pass in `$type`, as we cannot derive the type of the instance handler
+/// in this macro. TODO: maybe we can use Derive procedure macro, can simplify the syntax a little.
 #[macro_export]
 macro_rules! associate {
     ( $(($method_name:expr, $type:ident, $handler:tt)),*) => {
@@ -183,6 +188,8 @@ macro_rules! associate {
 
         impl Handlers {
             pub async fn handle(&self, params: serde_json::Value) -> Result<serde_json::Value, String> {
+                use $crate::node::RPCNodeHandler;
+
                 match self {
                     $(
                     Handlers::$type(handler) => {
