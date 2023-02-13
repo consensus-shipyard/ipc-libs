@@ -25,7 +25,8 @@ mod methods {
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
 }
 
-/// The lotus client
+/// The lotus client that provides the basic Lotus Node API abstraction.
+/// Only basic functions are provided.
 pub struct LotusClient<Inner> {
     inner: Inner,
 }
