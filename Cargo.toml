@@ -18,3 +18,5 @@ tokio = { version = "1.16", features = ["full"] }
 tokio-tungstenite = { version = "0.18.0", features = ["native-tls"] }
 toml = "0.7.2"
 url = { version = "2.3.1", features = ["serde"] }
+ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git" }
+fvm_shared = { version = "3.0.0-alpha.17", default-features = false }
