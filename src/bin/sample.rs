@@ -1,4 +1,4 @@
-use ipc_client::{JsonRpcClientImpl, LotusApi, LotusClient};
+use ipc_client::{JsonRpcClientImpl, LotusClient, LotusClientApi};
 
 #[tokio::main]
 async fn main() {

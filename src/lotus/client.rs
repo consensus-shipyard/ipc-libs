@@ -2,8 +2,7 @@ use crate::response::{
     CIDMap, MpoolPushMessage, MpoolPushMessageInner, MpoolPushMessageResponse, ReadStateResponse,
     StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
-use crate::JsonRpcClient;
-use crate::LotusApi;
+use crate::{JsonRpcClient, LotusClientApi};
 use anyhow::Result;
 use async_trait::async_trait;
 use cid::Cid;
@@ -25,10 +24,10 @@ mod methods {
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
 }
 
-/// The lotus client that provides the basic Lotus Node API abstraction.
-/// Only basic functions are provided.
-pub struct LotusClient<Inner> {
-    inner: Inner,
+/// The struct implementation for Lotus Client API. It allows for multiple different trait
+/// extension.
+pub struct LotusClient<T> {
+    inner: T,
 }
 
 impl<Inner> LotusClient<Inner> {
@@ -38,7 +37,7 @@ impl<Inner> LotusClient<Inner> {
 }
 
 #[async_trait]
-impl<Inner: JsonRpcClient + Send + Sync> LotusApi for LotusClient<Inner> {
+impl<Inner: JsonRpcClient + Send + Sync> LotusClientApi for LotusClient<Inner> {
     async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner> {
         let from = if let Some(f) = msg.from {
             f

@@ -15,8 +15,9 @@ pub use crate::lotus::response::{
     ReadStateResponse, StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
 
+/// The Lotus client api to interact with the Lotus node.
 #[async_trait]
-pub trait LotusApi {
+pub trait LotusClientApi {
     /// Push the message to memory pool, see: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
     async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner>;
 
