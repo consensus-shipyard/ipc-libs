@@ -75,11 +75,9 @@ impl JsonRpcClient for JsonRpcClientImpl {
 
         let value = serde_json::from_str::<JsonRpcResponse<Res>>(response_body.as_ref())?;
 
-        debug_assert!(value.id == DEFAULT_JSON_RPC_ID, "json rpc id should match");
-        debug_assert!(
-            value.jsonrpc == DEFAULT_JSON_RPC_VERSION,
-            "json rpc version should match"
-        );
+        if value.id == DEFAULT_JSON_RPC_ID || value.jsonrpc == DEFAULT_JSON_RPC_VERSION {
+            return Err(anyhow!("json_rpc id or version not matching."));
+        }
 
         Result::from(value)
     }
