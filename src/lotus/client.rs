@@ -1,4 +1,4 @@
-use crate::response::{
+use crate::message::{
     CIDMap, MpoolPushMessage, MpoolPushMessageInner, MpoolPushMessageResponse, ReadStateResponse,
     StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
@@ -26,25 +26,19 @@ mod methods {
 
 /// The struct implementation for Lotus Client API. It allows for multiple different trait
 /// extension.
-pub struct LotusClient<T> {
+pub struct LotusJsonRPCClient<T: JsonRpcClient> {
     inner: T,
 }
 
-impl<Inner> LotusClient<Inner> {
-    pub fn new(inner: Inner) -> Self {
+impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
+    pub fn new(inner: T) -> Self {
         Self { inner }
     }
 }
 
 #[async_trait]
-impl<Inner: JsonRpcClient + Send + Sync> LotusClientApi for LotusClient<Inner> {
+impl<T: JsonRpcClient + Send + Sync> LotusClientApi for LotusJsonRPCClient<T> {
     async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner> {
-        let from = if let Some(f) = msg.from {
-            f
-        } else {
-            self.wallet_default().await?
-        };
-
         let nonce = msg
             .nonce
             .map(|n| serde_json::Value::Number(n.into()))
@@ -60,10 +54,10 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusClientApi for LotusClient<Inner> {
         let max_fee = to_value(msg.max_fee);
 
         // refer to: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
-        let to_send = json!([
+        let params = json!([
             {
                 "to": msg.to.to_string(),
-                "from": from.to_string(),
+                "from": msg.from.to_string(),
                 "value": msg.value.atto().to_string(),
                 "method": msg.method,
                 "params": msg.params,
@@ -83,7 +77,7 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusClientApi for LotusClient<Inner> {
 
         let r = self
             .inner
-            .request::<MpoolPushMessageResponse>(methods::MPOOL_PUSH_MESSAGE, to_send)
+            .request::<MpoolPushMessageResponse>(methods::MPOOL_PUSH_MESSAGE, params)
             .await?;
         log::debug!("received mpool_push_message response: {r:?}");
 
@@ -92,11 +86,11 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusClientApi for LotusClient<Inner> {
 
     async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
-        let to_send = json!([CIDMap::from(cid), nonce]);
+        let params = json!([CIDMap::from(cid), nonce]);
 
         let r = self
             .inner
-            .request::<StateWaitMsgResponse>(methods::STATE_WAIT_MSG, to_send)
+            .request::<StateWaitMsgResponse>(methods::STATE_WAIT_MSG, params)
             .await?;
         log::debug!("received state_wait_msg response: {r:?}");
         Ok(r)
@@ -125,11 +119,11 @@ impl<Inner: JsonRpcClient + Send + Sync> LotusClientApi for LotusClient<Inner> {
     }
 
     async fn wallet_new(&self, key_type: WalletKeyType) -> Result<String> {
-        let s = key_type.as_ref();
+        let key_type_str = key_type.as_ref();
         // refer to: https://lotus.filecoin.io/reference/lotus/wallet/#walletnew
         let r = self
             .inner
-            .request::<String>(methods::WALLET_NEW, json!([s]))
+            .request::<String>(methods::WALLET_NEW, json!([key_type_str]))
             .await?;
         log::debug!("received wallet_new response: {r:?}");
         Ok(r)

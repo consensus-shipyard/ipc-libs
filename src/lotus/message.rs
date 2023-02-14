@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use strum::{AsRefStr, Display, EnumString};
 
+/// Exec actor parameters
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ExecParams {
@@ -15,6 +16,7 @@ pub struct ExecParams {
     pub constructor_params: Vec<u8>,
 }
 
+/// Install actor parameters
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct InstallActorParams {
@@ -84,6 +86,7 @@ pub struct MpoolPushMessageResponse {
     pub cid: CIDMap,
 }
 
+/// The internal message payload that node rpc sends for `MpoolPushMessageResponse`.
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct MpoolPushMessageInner {
@@ -125,7 +128,7 @@ impl MpoolPushMessageInner {
 
 pub struct MpoolPushMessage {
     pub to: Address,
-    pub from: Option<Address>,
+    pub from: Address,
     pub value: TokenAmount,
     pub method: MethodNum,
     pub params: Vec<u8>,
@@ -140,7 +143,7 @@ pub struct MpoolPushMessage {
 }
 
 impl MpoolPushMessage {
-    pub fn new(to: Address, from: Option<Address>, method: MethodNum, params: Vec<u8>) -> Self {
+    pub fn new(to: Address, from: Address, method: MethodNum, params: Vec<u8>) -> Self {
         MpoolPushMessage {
             to,
             from,
@@ -184,7 +187,7 @@ impl From<Cid> for CIDMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::lotus::response::WalletKeyType;
+    use crate::lotus::message::WalletKeyType;
     use std::str::FromStr;
 
     #[test]

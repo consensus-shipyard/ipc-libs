@@ -31,15 +31,30 @@ pub const NO_PARAMS: Value = json!([]);
 #[async_trait]
 pub trait JsonRpcClient {
     /// Sends a JSON-RPC request with `method` and `params` via HTTP/HTTPS.
-    async fn request<Res: DeserializeOwned>(&self, method: &str, params: Value) -> Result<Res>;
+    async fn request<T: DeserializeOwned>(&self, method: &str, params: Value) -> Result<T>;
 
     /// Subscribes to notifications via a Websocket. This returns a [`Receiver`]
     /// channel that is used to receive the messages sent by the server.
-    /// TODO: update this to use typed generics instead of `serde_json::Value`.
+    /// TODO: https://github.com/consensus-shipyard/ipc-agent/issues/7.
     async fn subscribe(&self, method: &str) -> Result<Receiver<Value>>;
 }
 
 /// The implementation of [`JsonRpcClient`].
+///
+/// # Examples
+/// ```no_run
+/// use ipc_client::{JsonRpcClientImpl, LotusClientApi, LotusJsonRPCClient};
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let h = JsonRpcClientImpl::new("<DEFINE YOUR URL HERE>".parse().unwrap(), None);
+///     let n = LotusJsonRPCClient::new(h);
+///     println!(
+///         "wallets: {:?}",
+///         n.wallet_new(ipc_client::WalletKeyType::Secp256k1).await
+///     );
+/// }
+/// ```
 pub struct JsonRpcClientImpl {
     http_client: Client,
     url: Url,
@@ -59,7 +74,7 @@ impl JsonRpcClientImpl {
 
 #[async_trait]
 impl JsonRpcClient for JsonRpcClientImpl {
-    async fn request<Res: DeserializeOwned>(&self, method: &str, params: Value) -> Result<Res> {
+    async fn request<T: DeserializeOwned>(&self, method: &str, params: Value) -> Result<T> {
         let request_body = build_jsonrpc_request(method, params)?;
         let mut builder = self.http_client.post(self.url.as_str()).json(&request_body);
 
@@ -73,7 +88,7 @@ impl JsonRpcClient for JsonRpcClientImpl {
         let response_body = response.text().await?;
         log::debug!("received raw response body: {:?}", response_body);
 
-        let value = serde_json::from_str::<JsonRpcResponse<Res>>(response_body.as_ref())?;
+        let value = serde_json::from_str::<JsonRpcResponse<T>>(response_body.as_ref())?;
 
         if value.id == DEFAULT_JSON_RPC_ID || value.jsonrpc == DEFAULT_JSON_RPC_VERSION {
             return Err(anyhow!("json_rpc id or version not matching."));
@@ -106,12 +121,14 @@ impl JsonRpcClient for JsonRpcClientImpl {
     }
 }
 
+/// JsonRpcResponse wraps the json rpc response.
+/// We could have encountered success or error, this struct handles the error and result and convert
+/// them into Result.
 #[derive(Debug, Deserialize)]
 struct JsonRpcResponse<T> {
     id: u8,
     jsonrpc: String,
 
-    // we could have encountered success or error, request is handling both cases
     result: Option<T>,
     error: Option<Value>,
 }
