@@ -1,11 +1,7 @@
 //! Provides a simple way of reading configuration files.
 //!
 //! Reads a TOML config file for the IPC Agent and deserializes it in a type-safe way into a
-//! [`Config`] struct. Usage:
-//!
-//! ```
-//! let c: Config = Config::from_file("config/example.toml");
-//! ```
+//! [`Config`] struct.
 
 use std::collections::HashMap;
 use std::fmt::Formatter;
@@ -19,8 +15,8 @@ use serde::de::{Error, SeqAccess};
 use serde::{Deserialize, Deserializer};
 use url::Url;
 
-/// The top-level struct representing the config. Calls to [`Config::from_file`] deserialize into this
-/// struct.
+/// The top-level struct representing the config. Calls to [`Config::from_file`] deserialize into
+/// this struct.
 #[derive(Deserialize)]
 pub(crate) struct Config {
     pub subnets: HashMap<String, Subnet>,
@@ -30,18 +26,25 @@ pub(crate) struct Config {
 #[derive(Deserialize)]
 pub struct Subnet {
     #[serde(deserialize_with = "deserialize_path")]
-    path: SubnetID,
-    rpc_api: Url,
+    id: SubnetID,
+    jsonrpc_api_http: Url,
+    jsonrpc_api_ws: Option<Url>,
     auth_token: Option<String>,
     #[serde(deserialize_with = "deserialize_accounts", default)]
     accounts: Vec<Address>,
 }
 
 impl Config {
+    /// Reads a TOML configuration in the `s` string and returns a [`Config`] struct.
+    pub fn from_str(s: &str) -> Result<Self> {
+        let config = toml::from_str(&s)?;
+        Ok(config)
+    }
+
     /// Reads a TOML configuration file specified in the `path` and returns a [`Config`] struct.
     pub fn from_file(path: &str) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&contents)?;
+        let config: Config = Config::from_str(contents.as_str())?;
         Ok(config)
     }
 }
@@ -103,34 +106,66 @@ mod tests {
     use std::str::FromStr;
 
     use fvm_shared::address::Address;
-    use ipc_sdk::subnet_id::SubnetID;
+    use indoc::formatdoc;
+    use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
     use url::Url;
 
     use crate::config::Config;
 
     #[test]
-    fn read_example_config() {
-        let path = "config/test_example.toml";
-        let test_addr = "f3thgjtvoi65yzdcoifgqh6utjbaod3ukidxrx34heu34d6avx6z7r5766t5jqt42a44ehzcnw3u5ehz47n42a";
-        let test_url = "https://example.org/rpc/v0";
-        let root_path = "/root";
-        let token_root = "token_root";
-        let token_child = "token_child";
-        let child_path = format!("{}/{}", "/root/", test_addr);
+    fn read_config() {
+        // Arguments for the config's fields
+        let root_id = "/root";
+        let child_id = "/root/f0100";
+        let root_auth_token = "root_auth_token";
+        let child_auth_token = "child_auth_token";
+        let jsonrpc_api_http = "https://example.org/rpc/v0";
+        let jsonrpc_api_ws = "ws://example.org/rpc/v0";
+        let account_address = "f3thgjtvoi65yzdcoifgqh6utjbaod3ukidxrx34heu34d6avx6z7r5766t5jqt42a44ehzcnw3u5ehz47n42a";
 
-        let config = Config::from_file(path).unwrap();
+        let config_str = formatdoc!(
+            r#"
+            [subnets]
+
+            [subnets.root]
+            id = "{root_id}"
+            jsonrpc_api_http = "{jsonrpc_api_http}"
+            jsonrpc_api_ws = "{jsonrpc_api_ws}"
+            auth_token = "{root_auth_token}"
+
+            [subnets.child]
+            id = "{child_id}"
+            jsonrpc_api_http = "{jsonrpc_api_http}"
+            auth_token = "{child_auth_token}"
+            accounts = ["{account_address}"]
+        "#
+        );
+
+        println!("{}", config_str);
+        let config = Config::from_str(config_str.as_str()).unwrap();
 
         let root = &config.subnets["root"];
-        assert_eq!(root.path, SubnetID::from_str(root_path).unwrap());
-        assert_eq!(root.rpc_api, Url::from_str(test_url).unwrap());
-        assert_eq!(root.auth_token.as_ref().unwrap(), token_root);
-        assert_eq!(root.accounts.as_ref(), vec![]);
+        assert_eq!(root.id, *ROOTNET_ID);
+        assert_eq!(
+            root.jsonrpc_api_http,
+            Url::from_str(jsonrpc_api_http).unwrap()
+        );
+        assert_eq!(
+            root.jsonrpc_api_ws.as_ref().unwrap(),
+            &Url::from_str(jsonrpc_api_ws).unwrap()
+        );
+        assert_eq!(root.auth_token.as_ref().unwrap(), root_auth_token);
 
         let child = &config.subnets["child"];
-        assert_eq!(child.path, SubnetID::from_str(child_path.as_str()).unwrap());
-        assert_eq!(child.rpc_api, Url::from_str(test_url).unwrap());
-        let address = Address::from_str(test_addr).unwrap();
-        assert_eq!(child.auth_token.as_ref().unwrap(), token_child);
-        assert_eq!(child.accounts.as_ref(), vec![address]);
+        assert_eq!(child.id, SubnetID::from_str(child_id).unwrap());
+        assert_eq!(
+            child.jsonrpc_api_http,
+            Url::from_str(jsonrpc_api_http).unwrap()
+        );
+        assert_eq!(child.auth_token.as_ref().unwrap(), child_auth_token);
+        assert_eq!(
+            child.accounts.as_ref(),
+            vec![Address::from_str(account_address).unwrap()]
+        );
     }
 }
