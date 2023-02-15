@@ -81,7 +81,7 @@ pub struct Receipt {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct MpoolPushMessageResponse {
-    pub message: MpoolPushMessageInner,
+    pub message: MpoolPushMessageResponseInner,
     #[serde(rename = "CID")]
     pub cid: CIDMap,
 }
@@ -89,7 +89,7 @@ pub struct MpoolPushMessageResponse {
 /// The internal message payload that node rpc sends for `MpoolPushMessageResponse`.
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
-pub struct MpoolPushMessageInner {
+pub struct MpoolPushMessageResponseInner {
     to: String,
     from: String,
     pub value: String,
@@ -109,7 +109,7 @@ pub struct MpoolPushMessageInner {
     pub cid: CIDMap,
 }
 
-impl MpoolPushMessageInner {
+impl MpoolPushMessageResponseInner {
     pub fn get_root_cid(&self) -> Option<Cid> {
         self.cid
             .cid

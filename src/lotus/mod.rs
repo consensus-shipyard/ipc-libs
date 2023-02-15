@@ -10,16 +10,19 @@ use serde::de::DeserializeOwned;
 use std::fmt::Debug;
 
 pub use crate::lotus::client::LotusJsonRPCClient;
-pub use crate::lotus::message::{MpoolPushMessage, MpoolPushMessageInner};
+pub use crate::lotus::message::{MpoolPushMessage, MpoolPushMessageResponseInner};
 pub use crate::lotus::message::{
     ReadStateResponse, StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
 
 /// The Lotus client api to interact with the Lotus node.
 #[async_trait]
-pub trait LotusClientApi {
+pub trait LotusClient {
     /// Push the message to memory pool, see: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
-    async fn mpool_push_message(&self, msg: MpoolPushMessage) -> Result<MpoolPushMessageInner>;
+    async fn mpool_push_message(
+        &self,
+        msg: MpoolPushMessage,
+    ) -> Result<MpoolPushMessageResponseInner>;
 
     /// Wait for the message cid of a particular nonce, see: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
     async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse>;

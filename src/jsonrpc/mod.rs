@@ -43,7 +43,7 @@ pub trait JsonRpcClient {
 ///
 /// # Examples
 /// ```no_run
-/// use ipc_client::{JsonRpcClientImpl, LotusClientApi, LotusJsonRPCClient};
+/// use ipc_client::{JsonRpcClientImpl, LotusClient, LotusJsonRPCClient};
 ///
 /// #[tokio::main]
 /// async fn main() {
