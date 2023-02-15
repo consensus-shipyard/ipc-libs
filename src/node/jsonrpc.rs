@@ -1,10 +1,15 @@
-use crate::node::config::{IPCJsonRPCNodeConfig, DEFAULT_RPC_ENDPOINT, DEFAULT_RPC_VERSION};
+use crate::node::config::{
+    IPCJsonRPCNodeConfig, DEFAULT_JSON_RPC_ENDPOINT, DEFAULT_JSON_RPC_VERSION,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::Infallible;
 use warp::Filter;
 
-/// The IPC JSON RPC node that contains all the methods and handlers.
+/// The IPC JSON RPC node that contains all the methods and handlers. The underlying implementation
+/// is using `warp`.
+///
+/// Note that currently only http json rpc is supported.
 ///
 /// # Examples
 /// ```no_run
@@ -39,7 +44,7 @@ impl IPCJsonRPCNode {
 fn json_rpc_filter() -> impl Filter<Extract = (warp::reply::Json,), Error = warp::Rejection> + Copy
 {
     warp::post()
-        .and(warp::path(DEFAULT_RPC_ENDPOINT))
+        .and(warp::path(DEFAULT_JSON_RPC_ENDPOINT))
         .and(warp::body::bytes())
         .and_then(process)
 }
@@ -69,7 +74,7 @@ async fn process(bytes: bytes::Bytes) -> Result<warp::reply::Json, Infallible> {
             log::error!("cannot parse parameter due to {e:?}");
             Ok(warp::reply::json(&JSONRPCResponse {
                 id: 0,
-                jsonrpc: String::from(DEFAULT_RPC_VERSION),
+                jsonrpc: String::from(DEFAULT_JSON_RPC_VERSION),
                 result: serde_json::Value::String(String::from("Cannot parse parameters")),
             }))
         }
@@ -94,7 +99,7 @@ struct JSONRPCResponse<T: Serialize> {
 
 #[cfg(test)]
 mod test {
-    use crate::node::config::{DEFAULT_RPC_ENDPOINT, DEFAULT_RPC_VERSION};
+    use crate::node::config::{DEFAULT_JSON_RPC_ENDPOINT, DEFAULT_JSON_RPC_VERSION};
     use crate::node::jsonrpc::{json_rpc_filter, JSONRPCParam, JSONRPCResponse};
 
     #[tokio::test]
@@ -102,7 +107,7 @@ mod test {
         let filter = json_rpc_filter();
 
         let foo = "foo".to_string();
-        let jsonrpc = String::from(DEFAULT_RPC_VERSION);
+        let jsonrpc = String::from(DEFAULT_JSON_RPC_VERSION);
         let id = 0;
 
         let req = JSONRPCParam {
@@ -114,7 +119,7 @@ mod test {
         // Execute `sum` and get the `Extract` back.
         let value = warp::test::request()
             .method("POST")
-            .path(&format!("/{DEFAULT_RPC_ENDPOINT:}"))
+            .path(&format!("/{DEFAULT_JSON_RPC_ENDPOINT:}"))
             .json(&req)
             .reply(&filter)
             .await;
@@ -133,7 +138,7 @@ mod test {
         // Execute `sum` and get the `Extract` back.
         let value = warp::test::request()
             .method("POST")
-            .path(&format!("/{DEFAULT_RPC_ENDPOINT:}"))
+            .path(&format!("/{DEFAULT_JSON_RPC_ENDPOINT:}"))
             .json(&())
             .reply(&filter)
             .await;
