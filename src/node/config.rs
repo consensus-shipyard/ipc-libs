@@ -9,12 +9,12 @@ pub const DEFAULT_JSON_RPC_VERSION: &str = "2.0";
 
 /// The IPC Json RPC client node Configuration. This can be loaded from a static file.
 #[derive(Deserialize, Debug, Default)]
-pub struct IPCJsonRPCNodeConfig {
+pub struct IPCAgentJsonRPCNodeConfig {
     /// The addr for this node, default to `DEFAULT_NODE_ADDR`
     addr: Option<SocketAddr>,
 }
 
-impl IPCJsonRPCNodeConfig {
+impl IPCAgentJsonRPCNodeConfig {
     pub fn addr(&self) -> SocketAddr {
         self.addr
             .unwrap_or_else(|| SocketAddr::from_str(DEFAULT_JSON_RPC_ADDR).unwrap())

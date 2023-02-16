@@ -1,5 +1,5 @@
 use crate::node::config::{
-    IPCJsonRPCNodeConfig, DEFAULT_JSON_RPC_ENDPOINT, DEFAULT_JSON_RPC_VERSION,
+    IPCAgentJsonRPCNodeConfig, DEFAULT_JSON_RPC_ENDPOINT, DEFAULT_JSON_RPC_VERSION,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,21 +13,21 @@ use warp::Filter;
 ///
 /// # Examples
 /// ```no_run
-/// use agent::node::config::IPCJsonRPCNodeConfig;
-/// use agent::node::jsonrpc::IPCJsonRPCNode;
+/// use agent::node::config::IPCAgentJsonRPCNodeConfig;
+/// use agent::node::jsonrpc::IPCAgentJsonRPCNode;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let n = IPCJsonRPCNode::new(IPCJsonRPCNodeConfig::default());
+///     let n = IPCAgentJsonRPCNode::new(IPCAgentJsonRPCNodeConfig::default());
 ///     n.run().await;
 /// }
 /// ```
-pub struct IPCJsonRPCNode {
-    config: IPCJsonRPCNodeConfig,
+pub struct IPCAgentJsonRPCNode {
+    config: IPCAgentJsonRPCNodeConfig,
 }
 
-impl IPCJsonRPCNode {
-    pub fn new(config: IPCJsonRPCNodeConfig) -> Self {
+impl IPCAgentJsonRPCNode {
+    pub fn new(config: IPCAgentJsonRPCNodeConfig) -> Self {
         Self { config }
     }
 
