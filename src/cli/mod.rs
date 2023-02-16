@@ -7,7 +7,7 @@ use clap::Args;
 /// how to register.
 ///
 /// Note that this trait does not support a stateful implementation as we assume CLI commands are all
-/// constructed from scratch. Initialize the states in the `handle` method.
+/// constructed from scratch.
 #[async_trait]
 pub trait CommandLineHandler {
     /// Abstraction for command line operations.
