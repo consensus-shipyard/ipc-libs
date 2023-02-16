@@ -1,7 +1,10 @@
-mod jsonrpc;
-mod config;
-mod lotus;
 mod cli;
+mod config;
 mod error;
+mod jsonrpc;
+mod lotus;
 
-fn main() {}
+#[tokio::main]
+async fn main() {
+    cli::cli().await;
+}
