@@ -33,7 +33,7 @@ impl IPCAgentJsonRPCNode {
 
     /// Runs the node in the current thread
     pub async fn run(&self) {
-        log::info!("rpc node started at {:?}", self.config.addr());
+        log::info!("IPC agent rpc node listening at {:?}", self.config.addr());
         warp::serve(json_rpc_filter()).run(self.config.addr()).await;
     }
 }
