@@ -10,13 +10,13 @@ use clap::Args;
 /// constructed from scratch. Initialize the states in the `handle` method.
 #[async_trait]
 pub trait CommandLineHandler {
-    /// The request to process.
+    /// The command line argument to process.
     ///
     /// NOTE that this parameter is used to generate the command line arguments.
     /// Currently we are directly integrating with `clap` crate. In the future we can use our own
     /// implementation to abstract away external crates. But this should be good for now.
-    type Request: std::fmt::Debug + Args;
+    type Argument: std::fmt::Debug + Args;
 
     /// Handles the request and produces a response string.
-    async fn handle(request: &Self::Request) -> Result<String, Error>;
+    async fn handle(request: &Self::Argument) -> Result<String, Error>;
 }
