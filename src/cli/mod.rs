@@ -10,7 +10,7 @@ use clap::Args;
 /// constructed from scratch. Initialize the states in the `handle` method.
 #[async_trait]
 pub trait CommandLineHandler {
-    /// The request to process.
+    /// Abstraction for command line operations.
     ///
     /// NOTE that this parameter is used to generate the command line arguments.
     /// Currently we are directly integrating with `clap` crate. In the future we can use our own
