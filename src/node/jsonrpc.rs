@@ -80,7 +80,7 @@ async fn to_json_rpc_request(bytes: Bytes) -> Result<JSONRPCRequest, warp::Rejec
     })
 }
 
-/// To handle the json rpc request. Currently just log it.
+/// Main function responsible for handling and routing jsonrpc requests to the right underlying handler according to the method
 async fn handle_request(json_rpc_request: JSONRPCRequest) -> Result<impl Reply, warp::Rejection> {
     log::debug!("received json rpc request = {:?}", json_rpc_request);
 
