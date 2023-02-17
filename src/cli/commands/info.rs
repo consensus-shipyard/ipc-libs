@@ -5,17 +5,22 @@ use clap::Args;
 use std::fmt::Debug;
 
 use crate::cli::CommandLineHandler;
-use crate::error::Error;
 
 /// Sample echo command for testing purposes
 pub(crate) struct Info;
 
 #[async_trait]
 impl CommandLineHandler for Info {
-    type Request = InfoArgs;
+    type Arguments = InfoArgs;
 
-    async fn handle(_request: &Self::Request) -> Result<String, Error> {
-        Ok(format!("echo: {:}", request.to_echo))
+    async fn handle(_arguments: &Self::Arguments) -> anyhow::Result<()> {
+        println!(
+            r#"
+            Implementation of an IPC agent.
+            Version: v0.0.1
+            "#
+        );
+        Ok(())
     }
 }
 

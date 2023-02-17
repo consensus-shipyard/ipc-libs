@@ -27,7 +27,7 @@ use std::fmt::Debug;
 /// Also add this type to Command enum.
 /// ```ignore
 /// enum Commands {
-///     NewCommand(<NewCommand as CommandLineHandler>::Request),
+///     NewCommand(<NewCommand as CommandLineHandler>::Arguments),
 /// }
 /// ```
 pub async fn cli() {
@@ -44,7 +44,7 @@ pub async fn cli() {
             args.command,
             e
         ),
-        Ok(_) => log::info!("{}", r.unwrap()),
+        Ok(_) => {},
     }
 }
 
@@ -52,7 +52,7 @@ pub async fn cli() {
 /// to the current mode. Register a new command accordingly.
 #[derive(Debug, Subcommand)]
 enum Commands {
-    Echo(<info::Info as CommandLineHandler>::Request),
+    Echo(<info::Info as CommandLineHandler>::Arguments),
 }
 
 /// The overall command line struct to be used by `clap`.
