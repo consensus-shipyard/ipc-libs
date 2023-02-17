@@ -63,7 +63,7 @@ impl IPCAgentJsonRPCNode {
 /// Create the json_rpc filter. The filter does the following:
 /// - Listen to POST requests on the DEFAULT_JSON_RPC_ENDPOINT
 /// - Extract the body of the request.
-/// - Pass it to to the process function.
+/// - Pass it to to the json_rpc_filter to deserialize into a jsonrpc request.
 fn json_rpc_filter() -> impl Filter<Extract = (impl Reply,), Error = warp::Rejection> + Copy {
     warp::post()
         .and(warp::path(DEFAULT_JSON_RPC_ENDPOINT))
