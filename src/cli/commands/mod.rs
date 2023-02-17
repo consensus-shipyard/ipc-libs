@@ -1,6 +1,6 @@
 //! The module that contains all the CLI commands.
 
-mod echo;
+mod info;
 
 use crate::cli::CommandLineHandler;
 use clap::{Parser, Subcommand};
@@ -35,7 +35,7 @@ pub async fn cli() {
     let args = IPCAgentCliCommands::parse();
 
     let r = match &args.command {
-        Commands::Echo(n) => <echo::Echo as CommandLineHandler>::handle(n).await,
+        Commands::Echo(n) => <info::Info as CommandLineHandler>::handle(n).await,
     };
 
     match r {
@@ -52,7 +52,7 @@ pub async fn cli() {
 /// to the current mode. Register a new command accordingly.
 #[derive(Debug, Subcommand)]
 enum Commands {
-    Echo(<echo::Echo as CommandLineHandler>::Request),
+    Echo(<info::Info as CommandLineHandler>::Request),
 }
 
 /// The overall command line struct to be used by `clap`.
