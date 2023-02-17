@@ -26,5 +26,4 @@ impl CommandLineHandler for Info {
 
 #[derive(Debug, Args)]
 #[command(about = "Prints info of the the ipc agent")]
-pub(crate) struct InfoArgs {
-}
+pub(crate) struct InfoArgs {}

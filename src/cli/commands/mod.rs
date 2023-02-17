@@ -35,16 +35,15 @@ pub async fn cli() {
     let args = IPCAgentCliCommands::parse();
 
     let r = match &args.command {
-        Commands::Echo(n) => <info::Info as CommandLineHandler>::handle(n).await,
+        Commands::Info(n) => <info::Info as CommandLineHandler>::handle(n).await,
     };
 
-    match r {
-        Err(e) => log::error!(
+    if let Err(e) = r {
+        log::error!(
             "process command: {:?} failed due to error: {:?}",
             args.command,
             e
-        ),
-        Ok(_) => {},
+        )
     }
 }
 
@@ -52,7 +51,7 @@ pub async fn cli() {
 /// to the current mode. Register a new command accordingly.
 #[derive(Debug, Subcommand)]
 enum Commands {
-    Echo(<info::Info as CommandLineHandler>::Arguments),
+    Info(<info::Info as CommandLineHandler>::Arguments),
 }
 
 /// The overall command line struct to be used by `clap`.
