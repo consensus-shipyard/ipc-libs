@@ -15,6 +15,6 @@ pub trait CommandLineHandler {
     /// implementation to abstract away external crates. But this should be good for now.
     type Arguments: std::fmt::Debug + Args;
 
-    /// Handles the request and produces a response string.
+    /// Handles the request with the provided arguments. Dev should handle the content to print and how
     async fn handle(arguments: &Self::Arguments) -> anyhow::Result<()>;
 }
