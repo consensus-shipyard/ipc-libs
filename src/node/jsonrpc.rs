@@ -72,7 +72,7 @@ fn json_rpc_filter() -> impl Filter<Extract = (impl Reply,), Error = warp::Rejec
         .and_then(handle_request)
         .recover(handle_rejection)
 }
-
+// Filter that deserializes the body of the request into a jsonrpc request.
 async fn to_json_rpc_request(bytes: Bytes) -> Result<JSONRPCRequest, warp::Rejection> {
     serde_json::from_slice::<JSONRPCRequest>(bytes.as_ref()).map_err(|e| {
         log::debug!("cannot deserialize {bytes:?} due to {e:?}");
