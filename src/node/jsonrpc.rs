@@ -1,10 +1,30 @@
-use crate::node::config::{
-    IPCAgentJsonRPCNodeConfig, DEFAULT_JSON_RPC_ENDPOINT, DEFAULT_JSON_RPC_VERSION,
-};
+use crate::node::config::{IPCAgentJsonRPCNodeConfig, DEFAULT_JSON_RPC_ENDPOINT};
+use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::convert::Infallible;
-use warp::Filter;
+use warp::http::StatusCode;
+use warp::reject::Reject;
+use warp::reply::with_status;
+use warp::{Filter, Rejection, Reply};
+
+/// The json rpc request param. It is the standard form our json-rpc and follows a structure similar
+/// to the one of the Ethereum RPC: https://ethereum.org/en/developers/docs/apis/json-rpc/#curl-examples
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONRPCRequest {
+    pub id: u16,
+    pub jsonrpc: String,
+    pub method: String,
+    pub params: Value,
+}
+
+/// The json rpc response. It is the standard form our json-rpc and follows a structure similar
+/// to the one of the Ethereum RPC: https://ethereum.org/en/developers/docs/apis/json-rpc/#curl-examples
+#[derive(Debug, Serialize, Deserialize)]
+struct JSONRPCResponse<T: Serialize> {
+    pub id: u16,
+    pub jsonrpc: String,
+    pub result: T,
+}
 
 /// The IPC JSON RPC node that contains all the methods and handlers. The underlying implementation
 /// is using `warp`.
@@ -40,67 +60,71 @@ impl IPCAgentJsonRPCNode {
 
 // Internal implementations
 
-/// Create the json_rpc filter
-fn json_rpc_filter() -> impl Filter<Extract = (warp::reply::Json,), Error = warp::Rejection> + Copy
-{
+/// Create the json_rpc filter. The filter does the following:
+/// - Listen to POST requests on the DEFAULT_JSON_RPC_ENDPOINT
+/// - Extract the body of the request.
+/// - Pass it to to the process function.
+fn json_rpc_filter() -> impl Filter<Extract = (impl Reply,), Error = warp::Rejection> + Copy {
     warp::post()
         .and(warp::path(DEFAULT_JSON_RPC_ENDPOINT))
         .and(warp::body::bytes())
-        .and_then(process)
+        .and_then(to_json_rpc_request)
+        .and_then(handle_request)
+        .recover(handle_rejection)
 }
 
-/// The process method for the JSON RPC node.
-async fn process(bytes: bytes::Bytes) -> Result<warp::reply::Json, Infallible> {
-    log::debug!("received bytes = {:?}", bytes);
+async fn to_json_rpc_request(bytes: Bytes) -> Result<JSONRPCRequest, warp::Rejection> {
+    serde_json::from_slice::<JSONRPCRequest>(bytes.as_ref()).map_err(|e| {
+        log::debug!("cannot deserialize {bytes:?} due to {e:?}");
+        warp::reject::custom(InvalidParameter)
+    })
+}
 
-    match serde_json::from_slice::<JSONRPCParam>(bytes.as_ref()) {
-        Ok(p) => {
-            let JSONRPCParam {
-                id,
-                method,
-                params,
-                jsonrpc,
-            } = p;
+/// To handle the json rpc request. Currently just log it.
+async fn handle_request(json_rpc_request: JSONRPCRequest) -> Result<impl Reply, warp::Rejection> {
+    log::debug!("received json rpc request = {:?}", json_rpc_request);
 
-            log::debug!("received method = {method:?} and params = {params:?}");
+    let JSONRPCRequest {
+        id,
+        method,
+        params,
+        jsonrpc,
+    } = json_rpc_request;
 
-            Ok(warp::reply::json(&JSONRPCResponse {
-                id,
-                jsonrpc,
-                result: (),
-            }))
-        }
-        Err(e) => {
-            log::error!("cannot parse parameter due to {e:?}");
-            Ok(warp::reply::json(&JSONRPCResponse {
-                id: 0,
-                jsonrpc: String::from(DEFAULT_JSON_RPC_VERSION),
-                result: serde_json::Value::String(String::from("Cannot parse parameters")),
-            }))
-        }
+    log::info!("received method = {method:?} and params = {params:?}");
+
+    Ok(warp::reply::json(&JSONRPCResponse {
+        id,
+        jsonrpc,
+        result: (),
+    }))
+}
+
+/// The invalid parameter warp rejection error handling
+#[derive(Debug)]
+struct InvalidParameter;
+
+impl Reject for InvalidParameter {}
+
+async fn handle_rejection(err: Rejection) -> Result<impl Reply, warp::Rejection> {
+    if err.is_not_found() {
+        Ok(with_status("NOT_FOUND", StatusCode::NOT_FOUND))
+    } else if err.find::<InvalidParameter>().is_some() {
+        Ok(with_status("BAD_REQUEST", StatusCode::BAD_REQUEST))
+    } else {
+        log::error!("unhandled rejection: {:?}", err);
+        Ok(with_status(
+            "INTERNAL_SERVER_ERROR",
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))
     }
-}
-
-/// Follows: https://ethereum.org/en/developers/docs/apis/json-rpc/#curl-examples
-#[derive(Serialize, Deserialize)]
-struct JSONRPCParam {
-    pub id: u16,
-    pub jsonrpc: String,
-    pub method: String,
-    pub params: Value,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct JSONRPCResponse<T: Serialize> {
-    pub id: u16,
-    pub jsonrpc: String,
-    pub result: T,
 }
 
 #[cfg(test)]
 mod test {
     use crate::node::config::{DEFAULT_JSON_RPC_ENDPOINT, DEFAULT_JSON_RPC_VERSION};
-    use crate::node::jsonrpc::{json_rpc_filter, JSONRPCParam, JSONRPCResponse};
+    use crate::node::jsonrpc::{json_rpc_filter, JSONRPCRequest, JSONRPCResponse};
+    use warp::http::StatusCode;
 
     #[tokio::test]
     async fn test_json_rpc_filter_works() {
@@ -110,7 +134,7 @@ mod test {
         let jsonrpc = String::from(DEFAULT_JSON_RPC_VERSION);
         let id = 0;
 
-        let req = JSONRPCParam {
+        let req = JSONRPCRequest {
             id,
             jsonrpc: jsonrpc.clone(),
             method: foo.clone(),
@@ -143,7 +167,6 @@ mod test {
             .reply(&filter)
             .await;
 
-        let v = serde_json::from_slice::<JSONRPCResponse<String>>(value.body()).unwrap();
-        assert_eq!(v.result, String::from("Cannot parse parameters"));
+        assert_eq!(StatusCode::BAD_REQUEST, value.status());
     }
 }

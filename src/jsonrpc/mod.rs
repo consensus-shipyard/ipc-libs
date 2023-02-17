@@ -42,7 +42,6 @@ pub struct JsonRpcClientImpl {
 
 impl JsonRpcClientImpl {
     /// Creates a client that sends all requests to `url`.
-    #[allow(dead_code)]
     pub fn new(url: Url, bearer_token: Option<&str>) -> Self {
         Self {
             http_client: Client::default(),
