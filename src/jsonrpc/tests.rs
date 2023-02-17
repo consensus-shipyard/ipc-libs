@@ -59,7 +59,7 @@ async fn test_subscribe() {
     let url = Url::parse(WS_ENDPOINT).unwrap();
     let client = JsonRpcClientImpl::new(url, None);
     let mut chan = client.subscribe("Filecoin.ChainNotify").await.unwrap();
-    for _ in 1..=1 {
+    for _ in 1..=3 {
         chan.next().await.unwrap();
     }
 }
