@@ -45,7 +45,7 @@ impl JsonRPCServer {
 /// Create the json_rpc filter. The filter does the following:
 /// - Listen to POST requests on the DEFAULT_JSON_RPC_ENDPOINT
 /// - Extract the body of the request.
-/// - Pass it to to the process function.
+/// - Pass it to to the json_rpc_filter to deserialize into a jsonrpc request.
 fn json_rpc_filter() -> impl Filter<Extract = (impl Reply,), Error = warp::Rejection> + Copy {
     warp::post()
         .and(warp::path(DEFAULT_JSON_RPC_SERVER_ENDPOINT))
@@ -54,7 +54,7 @@ fn json_rpc_filter() -> impl Filter<Extract = (impl Reply,), Error = warp::Rejec
         .and_then(handle_request)
         .recover(handle_rejection)
 }
-
+// Filter that deserializes the body of the request into a jsonrpc request.
 async fn to_json_rpc_request(bytes: Bytes) -> Result<JSONRPCRequest, warp::Rejection> {
     serde_json::from_slice::<JSONRPCRequest>(bytes.as_ref()).map_err(|e| {
         log::debug!("cannot deserialize {bytes:?} due to {e:?}");
@@ -62,7 +62,7 @@ async fn to_json_rpc_request(bytes: Bytes) -> Result<JSONRPCRequest, warp::Rejec
     })
 }
 
-/// To handle the json rpc request. Currently just log it.
+/// Main function responsible for handling and routing jsonrpc requests to the right underlying handler according to the method
 async fn handle_request(json_rpc_request: JSONRPCRequest) -> Result<impl Reply, warp::Rejection> {
     log::debug!("received json rpc request = {:?}", json_rpc_request);
 
