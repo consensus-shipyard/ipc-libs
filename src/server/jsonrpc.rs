@@ -1,30 +1,12 @@
-use crate::node::config::{IPCAgentJsonRPCNodeConfig, DEFAULT_JSON_RPC_ENDPOINT};
+use crate::server::config::JsonRPCServerConfig;
 use bytes::Bytes;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use warp::http::StatusCode;
 use warp::reject::Reject;
 use warp::reply::with_status;
 use warp::{Filter, Rejection, Reply};
-
-/// The json rpc request param. It is the standard form our json-rpc and follows a structure similar
-/// to the one of the Ethereum RPC: https://ethereum.org/en/developers/docs/apis/json-rpc/#curl-examples
-#[derive(Serialize, Deserialize, Debug)]
-struct JSONRPCRequest {
-    pub id: u16,
-    pub jsonrpc: String,
-    pub method: String,
-    pub params: Value,
-}
-
-/// The json rpc response. It is the standard form our json-rpc and follows a structure similar
-/// to the one of the Ethereum RPC: https://ethereum.org/en/developers/docs/apis/json-rpc/#curl-examples
-#[derive(Debug, Serialize, Deserialize)]
-struct JSONRPCResponse<T: Serialize> {
-    pub id: u16,
-    pub jsonrpc: String,
-    pub result: T,
-}
+use crate::server::{DEFAULT_JSON_RPC_SERVER_ENDPOINT, DEFAULT_JSON_RPC_SERVER_VERSION};
+use crate::server::request::JSONRPCRequest;
+use crate::server::response::{JSONRPCErrorResponse, JSONRPCResultResponse};
 
 /// The IPC JSON RPC node that contains all the methods and handlers. The underlying implementation
 /// is using `warp`.
@@ -33,21 +15,21 @@ struct JSONRPCResponse<T: Serialize> {
 ///
 /// # Examples
 /// ```no_run
-/// use agent::node::config::IPCAgentJsonRPCNodeConfig;
-/// use agent::node::jsonrpc::IPCAgentJsonRPCNode;
+/// use agent::node::config::JsonRPCServerConfig;
+/// use agent::node::jsonrpc::JsonRPCServer;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let n = IPCAgentJsonRPCNode::new(IPCAgentJsonRPCNodeConfig::default());
+///     let n = JsonRPCServer::new(JsonRPCServerConfig::default());
 ///     n.run().await;
 /// }
 /// ```
-pub struct IPCAgentJsonRPCNode {
-    config: IPCAgentJsonRPCNodeConfig,
+pub struct JsonRPCServer {
+    config: JsonRPCServerConfig,
 }
 
-impl IPCAgentJsonRPCNode {
-    pub fn new(config: IPCAgentJsonRPCNodeConfig) -> Self {
+impl JsonRPCServer {
+    pub fn new(config: JsonRPCServerConfig) -> Self {
         Self { config }
     }
 
@@ -66,7 +48,7 @@ impl IPCAgentJsonRPCNode {
 /// - Pass it to to the process function.
 fn json_rpc_filter() -> impl Filter<Extract = (impl Reply,), Error = warp::Rejection> + Copy {
     warp::post()
-        .and(warp::path(DEFAULT_JSON_RPC_ENDPOINT))
+        .and(warp::path(DEFAULT_JSON_RPC_SERVER_ENDPOINT))
         .and(warp::body::bytes())
         .and_then(to_json_rpc_request)
         .and_then(handle_request)
@@ -91,13 +73,14 @@ async fn handle_request(json_rpc_request: JSONRPCRequest) -> Result<impl Reply, 
         jsonrpc,
     } = json_rpc_request;
 
+    if jsonrpc != DEFAULT_JSON_RPC_SERVER_VERSION {
+        return Ok(warp::reply::json(&JSONRPCErrorResponse::invalid_request(id)))
+    }
+
     log::info!("received method = {method:?} and params = {params:?}");
 
-    Ok(warp::reply::json(&JSONRPCResponse {
-        id,
-        jsonrpc,
-        result: (),
-    }))
+    let response = JSONRPCResultResponse::new(id, ());
+    Ok(warp::reply::json(&response))
 }
 
 /// The invalid parameter warp rejection error handling
@@ -121,17 +104,19 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, warp::Rejection>
 }
 
 #[cfg(test)]
-mod test {
-    use crate::node::config::{DEFAULT_JSON_RPC_ENDPOINT, DEFAULT_JSON_RPC_VERSION};
-    use crate::node::jsonrpc::{json_rpc_filter, JSONRPCRequest, JSONRPCResponse};
+mod tests {
+    use crate::server::DEFAULT_JSON_RPC_SERVER_ENDPOINT;
+    use crate::server::jsonrpc::{json_rpc_filter, JSONRPCResultResponse};
     use warp::http::StatusCode;
+    use crate::server::DEFAULT_JSON_RPC_SERVER_VERSION;
+    use crate::server::request::JSONRPCRequest;
 
     #[tokio::test]
     async fn test_json_rpc_filter_works() {
         let filter = json_rpc_filter();
 
         let foo = "foo".to_string();
-        let jsonrpc = String::from(DEFAULT_JSON_RPC_VERSION);
+        let jsonrpc = String::from(DEFAULT_JSON_RPC_SERVER_VERSION);
         let id = 0;
 
         let req = JSONRPCRequest {
@@ -140,15 +125,15 @@ mod test {
             method: foo.clone(),
             params: Default::default(),
         };
-        // Execute `sum` and get the `Extract` back.
+
         let value = warp::test::request()
             .method("POST")
-            .path(&format!("/{DEFAULT_JSON_RPC_ENDPOINT:}"))
+            .path(&format!("/{DEFAULT_JSON_RPC_SERVER_ENDPOINT:}"))
             .json(&req)
             .reply(&filter)
             .await;
 
-        let v = serde_json::from_slice::<JSONRPCResponse<()>>(value.body()).unwrap();
+        let v = serde_json::from_slice::<JSONRPCResultResponse<()>>(value.body()).unwrap();
 
         assert_eq!(v.id, id);
         assert_eq!(v.jsonrpc, jsonrpc);
@@ -159,14 +144,27 @@ mod test {
     async fn test_json_rpc_filter_cannot_parse_param() {
         let filter = json_rpc_filter();
 
-        // Execute `sum` and get the `Extract` back.
         let value = warp::test::request()
             .method("POST")
-            .path(&format!("/{DEFAULT_JSON_RPC_ENDPOINT:}"))
+            .path(&format!("/{DEFAULT_JSON_RPC_SERVER_ENDPOINT:}"))
             .json(&())
             .reply(&filter)
             .await;
 
         assert_eq!(StatusCode::BAD_REQUEST, value.status());
+    }
+
+    #[tokio::test]
+    async fn test_json_rpc_filter_not_found() {
+        let filter = json_rpc_filter();
+
+        let value = warp::test::request()
+            .method("POST")
+            .path("/random")
+            .json(&())
+            .reply(&filter)
+            .await;
+
+        assert_eq!(StatusCode::NOT_FOUND, value.status());
     }
 }

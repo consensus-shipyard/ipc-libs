@@ -1,5 +1,5 @@
 mod jsonrpc;
-mod node;
+mod server;
 mod config;
 mod lotus;
 
