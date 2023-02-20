@@ -27,6 +27,9 @@ toml = "0.7.2"
 url = { version = "2.3.1", features = ["serde"] }
 warp = "0.3.3"
 bytes = "1.4.0"
+clap = {version = "4.1.4", features = ["env", "derive"] }
+thiserror = "1.0.38"
+
 fvm_shared = {workspace = true}
 fil_actors_runtime = {workspace = true}
 ipc-sdk = { workspace = true }
