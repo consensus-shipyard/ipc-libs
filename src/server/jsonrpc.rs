@@ -1,12 +1,12 @@
 use crate::server::request::JSONRPCRequest;
 use crate::server::response::{JSONRPCErrorResponse, JSONRPCResultResponse};
-use crate::server::{DEFAULT_JSON_RPC_SERVER_ENDPOINT, DEFAULT_JSON_RPC_SERVER_VERSION};
 use bytes::Bytes;
 use warp::http::StatusCode;
 use warp::reject::Reject;
 use warp::reply::with_status;
 use warp::{Filter, Rejection, Reply};
-use crate::config::Server as JsonRPCServerConfig;
+use crate::config::{JSON_RPC_VERSION, Server as JsonRPCServerConfig};
+use crate::config::JSON_RPC_ENDPOINT;
 
 /// The IPC JSON RPC node that contains all the methods and handlers. The underlying implementation
 /// is using `warp`.
@@ -53,12 +53,13 @@ impl JsonRPCServer {
 /// - Pass it to to the json_rpc_filter to deserialize into a jsonrpc request.
 fn json_rpc_filter() -> impl Filter<Extract = (impl Reply,), Error = warp::Rejection> + Copy {
     warp::post()
-        .and(warp::path(DEFAULT_JSON_RPC_SERVER_ENDPOINT))
+        .and(warp::path(JSON_RPC_ENDPOINT))
         .and(warp::body::bytes())
         .and_then(to_json_rpc_request)
         .and_then(handle_request)
         .recover(handle_rejection)
 }
+
 // Filter that deserializes the body of the request into a jsonrpc request.
 async fn to_json_rpc_request(bytes: Bytes) -> Result<JSONRPCRequest, warp::Rejection> {
     serde_json::from_slice::<JSONRPCRequest>(bytes.as_ref()).map_err(|e| {
@@ -78,7 +79,7 @@ async fn handle_request(json_rpc_request: JSONRPCRequest) -> Result<impl Reply, 
         jsonrpc,
     } = json_rpc_request;
 
-    if jsonrpc != DEFAULT_JSON_RPC_SERVER_VERSION {
+    if jsonrpc != JSON_RPC_VERSION {
         return Ok(warp::reply::json(&JSONRPCErrorResponse::invalid_request(
             id,
         )));
@@ -114,16 +115,16 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, warp::Rejection>
 mod tests {
     use crate::server::jsonrpc::{json_rpc_filter, JSONRPCResultResponse};
     use crate::server::request::JSONRPCRequest;
-    use crate::server::DEFAULT_JSON_RPC_SERVER_ENDPOINT;
-    use crate::server::DEFAULT_JSON_RPC_SERVER_VERSION;
+    use crate::config::JSON_RPC_VERSION;
     use warp::http::StatusCode;
+    use crate::config::JSON_RPC_ENDPOINT;
 
     #[tokio::test]
     async fn test_json_rpc_filter_works() {
         let filter = json_rpc_filter();
 
         let foo = "foo".to_string();
-        let jsonrpc = String::from(DEFAULT_JSON_RPC_SERVER_VERSION);
+        let jsonrpc = String::from(JSON_RPC_VERSION);
         let id = 0;
 
         let req = JSONRPCRequest {
@@ -135,7 +136,7 @@ mod tests {
 
         let value = warp::test::request()
             .method("POST")
-            .path(&format!("/{DEFAULT_JSON_RPC_SERVER_ENDPOINT:}"))
+            .path(&format!("/{JSON_RPC_ENDPOINT:}"))
             .json(&req)
             .reply(&filter)
             .await;
@@ -153,7 +154,7 @@ mod tests {
 
         let value = warp::test::request()
             .method("POST")
-            .path(&format!("/{DEFAULT_JSON_RPC_SERVER_ENDPOINT:}"))
+            .path(&format!("/{JSON_RPC_ENDPOINT:}"))
             .json(&())
             .reply(&filter)
             .await;

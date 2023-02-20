@@ -4,17 +4,19 @@
 //! [`Config`] struct.
 
 mod deserialize;
+mod server;
+mod subnet;
 
 use std::collections::HashMap;
 use std::fs;
-use std::net::SocketAddr;
 
 use anyhow::Result;
-use fvm_shared::address::Address;
-use ipc_sdk::subnet_id::SubnetID;
 use serde::Deserialize;
-use url::Url;
-use crate::config::deserialize::{deserialize_subnet_id, deserialize_accounts};
+pub use server::Server;
+pub use subnet::Subnet;
+pub use server::JSON_RPC_ENDPOINT;
+
+pub const JSON_RPC_VERSION: &str = "2.0";
 
 /// The top-level struct representing the config. Calls to [`Config::from_file`] deserialize into
 /// this struct.
@@ -22,23 +24,6 @@ use crate::config::deserialize::{deserialize_subnet_id, deserialize_accounts};
 pub(crate) struct Config {
     pub server: Server,
     pub subnets: HashMap<String, Subnet>,
-}
-
-#[derive(Deserialize, Clone)]
-pub struct Server {
-    pub json_rpc_address: SocketAddr,
-}
-
-/// Represents a subnet declaration in the config.
-#[derive(Deserialize)]
-pub struct Subnet {
-    #[serde(deserialize_with = "deserialize_subnet_id")]
-    id: SubnetID,
-    jsonrpc_api_http: Url,
-    jsonrpc_api_ws: Option<Url>,
-    auth_token: Option<String>,
-    #[serde(deserialize_with = "deserialize_accounts", default)]
-    accounts: Vec<Address>,
 }
 
 impl Config {
