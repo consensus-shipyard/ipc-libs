@@ -1,4 +1,3 @@
-use crate::server::config::JsonRPCServerConfig;
 use crate::server::request::JSONRPCRequest;
 use crate::server::response::{JSONRPCErrorResponse, JSONRPCResultResponse};
 use crate::server::{DEFAULT_JSON_RPC_SERVER_ENDPOINT, DEFAULT_JSON_RPC_SERVER_VERSION};
@@ -7,6 +6,7 @@ use warp::http::StatusCode;
 use warp::reject::Reject;
 use warp::reply::with_status;
 use warp::{Filter, Rejection, Reply};
+use crate::config::Server as JsonRPCServerConfig;
 
 /// The IPC JSON RPC node that contains all the methods and handlers. The underlying implementation
 /// is using `warp`.
@@ -15,12 +15,17 @@ use warp::{Filter, Rejection, Reply};
 ///
 /// # Examples
 /// ```no_run
-/// use agent::node::config::JsonRPCServerConfig;
+/// use agent::config::Server as JsonRPCServerConfig;
 /// use agent::node::jsonrpc::JsonRPCServer;
+///
+/// use std::net::SocketAddr;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let n = JsonRPCServer::new(JsonRPCServerConfig::default());
+///     let config = JsonRPCServerConfig {
+///         json_rpc_address: SocketAddr::from_str(server_json_rpc_addr).unwrap()
+///     }
+///     let n = JsonRPCServer::new(config);
 ///     n.run().await;
 /// }
 /// ```
@@ -35,8 +40,8 @@ impl JsonRPCServer {
 
     /// Runs the node in the current thread
     pub async fn run(&self) {
-        log::info!("IPC agent rpc node listening at {:?}", self.config.addr());
-        warp::serve(json_rpc_filter()).run(self.config.addr()).await;
+        log::info!("IPC agent rpc node listening at {:?}", self.config.json_rpc_address);
+        warp::serve(json_rpc_filter()).run(self.config.json_rpc_address).await;
     }
 }
 
