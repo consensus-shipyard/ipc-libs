@@ -15,17 +15,13 @@ use crate::config::JSON_RPC_ENDPOINT;
 ///
 /// # Examples
 /// ```no_run
-/// use agent::config::Server as JsonRPCServerConfig;
+/// use agent::config::Config;
 /// use agent::node::jsonrpc::JsonRPCServer;
-///
-/// use std::net::SocketAddr;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let config = JsonRPCServerConfig {
-///         json_rpc_address: SocketAddr::from_str(server_json_rpc_addr).unwrap()
-///     }
-///     let n = JsonRPCServer::new(config);
+///     let config = Config::from_file("PATH TO YOUR CONFIG FILE");
+///     let n = JsonRPCServer::new(config.server);
 ///     n.run().await;
 /// }
 /// ```
