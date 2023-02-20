@@ -1,6 +1,6 @@
-mod jsonrpc;
-mod server;
 mod config;
+mod jsonrpc;
 mod lotus;
+mod server;
 
 fn main() {}

@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use crate::server::DEFAULT_JSON_RPC_SERVER_VERSION;
+use serde::{Deserialize, Serialize};
 
 /// List of error codes for json rpc, see more: https://www.jsonrpc.org/specification#error_object
 const INVALID_REQUEST_CODE: i32 = -32600;
@@ -13,9 +13,13 @@ pub struct JSONRPCResultResponse<T> {
     pub result: T,
 }
 
-impl <T: Serialize> JSONRPCResultResponse<T> {
+impl<T: Serialize> JSONRPCResultResponse<T> {
     pub fn new(id: u16, result: T) -> Self {
-        Self { id, jsonrpc: String::from(DEFAULT_JSON_RPC_SERVER_VERSION), result }
+        Self {
+            id,
+            jsonrpc: String::from(DEFAULT_JSON_RPC_SERVER_VERSION),
+            result,
+        }
     }
 }
 
@@ -24,7 +28,7 @@ impl <T: Serialize> JSONRPCResultResponse<T> {
 pub struct JSONRPCError<T> {
     pub code: i32,
     pub message: String,
-    pub data: Option<T>
+    pub data: Option<T>,
 }
 
 /// The json rpc error response. It is the standard form our json-rpc and follows the spec: https://www.jsonrpc.org/specification#response_object
@@ -43,13 +47,17 @@ impl JSONRPCErrorResponse<()> {
             error: JSONRPCError {
                 code: INVALID_REQUEST_CODE,
                 message: String::from("Invalid Request"),
-                data: None
-            }
+                data: None,
+            },
         }
     }
 }
-impl <T: Serialize> JSONRPCErrorResponse<T> {
+impl<T: Serialize> JSONRPCErrorResponse<T> {
     pub fn new(id: u16, error: JSONRPCError<T>) -> Self {
-        Self { id, jsonrpc: String::from(DEFAULT_JSON_RPC_SERVER_VERSION), error }
+        Self {
+            id,
+            jsonrpc: String::from(DEFAULT_JSON_RPC_SERVER_VERSION),
+            error,
+        }
     }
 }

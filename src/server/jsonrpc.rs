@@ -1,12 +1,12 @@
 use crate::server::config::JsonRPCServerConfig;
+use crate::server::request::JSONRPCRequest;
+use crate::server::response::{JSONRPCErrorResponse, JSONRPCResultResponse};
+use crate::server::{DEFAULT_JSON_RPC_SERVER_ENDPOINT, DEFAULT_JSON_RPC_SERVER_VERSION};
 use bytes::Bytes;
 use warp::http::StatusCode;
 use warp::reject::Reject;
 use warp::reply::with_status;
 use warp::{Filter, Rejection, Reply};
-use crate::server::{DEFAULT_JSON_RPC_SERVER_ENDPOINT, DEFAULT_JSON_RPC_SERVER_VERSION};
-use crate::server::request::JSONRPCRequest;
-use crate::server::response::{JSONRPCErrorResponse, JSONRPCResultResponse};
 
 /// The IPC JSON RPC node that contains all the methods and handlers. The underlying implementation
 /// is using `warp`.
@@ -74,7 +74,9 @@ async fn handle_request(json_rpc_request: JSONRPCRequest) -> Result<impl Reply, 
     } = json_rpc_request;
 
     if jsonrpc != DEFAULT_JSON_RPC_SERVER_VERSION {
-        return Ok(warp::reply::json(&JSONRPCErrorResponse::invalid_request(id)))
+        return Ok(warp::reply::json(&JSONRPCErrorResponse::invalid_request(
+            id,
+        )));
     }
 
     log::info!("received method = {method:?} and params = {params:?}");
@@ -105,11 +107,11 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, warp::Rejection>
 
 #[cfg(test)]
 mod tests {
-    use crate::server::DEFAULT_JSON_RPC_SERVER_ENDPOINT;
     use crate::server::jsonrpc::{json_rpc_filter, JSONRPCResultResponse};
-    use warp::http::StatusCode;
-    use crate::server::DEFAULT_JSON_RPC_SERVER_VERSION;
     use crate::server::request::JSONRPCRequest;
+    use crate::server::DEFAULT_JSON_RPC_SERVER_ENDPOINT;
+    use crate::server::DEFAULT_JSON_RPC_SERVER_VERSION;
+    use warp::http::StatusCode;
 
     #[tokio::test]
     async fn test_json_rpc_filter_works() {

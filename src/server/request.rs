@@ -1,5 +1,5 @@
-use serde_json::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 /// The json rpc request param. It is the standard form our json-rpc and follows a structure similar
 /// to the one of the Ethereum RPC: https://ethereum.org/en/developers/docs/apis/json-rpc/#curl-examples
