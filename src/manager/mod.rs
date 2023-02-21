@@ -32,10 +32,10 @@ pub trait SubnetManager {
     ) -> Result<()>;
 
     /// Sends a request to leave a subnet from a wallet address.
-    fn leave(subnet: SubnetID, from: Address) -> Result<()>;
+    fn leave_subnet(subnet: SubnetID, from: Address) -> Result<()>;
 
     /// Sends a signal to kill a subnet
-    fn kill(subnet: SubnetID, from: Address) -> Result<()>;
+    fn kill_subnet(subnet: SubnetID, from: Address) -> Result<()>;
 
     /// Submits a checkpoint for a subnet from a wallet address.
     fn submit_checkpoint(subnet: SubnetID, from: Address, ch: Checkpoint) -> Result<()>;

@@ -30,11 +30,11 @@ impl SubnetManager for LotusManager {
         panic!("not implemented")
     }
 
-    fn leave(_subnet: SubnetID, _from: Address) -> Result<()> {
+    fn leave_subnet(_subnet: SubnetID, _from: Address) -> Result<()> {
         panic!("not implemented")
     }
 
-    fn kill(_subnet: SubnetID, _from: Address) -> Result<()> {
+    fn kill_subnet(_subnet: SubnetID, _from: Address) -> Result<()> {
         panic!("not implemented")
     }
 
