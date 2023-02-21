@@ -7,7 +7,7 @@ use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
 
-use super::{SubnetInfo, SubnetManager};
+use super::subnet::{SubnetInfo, SubnetManager};
 
 pub struct LotusSubnetManager {}
 
