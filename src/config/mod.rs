@@ -64,7 +64,9 @@ mod tests {
     const JSONRPC_API_WS: &str = "ws://example.org/rpc/v0";
     const ACCOUNT_ADDRESS: &str = "f3thgjtvoi65yzdcoifgqh6utjbaod3ukidxrx34heu34d6avx6z7r5766t5jqt42a44ehzcnw3u5ehz47n42a";
 
-    fn check_server_config(config: &Server) {
+    #[test]
+    fn check_server_config() {
+        let config = read_config().server;
         assert_eq!(
             config.json_rpc_address,
             SocketAddr::from_str(SERVER_JSON_RPC_ADDR).unwrap(),
@@ -72,50 +74,45 @@ mod tests {
         );
     }
 
-    fn check_subnets_config(config: &HashMap<String, Subnet>) {
+    #[test]
+    fn check_subnets_config() {
+        let config = read_config().subnets;
+
         let root = &config["root"];
-        assert_eq!(root.id, *ROOTNET_ID, "invalid subnet root id");
+        assert_eq!(root.id, *ROOTNET_ID);
         assert_eq!(
             root.jsonrpc_api_http,
-            Url::from_str(JSONRPC_API_HTTP).unwrap(),
-            "invalid root subnet json rpc api http url"
+            Url::from_str(JSONRPC_API_HTTP).unwrap()
         );
         assert_eq!(
             root.jsonrpc_api_ws.as_ref().unwrap(),
-            &Url::from_str(JSONRPC_API_WS).unwrap(),
-            "invalid root subnet json rpc api ws url"
+            &Url::from_str(JSONRPC_API_WS).unwrap()
         );
         assert_eq!(
             root.auth_token.as_ref().unwrap(),
-            ROOT_AUTH_TOKEN,
-            "invalid root subnet auth token"
+            ROOT_AUTH_TOKEN
         );
 
         let child = &config["child"];
         assert_eq!(
             child.id,
             SubnetID::from_str(CHILD_ID).unwrap(),
-            "invalid child subnet id"
         );
         assert_eq!(
             child.jsonrpc_api_http,
             Url::from_str(JSONRPC_API_HTTP).unwrap(),
-            "invalid child json rpc http url"
         );
         assert_eq!(
             child.auth_token.as_ref().unwrap(),
             CHILD_AUTH_TOKEN,
-            "invalid child auth token"
         );
         assert_eq!(
             child.accounts.as_ref(),
             vec![Address::from_str(ACCOUNT_ADDRESS).unwrap()],
-            "invalid child account addresses"
         );
     }
 
-    #[test]
-    fn read_config() {
+    fn read_config() -> Config {
         let config_str = formatdoc!(
             r#"
             [server]
@@ -137,9 +134,6 @@ mod tests {
         "#
         );
 
-        let config = Config::from_str(config_str.as_str()).unwrap();
-
-        check_server_config(&config.server);
-        check_subnets_config(&config.subnets);
+        Config::from_str(config_str.as_str()).unwrap()
     }
 }
