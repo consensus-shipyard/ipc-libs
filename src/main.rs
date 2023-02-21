@@ -4,4 +4,7 @@ mod jsonrpc;
 mod lotus;
 mod server;
 
-fn main() {}
+#[tokio::main]
+async fn main() {
+    cli::cli().await;
+}
