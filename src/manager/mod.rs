@@ -1,4 +1,4 @@
-mod lotus_manager;
+mod lotus;
 
 use std::collections::HashMap;
 

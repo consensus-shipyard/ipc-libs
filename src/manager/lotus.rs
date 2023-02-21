@@ -9,10 +9,10 @@ use ipc_subnet_actor::{ConstructParams, JoinParams};
 
 use super::{SubnetInfo, SubnetManager};
 
-pub struct LotusManager {}
+pub struct LotusSubnetManager {}
 
 #[async_trait]
-impl SubnetManager for LotusManager {
+impl SubnetManager for LotusSubnetManager {
     fn create_subnet(
         _parent: SubnetID,
         _from: Address,
