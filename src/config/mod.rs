@@ -7,6 +7,7 @@ mod deserialize;
 mod server;
 mod subnet;
 
+use std::collections::HashMap;
 use std::fs;
 
 use anyhow::Result;
@@ -14,7 +15,6 @@ use serde::Deserialize;
 pub use server::Server;
 pub use subnet::Subnet;
 pub use server::JSON_RPC_ENDPOINT;
-pub use crate::config::subnet::Subnets;
 
 pub const JSON_RPC_VERSION: &str = "2.0";
 
@@ -23,7 +23,7 @@ pub const JSON_RPC_VERSION: &str = "2.0";
 #[derive(Deserialize)]
 pub(crate) struct Config {
     pub server: Server,
-    pub subnets: Subnets,
+    pub subnets: HashMap<String, Subnet>,
 }
 
 impl Config {
@@ -43,6 +43,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::net::SocketAddr;
     use std::str::FromStr;
 
@@ -51,7 +52,7 @@ mod tests {
     use ipc_sdk::subnet_id::{ROOTNET_ID, SubnetID};
     use url::Url;
 
-    use crate::config::{Config, Server, Subnets};
+    use crate::config::{Config, Server, Subnet};
 
     // Arguments for the config's fields
     const SERVER_JSON_RPC_ADDR: &str = "127.0.0.1:3030";
@@ -66,33 +67,50 @@ mod tests {
     fn check_server_config(config: &Server) {
         assert_eq!(
             config.json_rpc_address,
-            SocketAddr::from_str(SERVER_JSON_RPC_ADDR).unwrap()
+            SocketAddr::from_str(SERVER_JSON_RPC_ADDR).unwrap(),
+            "invalid server rpc address"
         );
     }
 
-    fn check_subnets_config(config: &Subnets) {
+    fn check_subnets_config(config: &HashMap<String, Subnet>) {
         let root = &config["root"];
-        assert_eq!(root.id, *ROOTNET_ID);
+        assert_eq!(root.id, *ROOTNET_ID, "invalid subnet root id");
         assert_eq!(
             root.jsonrpc_api_http,
-            Url::from_str(JSONRPC_API_HTTP).unwrap()
+            Url::from_str(JSONRPC_API_HTTP).unwrap(),
+            "invalid root subnet json rpc api http url"
         );
         assert_eq!(
             root.jsonrpc_api_ws.as_ref().unwrap(),
-            &Url::from_str(JSONRPC_API_WS).unwrap()
+            &Url::from_str(JSONRPC_API_WS).unwrap(),
+            "invalid root subnet json rpc api ws url"
         );
-        assert_eq!(root.auth_token.as_ref().unwrap(), ROOT_AUTH_TOKEN);
+        assert_eq!(
+            root.auth_token.as_ref().unwrap(),
+            ROOT_AUTH_TOKEN,
+            "invalid root subnet auth token"
+        );
 
         let child = &config["child"];
-        assert_eq!(child.id, SubnetID::from_str(CHILD_ID).unwrap());
+        assert_eq!(
+            child.id,
+            SubnetID::from_str(CHILD_ID).unwrap(),
+            "invalid child subnet id"
+        );
         assert_eq!(
             child.jsonrpc_api_http,
-            Url::from_str(JSONRPC_API_HTTP).unwrap()
+            Url::from_str(JSONRPC_API_HTTP).unwrap(),
+            "invalid child json rpc http url"
         );
-        assert_eq!(child.auth_token.as_ref().unwrap(), CHILD_AUTH_TOKEN);
+        assert_eq!(
+            child.auth_token.as_ref().unwrap(),
+            CHILD_AUTH_TOKEN,
+            "invalid child auth token"
+        );
         assert_eq!(
             child.accounts.as_ref(),
-            vec![Address::from_str(ACCOUNT_ADDRESS).unwrap()]
+            vec![Address::from_str(ACCOUNT_ADDRESS).unwrap()],
+            "invalid child account addresses"
         );
     }
 

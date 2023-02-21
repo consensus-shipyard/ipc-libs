@@ -1,12 +1,9 @@
-use std::collections::HashMap;
 use ipc_sdk::subnet_id::SubnetID;
 use url::Url;
 use fvm_shared::address::Address;
 use serde::Deserialize;
 
 use crate::config::deserialize::{deserialize_accounts, deserialize_subnet_id};
-
-pub type Subnets = HashMap<String, Subnet>;
 
 /// Represents a subnet declaration in the config.
 #[derive(Deserialize)]
