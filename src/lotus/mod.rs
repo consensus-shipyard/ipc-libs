@@ -4,6 +4,7 @@ pub mod message;
 #[cfg(test)]
 mod tests;
 
+use std::collections::HashMap;
 use anyhow::Result;
 use async_trait::async_trait;
 use cid::Cid;
@@ -36,7 +37,11 @@ pub trait LotusClient {
     /// Returns the name of the network the node is synced to, see https://lotus.filecoin.io/reference/lotus/state/#statenetworkname
     async fn state_network_name(&self) -> Result<String>;
 
+    /// Returns the network version at the given tipset, see https://lotus.filecoin.io/reference/lotus/state/#statenetworkversion
     async fn state_network_version(&self, tip_sets: Vec<Cid>) -> Result<NetworkVersion>;
+
+    /// Returns the CID of the builtin actors manifest for the given network version, see https://github.com/filecoin-project/lotus/blob/master/documentation/en/api-v1-unstable-methods.md#stateactormanifestcid
+    async fn state_actor_code_cids(&self, manifest: NetworkVersion) -> Result<HashMap<String, Cid>>;
 
     /// Get the default wallet of the node, see: https://lotus.filecoin.io/reference/lotus/wallet/#walletdefaultaddress
     async fn wallet_default(&self) -> Result<Address>;

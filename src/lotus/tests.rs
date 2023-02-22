@@ -28,3 +28,12 @@ async fn state_network_version() {
     // know it's returning some data.
     assert!(version > 0);
 }
+
+#[tokio::test]
+async fn state_actor_manifest_cid() {
+    let client = get_lotus_client();
+
+    let version = client.state_network_version(vec![]).await.unwrap();
+    let cids = client.state_actor_code_cids(version).await.unwrap();
+    assert!(!cids.is_empty());
+}
