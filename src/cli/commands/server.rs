@@ -21,7 +21,7 @@ impl CommandLineHandler for LaunchJsonRPC {
         log::debug!("launching json rpc server with args: {:?}", arguments);
 
         let config = Config::from_file(&arguments.config_file)?.server;
-        log::info!("starting json rpc server at: {:}", config.json_rpc_address);
+        log::info!("starting IPC-agent daemon at: {:}", config.json_rpc_address);
 
         let server = JsonRPCServer::new(config);
         server.run().await;
