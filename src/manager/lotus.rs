@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+<<<<<<< HEAD
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
@@ -33,7 +34,6 @@ pub struct LotusSubnetManager<T: JsonRpcClient> {
 impl <T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     async fn create_subnet(
         &self,
-        _parent: SubnetID,
         from: Address,
         params: ConstructParams,
     ) -> Result<Address> {
@@ -56,7 +56,8 @@ impl <T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         Ok(Address::from_str(&address_raw)?)
     }
 
-    fn join_subnet(
+    async fn join_subnet(
+        &self,
         _subnet: SubnetID,
         _from: Address,
         _collateral: TokenAmount,
@@ -65,19 +66,19 @@ impl <T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         panic!("not implemented")
     }
 
-    fn leave_subnet(_subnet: SubnetID, _from: Address) -> Result<()> {
+    async fn leave_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
         panic!("not implemented")
     }
 
-    fn kill_subnet(_subnet: SubnetID, _from: Address) -> Result<()> {
+    async fn kill_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
         panic!("not implemented")
     }
 
-    fn submit_checkpoint(_subnet: SubnetID, _from: Address, _ch: Checkpoint) -> Result<()> {
+    async fn submit_checkpoint(&self, _subnet: SubnetID, _from: Address, _ch: Checkpoint) -> Result<()> {
         panic!("not implemented")
     }
 
-    fn list_child_subnets(_subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>> {
+    async fn list_child_subnets(&self, _subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>> {
         panic!("not implemented")
     }
 }
@@ -89,6 +90,6 @@ impl <T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
     }
 
     async fn state_actor_code_cids(&self, network_version: NetworkVersion) -> Result<Cid> {
-        todo!()
+
     }
 }
