@@ -49,7 +49,7 @@ pub struct StateWaitMsgResponse {
     #[allow(dead_code)]
     message: CIDMap,
     #[allow(dead_code)]
-    receipt: Receipt,
+    pub receipt: Receipt,
     #[allow(dead_code)]
     tip_set: Vec<CIDMap>,
     #[allow(dead_code)]
@@ -71,11 +71,11 @@ pub struct ReadStateResponse<State> {
 #[serde(rename_all = "PascalCase")]
 pub struct Receipt {
     #[allow(dead_code)]
-    exit_code: u32,
+    pub exit_code: u32,
     #[allow(dead_code)]
-    r#return: String,
+    pub r#return: String,
     #[allow(dead_code)]
-    gas_used: u64,
+    pub gas_used: u64,
 }
 
 #[derive(Deserialize, Debug)]

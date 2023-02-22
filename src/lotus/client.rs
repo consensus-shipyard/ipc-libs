@@ -3,7 +3,7 @@ use crate::lotus::message::{
     ReadStateResponse, StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
 use crate::jsonrpc::JsonRpcClient;
-use crate::lotus::LotusClient;
+use crate::lotus::{LotusClient, NetworkVersion};
 use anyhow::Result;
 use async_trait::async_trait;
 use cid::Cid;
@@ -19,6 +19,8 @@ use std::str::FromStr;
 mod methods {
     pub const MPOOL_PUSH_MESSAGE: &str = "Filecoin.MpoolPushMessage";
     pub const STATE_WAIT_MSG: &str = "Filecoin.StateWaitMsg";
+    pub const STATE_NETWORK_NAME: &str = "Filecoin.StateNetworkName";
+    pub const STATE_NETWORK_VERSION: &str = "Filecoin.StateNetworkVersion";
     pub const WALLET_NEW: &str = "Filecoin.WalletNew";
     pub const WALLET_LIST: &str = "Filecoin.WalletList";
     pub const WALLET_DEFAULT_ADDRESS: &str = "Filecoin.WalletDefaultAddress";
@@ -97,6 +99,31 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .request::<StateWaitMsgResponse>(methods::STATE_WAIT_MSG, params)
             .await?;
         log::debug!("received state_wait_msg response: {r:?}");
+        Ok(r)
+    }
+
+    async fn state_network_name(&self) -> Result<String> {
+        // refer to: https://lotus.filecoin.io/reference/lotus/state/#statenetworkname
+        let r = self
+            .client
+            .request::<String>(methods::STATE_NETWORK_NAME, serde_json::Value::Null)
+            .await?;
+        log::debug!("received state_network_name response: {r:?}");
+        Ok(r)
+    }
+
+    async fn state_network_version(&self, tip_sets: Vec<Cid>) -> Result<NetworkVersion> {
+        // refer to: https://lotus.filecoin.io/reference/lotus/state/#statenetworkversion
+        let params = json!([
+            tip_sets.into_iter().map(|cid| CIDMap::from(cid)).collect::<Vec<_>>()
+        ]);
+
+        let r = self
+            .client
+            .request::<NetworkVersion>(methods::STATE_NETWORK_VERSION, params)
+            .await?;
+
+        log::debug!("received state_network_version response: {r:?}");
         Ok(r)
     }
 
