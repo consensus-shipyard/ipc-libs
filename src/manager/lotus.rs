@@ -2,23 +2,29 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use fil_actors_runtime::cbor;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
+use crate::jsonrpc::JsonRpcClient;
+use crate::lotus::LotusJsonRPCClient;
 
 use super::subnet::{SubnetInfo, SubnetManager};
 
-pub struct LotusSubnetManager {}
+pub struct LotusSubnetManager<T: JsonRpcClient> {
+    lotus_client: LotusJsonRPCClient<T>
+}
 
 #[async_trait]
-impl SubnetManager for LotusSubnetManager {
+impl <T: JsonRpcClient> SubnetManager for LotusSubnetManager<T> {
     fn create_subnet(
         _parent: SubnetID,
-        _from: Address,
-        _params: ConstructParams,
+        from: Address,
+        params: ConstructParams,
     ) -> Result<Address> {
-        panic!("not implemented")
+        let construct_params = cbor::serialize(&params, "create subnet actor")?;
+
     }
 
     fn join_subnet(
