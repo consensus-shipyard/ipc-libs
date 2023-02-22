@@ -1,20 +1,19 @@
 //! This mod contains the different command line implementations.
 
-mod server;
+mod daemon;
 
-use crate::cli::CommandLineHandler;
 use clap::{Parser, Subcommand};
 use std::fmt::Debug;
+use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
+use crate::cli::CommandLineHandler;
 
 /// The `cli` method exposed to handle all the cli commands, ideally from main.
-///
-/// Consider using macro_rules! to handle the registration of new CLI handlers.
 ///
 /// # Examples
 /// Sample usage:
 /// ```ignore
 /// # to start the daemon with
-/// ipc-client daemon ./examples/sample_config.toml
+/// ipc-client daemon ./config/template.toml
 /// ```
 ///
 /// To register a new command, add the command to
@@ -25,7 +24,7 @@ use std::fmt::Debug;
 ///
 ///     let r = match &args.command {
 ///         // ... other existing commands
-///         Commands::NewCommand => <NewCommand as CommandLineHandler>::handle(n).await,
+///         Commands::NewCommand => NewCommand::handle(n).await,
 ///     };
 ///
 ///     // ... other code
@@ -33,7 +32,7 @@ use std::fmt::Debug;
 /// Also add this type to Command enum.
 /// ```ignore
 /// enum Commands {
-///     NewCommand(<NewCommand as CommandLineHandler>::Arguments),
+///     NewCommand(NewCommandArgs),
 /// }
 /// ```
 pub async fn cli() {
@@ -41,7 +40,7 @@ pub async fn cli() {
     let args = IPCAgentCliCommands::parse();
 
     let r = match &args.command {
-        Commands::Daemon(args) => <server::LaunchJsonRPC as CommandLineHandler>::handle(args).await,
+        Commands::Daemon(args) => LaunchDaemon::handle(args).await,
     };
 
     if let Err(e) = r {
@@ -62,7 +61,7 @@ enum Commands {
     /// Note that, technically speaking, this just launches the ipc agent node and runs in the foreground
     /// and not in the background as what daemon processes are. Still, this struct contains `Daemon`
     /// due to the convention from `lotus` and the expected behavior from the filecoin user group.
-    Daemon(<server::LaunchJsonRPC as CommandLineHandler>::Arguments),
+    Daemon(LaunchDaemonArgs),
 }
 
 /// The overall command line struct to be used by `clap`.

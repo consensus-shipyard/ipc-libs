@@ -9,11 +9,11 @@ use crate::config::Config;
 use crate::server::jsonrpc::JsonRPCServer;
 
 /// The command to start the ipc agent json rpc server in the foreground.
-pub(crate) struct LaunchJsonRPC;
+pub(crate) struct LaunchDaemon;
 
 #[async_trait]
-impl CommandLineHandler for LaunchJsonRPC {
-    type Arguments = LaunchJsonRPCArgs;
+impl CommandLineHandler for LaunchDaemon {
+    type Arguments = LaunchDaemonArgs;
 
     async fn handle(arguments: &Self::Arguments) -> anyhow::Result<()> {
         env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -31,8 +31,8 @@ impl CommandLineHandler for LaunchJsonRPC {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "Prints info of the the ipc agent")]
-pub(crate) struct LaunchJsonRPCArgs {
+#[command(about = "Launch the ipc agent daemon process")]
+pub(crate) struct LaunchDaemonArgs {
     #[arg(help = "The config file path to start the json rpc server")]
     config_file: String,
 }
