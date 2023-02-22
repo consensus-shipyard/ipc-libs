@@ -1,12 +1,12 @@
 //! This file contains the various response types to be used byt the lotus api.
 
+use anyhow::anyhow;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use anyhow::anyhow;
 use strum::{AsRefStr, Display, EnumString};
 
 /// Exec actor parameters
@@ -37,7 +37,7 @@ pub enum WalletKeyType {
 pub type WalletListResponse = Vec<String>;
 
 /// Helper struct to interact with lotus node
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CIDMap {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "/")]
@@ -48,13 +48,12 @@ pub struct CIDMap {
 #[serde(rename_all = "PascalCase")]
 pub struct StateWaitMsgResponse {
     #[allow(dead_code)]
-    message: CIDMap,
-    #[allow(dead_code)]
+    pub message: CIDMap,
     pub receipt: Receipt,
     #[allow(dead_code)]
-    tip_set: Vec<CIDMap>,
+    pub tip_set: Vec<CIDMap>,
     #[allow(dead_code)]
-    height: u64,
+    pub height: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -73,7 +72,6 @@ pub struct ReadStateResponse<State> {
 pub struct Receipt {
     #[allow(dead_code)]
     pub exit_code: u32,
-    #[allow(dead_code)]
     pub r#return: String,
     #[allow(dead_code)]
     pub gas_used: u64,
@@ -107,15 +105,12 @@ pub struct MpoolPushMessageResponseInner {
     pub version: u16,
 
     #[serde(rename = "CID")]
-    pub cid: CIDMap,
+    cid: CIDMap,
 }
 
 impl MpoolPushMessageResponseInner {
-    pub fn get_root_cid(&self) -> Option<Cid> {
-        self.cid
-            .cid
-            .as_ref()
-            .map(|s| Cid::from_str(s).expect("server sent invalid cid"))
+    pub fn cid(&self) -> anyhow::Result<Cid> {
+        Cid::try_from(self.cid.clone())
     }
 
     pub fn to(&self) -> anyhow::Result<Address> {
