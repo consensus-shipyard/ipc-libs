@@ -13,15 +13,16 @@ pub struct LotusSubnetManager {}
 
 #[async_trait]
 impl SubnetManager for LotusSubnetManager {
-    fn create_subnet(
-        _parent: SubnetID,
+    async fn create_subnet(
+        &self,
         _from: Address,
         _params: ConstructParams,
     ) -> Result<Address> {
         panic!("not implemented")
     }
 
-    fn join_subnet(
+    async fn join_subnet(
+        &self,
         _subnet: SubnetID,
         _from: Address,
         _collateral: TokenAmount,
@@ -30,19 +31,19 @@ impl SubnetManager for LotusSubnetManager {
         panic!("not implemented")
     }
 
-    fn leave_subnet(_subnet: SubnetID, _from: Address) -> Result<()> {
+    async fn leave_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
         panic!("not implemented")
     }
 
-    fn kill_subnet(_subnet: SubnetID, _from: Address) -> Result<()> {
+    async fn kill_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
         panic!("not implemented")
     }
 
-    fn submit_checkpoint(_subnet: SubnetID, _from: Address, _ch: Checkpoint) -> Result<()> {
+    async fn submit_checkpoint(&self, _subnet: SubnetID, _from: Address, _ch: Checkpoint) -> Result<()> {
         panic!("not implemented")
     }
 
-    fn list_child_subnets(_subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>> {
+    async fn list_child_subnets(&self, _subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>> {
         panic!("not implemented")
     }
 }

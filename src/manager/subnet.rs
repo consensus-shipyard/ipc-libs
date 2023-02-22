@@ -16,13 +16,14 @@ pub trait SubnetManager {
     /// configuration passed in `ConstructParams`.
     /// The result of the function is the ID address for the subnet actor from which the final
     /// subet ID can be inferred.
-    fn create_subnet(parent: SubnetID, from: Address, params: ConstructParams) -> Result<Address>;
+    async fn create_subnet(&self, from: Address, params: ConstructParams) -> Result<Address>;
 
     /// Performs the call to join a subnet from a wallet address and staking an amount
     /// of collateral. This function, as well as all of the ones on this trait, can infer
     /// the specific subnet and actors on which to perform the relevant calls from the
     /// SubnetID given as an argument.
-    fn join_subnet(
+    async fn join_subnet(
+        &self,
         subnet: SubnetID,
         from: Address,
         collateral: TokenAmount,
@@ -30,16 +31,16 @@ pub trait SubnetManager {
     ) -> Result<()>;
 
     /// Sends a request to leave a subnet from a wallet address.
-    fn leave_subnet(subnet: SubnetID, from: Address) -> Result<()>;
+    async fn leave_subnet(&self, subnet: SubnetID, from: Address) -> Result<()>;
 
     /// Sends a signal to kill a subnet
-    fn kill_subnet(subnet: SubnetID, from: Address) -> Result<()>;
+    async fn kill_subnet(&self, subnet: SubnetID, from: Address) -> Result<()>;
 
     /// Submits a checkpoint for a subnet from a wallet address.
-    fn submit_checkpoint(subnet: SubnetID, from: Address, ch: Checkpoint) -> Result<()>;
+    async fn submit_checkpoint(&self, subnet: SubnetID, from: Address, ch: Checkpoint) -> Result<()>;
 
     /// Lists all the registered children for a subnet.
-    fn list_child_subnets(subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>>;
+    async fn list_child_subnets(&self, subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>>;
 }
 
 /// SubnetInfo is an auxiliary struct that collects
