@@ -129,9 +129,9 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
-    async fn state_actor_code_cids(&self, manifest: NetworkVersion) -> Result<HashMap<String, Cid>> {
+    async fn state_actor_code_cids(&self, network_version: NetworkVersion) -> Result<HashMap<String, Cid>> {
         // refer to: https://github.com/filecoin-project/lotus/blob/master/documentation/en/api-v1-unstable-methods.md#stateactormanifestcid
-        let params = json!([manifest]);
+        let params = json!([network_version]);
 
         let r = self
             .client
