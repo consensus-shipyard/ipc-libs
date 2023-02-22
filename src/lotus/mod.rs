@@ -36,6 +36,7 @@ pub trait LotusClient {
     /// Returns the name of the network the node is synced to, see https://lotus.filecoin.io/reference/lotus/state/#statenetworkname
     async fn state_network_name(&self) -> Result<String>;
 
+    /// Returns the network version at the given tipset, see https://lotus.filecoin.io/reference/lotus/state/#statenetworkversion
     async fn state_network_version(&self, tip_sets: Vec<Cid>) -> Result<NetworkVersion>;
 
     /// Get the default wallet of the node, see: https://lotus.filecoin.io/reference/lotus/wallet/#walletdefaultaddress
