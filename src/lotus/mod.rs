@@ -4,12 +4,12 @@ pub mod message;
 #[cfg(test)]
 mod tests;
 
+use std::collections::HashMap;
 use anyhow::Result;
 use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
 use serde::de::DeserializeOwned;
-use std::collections::HashMap;
 use std::fmt::Debug;
 
 pub use crate::lotus::client::LotusJsonRPCClient;
@@ -41,10 +41,7 @@ pub trait LotusClient {
     async fn state_network_version(&self, tip_sets: Vec<Cid>) -> Result<NetworkVersion>;
 
     /// Returns the CID of the builtin actors manifest for the given network version, see https://github.com/filecoin-project/lotus/blob/master/documentation/en/api-v1-unstable-methods.md#stateactormanifestcid
-    async fn state_actor_code_cids(
-        &self,
-        network_version: NetworkVersion,
-    ) -> Result<HashMap<String, Cid>>;
+    async fn state_actor_code_cids(&self, network_version: NetworkVersion) -> Result<HashMap<String, Cid>>;
 
     /// Get the default wallet of the node, see: https://lotus.filecoin.io/reference/lotus/wallet/#walletdefaultaddress
     async fn wallet_default(&self) -> Result<Address>;
