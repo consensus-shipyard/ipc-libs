@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// Trait to interact with a subnet and handle its lifecycle.
 #[async_trait]
 pub trait SubnetManager {
-    /// Deploys a new subnet actor on the `parent` subnet given as an input and with the
+    /// Deploys a new subnet actor on the `parent` subnet and with the
     /// configuration passed in `ConstructParams`.
     /// The result of the function is the ID address for the subnet actor from which the final
     /// subet ID can be inferred.
@@ -37,7 +37,12 @@ pub trait SubnetManager {
     async fn kill_subnet(&self, subnet: SubnetID, from: Address) -> Result<()>;
 
     /// Submits a checkpoint for a subnet from a wallet address.
-    async fn submit_checkpoint(&self, subnet: SubnetID, from: Address, ch: Checkpoint) -> Result<()>;
+    async fn submit_checkpoint(
+        &self,
+        subnet: SubnetID,
+        from: Address,
+        ch: Checkpoint,
+    ) -> Result<()>;
 
     /// Lists all the registered children for a subnet.
     async fn list_child_subnets(&self, subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>>;

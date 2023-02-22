@@ -40,6 +40,6 @@ ipc-gateway = { workspace = true }
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false }
 fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }
 ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git" }
-ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git" , features = [] }
-ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git" , features = [] }
+ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
+ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
 
