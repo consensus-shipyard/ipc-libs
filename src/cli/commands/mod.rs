@@ -57,7 +57,7 @@ pub async fn cli() {
 /// to the current mode. Register a new command accordingly.
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Launch the ipc agent json rpc server.
+    /// Launch the ipc agent daemon.
     ///
     /// Note that, technically speaking, this just launches the ipc agent node and runs in the foreground
     /// and not in the background as what daemon processes are. Still, this struct contains `Daemon`
