@@ -9,15 +9,12 @@ use fvm_ipld_encoding::RawBytes;
 use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{ConstructParams, JoinParams};
+use ipc_subnet_actor::{ConstructParams, JoinParams, types::MANIFEST_ID};
 use fvm_ipld_encoding::tuple::{Serialize_tuple, Deserialize_tuple};
 use crate::jsonrpc::JsonRpcClient;
 use crate::lotus::{LotusClient, LotusJsonRPCClient, MpoolPushMessage, NetworkVersion};
 
 use super::subnet::{SubnetInfo, SubnetManager};
-
-/// To be imported from gateway actor once merged.
-const IPC_SUBNET_ACTOR_MANIFEST: &str = "ipc_subnet_actor";
 
 /// Init actor Exec Params, see https://github.com/filecoin-project/builtin-actors/blob/master/actors/init/src/types.rs#L17
 #[derive(Serialize_tuple, Deserialize_tuple)]
@@ -98,6 +95,6 @@ impl <T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
 
     async fn state_actor_code_cids(&self, network_version: NetworkVersion) -> Result<Cid> {
         let mut cid_map = self.lotus_client.state_actor_code_cids(network_version).await?;
-        cid_map.remove(IPC_SUBNET_ACTOR_MANIFEST).ok_or(anyhow!("actor cid not found"))
+        cid_map.remove(MANIFEST_ID).ok_or(anyhow!("actor cid not found"))
     }
 }
