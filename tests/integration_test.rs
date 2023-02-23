@@ -1,3 +1,5 @@
+use fvm_shared::econ::TokenAmount;
+use ipc_sdk::subnet_id::{ROOTNET_ID, SubnetID};
 use ipc_subnet_actor::{ConsensusType, ConstructParams};
 use ipc_client::lotus::LotusClient;
 use ipc_client::manager::{LotusSubnetManager, SubnetManager};
@@ -13,14 +15,14 @@ fn test_create_subnet_actor() {
 
     let default_wallet = lotus_client.wallet_default().await.unwrap();
     let constructor_params = ConstructParams {
-        parent: Default::default(),
-        name: "".to_string(),
-        ipc_gateway_addr: 0,
-        consensus: ConsensusType::Delegated,
-        min_validator_stake: Default::default(),
+        parent: *ROOTNET_ID,
+        name: "test".to_string(),
+        ipc_gateway_addr: 64,
+        consensus: ConsensusType::Mir,
+        min_validator_stake: TokenAmount::from_atto(1),
         min_validators: 0,
-        finality_threshold: 0,
-        check_period: 0,
+        finality_threshold: 2,
+        check_period: 10,
         genesis: vec![]
     };
 
