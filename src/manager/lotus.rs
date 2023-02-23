@@ -23,7 +23,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     async fn create_subnet(&self, from: Address, params: ConstructParams) -> Result<Address> {
         let network_name = self.lotus_client.state_network_name().await?;
         if params.parent.to_string() != network_name {
-            return Err(anyhow!("parent network name not match"));
+            return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
         }
 
         let actor_code_cid = self.get_subnet_actor_code_cid().await?;
