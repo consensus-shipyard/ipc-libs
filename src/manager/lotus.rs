@@ -21,8 +21,7 @@ pub struct LotusSubnetManager<T: JsonRpcClient> {
 #[async_trait]
 impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     async fn create_subnet(&self, from: Address, params: ConstructParams) -> Result<Address> {
-        let network_name = self.lotus_client.state_network_name().await?;
-        if params.parent.to_string() != network_name {
+        if self.is_network_match(&params.parent).await? {
             return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
         }
 
@@ -93,6 +92,12 @@ impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
         Self { lotus_client }
     }
 
+    /// Checks the `network` is the one we are currently talking to.
+    async fn is_network_match(&self, network: &SubnetID) -> Result<bool> {
+        let network_name = self.lotus_client.state_network_name().await?;
+        Ok(network.to_string() == network_name)
+    }
+
     /// Obtain the actor code cid of `ipc_subnet_actor` only, since this is the
     /// code cid we are interested in.
     async fn get_subnet_actor_code_cid(&self) -> Result<Cid> {
@@ -105,6 +110,6 @@ impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
 
         cid_map
             .remove(MANIFEST_ID)
-            .ok_or(anyhow!("actor cid not found"))
+            .ok_or_else(|| anyhow!("actor cid not found"))
     }
 }
