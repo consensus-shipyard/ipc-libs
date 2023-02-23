@@ -7,6 +7,27 @@ use std::fmt::Debug;
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
 use crate::cli::CommandLineHandler;
 
+/// The collection of all subcommands to be called, see clap's documentation for usage. Internal
+/// to the current mode. Register a new command accordingly.
+#[derive(Debug, Subcommand)]
+enum Commands {
+    /// Launch the ipc agent daemon.
+    ///
+    /// Note that, technically speaking, this just launches the ipc agent node and runs in the foreground
+    /// and not in the background as what daemon processes are. Still, this struct contains `Daemon`
+    /// due to the convention from `lotus` and the expected behavior from the filecoin user group.
+    Daemon(LaunchDaemonArgs),
+}
+
+/// The overall command line struct to be used by `clap`.
+#[derive(Debug, Parser)]
+#[command(name = "ipc", about = "The IPC agent command line tool")]
+#[command(propagate_version = true)]
+struct IPCAgentCliCommands {
+    #[command(subcommand)]
+    command: Commands,
+}
+
 /// The `cli` method exposed to handle all the cli commands, ideally from main.
 ///
 /// # Examples
@@ -50,25 +71,4 @@ pub async fn cli() {
             e
         )
     }
-}
-
-/// The collection of all subcommands to be called, see clap's documentation for usage. Internal
-/// to the current mode. Register a new command accordingly.
-#[derive(Debug, Subcommand)]
-enum Commands {
-    /// Launch the ipc agent daemon.
-    ///
-    /// Note that, technically speaking, this just launches the ipc agent node and runs in the foreground
-    /// and not in the background as what daemon processes are. Still, this struct contains `Daemon`
-    /// due to the convention from `lotus` and the expected behavior from the filecoin user group.
-    Daemon(LaunchDaemonArgs),
-}
-
-/// The overall command line struct to be used by `clap`.
-#[derive(Debug, Parser)]
-#[command(name = "ipc", about = "The IPC agent command line tool")]
-#[command(propagate_version = true)]
-struct IPCAgentCliCommands {
-    #[command(subcommand)]
-    command: Commands,
 }
