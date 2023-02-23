@@ -18,6 +18,8 @@ use url::Url;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub use tests::HTTP_ENDPOINT;
 
 const DEFAULT_JSON_RPC_VERSION: &str = "2.0";
 const DEFAULT_JSON_RPC_ID: u8 = 1;
