@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::jsonrpc::JsonRpcClient;
-use crate::lotus::{LotusClient, LotusJsonRPCClient, MpoolPushMessage};
+use crate::lotus::{LotusClient, LotusJsonRPCClient, MpoolPushMessage, StateWaitMsgResponse};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
 use fil_actors_runtime::{builtin::singletons::INIT_ACTOR_ADDR, cbor};
-use fvm_shared::{address::Address, econ::TokenAmount};
+use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams, types::MANIFEST_ID};
@@ -41,15 +41,8 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             init_params.to_vec(),
         );
 
-        let mem_push_response = self.lotus_client.mpool_push_message(message).await?;
-        let message_cid = mem_push_response.cid()?;
-        let nonce = mem_push_response.nonce;
-        log::debug!(
-            "create subnet message published with cid: {message_cid:?} and nonce: {nonce:?}"
-        );
-
-        let state_wait_response = self.lotus_client.state_wait_msg(message_cid, nonce).await?;
-        let address_raw = state_wait_response.receipt.result;
+        let response = self.mpool_push_and_wait(message).await?;
+        let address_raw = response.receipt.result;
         log::info!("created subnet at address: {address_raw:}");
 
         Ok(Address::from_str(&address_raw)?)
@@ -57,20 +50,60 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
 
     async fn join_subnet(
         &self,
-        _subnet: SubnetID,
-        _from: Address,
-        _collateral: TokenAmount,
-        _params: JoinParams,
+        subnet: SubnetID,
+        from: Address,
+        collateral: TokenAmount,
+        params: JoinParams,
     ) -> Result<()> {
-        panic!("not implemented")
+        if self.is_network_match(&subnet).await? {
+            return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
+        }
+
+        let to = subnet.subnet_actor();
+        let mut message = MpoolPushMessage::new(
+            to,
+            from,
+            ipc_subnet_actor::Method::Join as MethodNum,
+            cbor::serialize(&params, "join subnet params")?.to_vec(),
+        );
+        message.value = collateral;
+
+        self.mpool_push_and_wait(message).await?;
+        log::info!("joined subnet: {subnet:}");
+
+        Ok(())
     }
 
-    async fn leave_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
-        panic!("not implemented")
+    async fn leave_subnet(&self, subnet: SubnetID, from: Address) -> Result<()> {
+        if self.is_network_match(&subnet).await? {
+            return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
+        }
+
+        self.mpool_push_and_wait(MpoolPushMessage::new(
+            subnet.subnet_actor(),
+            from,
+            ipc_subnet_actor::Method::Leave as MethodNum,
+            vec![],
+        )).await?;
+        log::info!("left subnet: {subnet:}");
+
+        Ok(())
     }
 
-    async fn kill_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
-        panic!("not implemented")
+    async fn kill_subnet(&self, subnet: SubnetID, from: Address) -> Result<()> {
+        if self.is_network_match(&subnet).await? {
+            return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
+        }
+
+        self.mpool_push_and_wait(MpoolPushMessage::new(
+            subnet.subnet_actor(),
+            from,
+            ipc_subnet_actor::Method::Kill as MethodNum,
+            vec![],
+        )).await?;
+        log::info!("left subnet: {subnet:}");
+
+        Ok(())
     }
 
     async fn submit_checkpoint(
@@ -90,6 +123,17 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
 impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
     pub fn new(lotus_client: LotusJsonRPCClient<T>) -> Self {
         Self { lotus_client }
+    }
+
+    /// Publish the message to memory pool and wait for the response
+    async fn mpool_push_and_wait(&self, message: MpoolPushMessage) -> Result<StateWaitMsgResponse> {
+        let mem_push_response = self.lotus_client.mpool_push_message(message).await?;
+
+        let message_cid = mem_push_response.cid()?;
+        let nonce = mem_push_response.nonce;
+        log::debug!("message published with cid: {message_cid:?} and nonce: {nonce:?}");
+
+        self.lotus_client.state_wait_msg(message_cid, nonce).await
     }
 
     /// Checks the `network` is the one we are currently talking to.
