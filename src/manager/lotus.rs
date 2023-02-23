@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::jsonrpc::JsonRpcClient;
-use crate::lotus::{LotusClient, LotusJsonRPCClient, MpoolPushMessage, NetworkVersion};
+use crate::lotus::{LotusClient, LotusJsonRPCClient, MpoolPushMessage};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
@@ -89,6 +89,10 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
 }
 
 impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
+    pub fn new(lotus_client: LotusJsonRPCClient<T>) -> Self {
+        Self { lotus_client }
+    }
+
     /// Obtain the actor code cid of `ipc_subnet_actor` only, since this is the
     /// code cid we are interested in.
     async fn get_subnet_actor_code_cid(&self) -> Result<Cid> {
