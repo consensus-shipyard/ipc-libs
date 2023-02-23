@@ -50,7 +50,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         );
 
         let state_wait_response = self.lotus_client.state_wait_msg(message_cid, nonce).await?;
-        let address_raw = state_wait_response.receipt.r#return;
+        let address_raw = state_wait_response.receipt.result;
         log::info!("created subnet at address: {address_raw:}");
 
         Ok(Address::from_str(&address_raw)?)
@@ -89,16 +89,16 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
 }
 
 impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
+    /// Obtain the actor code cid of `ipc_subnet_actor` only, since this is the
+    /// code cid we are interested in.
     async fn get_subnet_actor_code_cid(&self) -> Result<Cid> {
         let network_version = self.lotus_client.state_network_version(vec![]).await?;
-        self.state_actor_code_cids(network_version).await
-    }
 
-    async fn state_actor_code_cids(&self, network_version: NetworkVersion) -> Result<Cid> {
         let mut cid_map = self
             .lotus_client
             .state_actor_code_cids(network_version)
             .await?;
+
         cid_map
             .remove(MANIFEST_ID)
             .ok_or(anyhow!("actor cid not found"))
