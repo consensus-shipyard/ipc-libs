@@ -95,6 +95,8 @@ impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
     /// Checks the `network` is the one we are currently talking to.
     async fn is_network_match(&self, network: &SubnetID) -> Result<bool> {
         let network_name = self.lotus_client.state_network_name().await?;
+        log::debug!("current network name: {network_name:?}, to check network: {network:?}");
+
         Ok(network.to_string() == network_name)
     }
 
@@ -102,6 +104,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
     /// code cid we are interested in.
     async fn get_subnet_actor_code_cid(&self) -> Result<Cid> {
         let network_version = self.lotus_client.state_network_version(vec![]).await?;
+        log::debug!("received network version: {network_version:?}");
 
         let mut cid_map = self
             .lotus_client
