@@ -28,7 +28,7 @@ pub struct Config {
 
 impl Config {
     /// Reads a TOML configuration in the `s` string and returns a [`Config`] struct.
-    pub fn from_string(s: &str) -> Result<Self> {
+    pub fn from_toml_str(s: &str) -> Result<Self> {
         let config = toml::from_str(s)?;
         Ok(config)
     }
@@ -36,7 +36,7 @@ impl Config {
     /// Reads a TOML configuration file specified in the `path` and returns a [`Config`] struct.
     pub fn from_file(path: &str) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
-        let config: Config = Config::from_string(contents.as_str())?;
+        let config: Config = Config::from_toml_str(contents.as_str())?;
         Ok(config)
     }
 }
@@ -133,6 +133,6 @@ mod tests {
         "#
         );
 
-        Config::from_string(config_str.as_str()).unwrap()
+        Config::from_toml_str(config_str.as_str()).unwrap()
     }
 }
