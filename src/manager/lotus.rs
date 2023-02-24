@@ -37,14 +37,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             init_params.to_vec(),
         );
 
-        let mem_push_response = self.lotus_client.mpool_push_message(message).await?;
-        let message_cid = mem_push_response.cid()?;
-        let nonce = mem_push_response.nonce;
-        log::debug!(
-            "create subnet message published with cid: {message_cid:?} and nonce: {nonce:?}"
-        );
-
-        let state_wait_response = self.lotus_client.state_wait_msg(message_cid, nonce).await?;
+        let state_wait_response = self.mpool_push_and_wait(message).await?;
         let result = state_wait_response.receipt.parse_result_into::<InitExecReturn>()?;
         let addr = result.id_address;
         log::info!("created subnet result: {addr:}");
