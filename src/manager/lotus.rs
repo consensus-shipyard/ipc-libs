@@ -95,7 +95,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
     /// Checks the `network` is the one we are currently talking to.
     async fn is_network_match(&self, network: &SubnetID) -> Result<bool> {
         let network_name = self.lotus_client.state_network_name().await?;
-        log::debug!("current network name: {network_name:?}, to check network: {network:?}");
+        log::debug!("current network name: {network_name:?}, to check network: {:?}", network.to_string());
 
         Ok(network.to_string() == network_name)
     }
