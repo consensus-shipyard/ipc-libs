@@ -2,7 +2,7 @@ use url::Url;
 use crate::jsonrpc::JsonRpcClientImpl;
 use crate::lotus::{LotusClient, LotusJsonRPCClient};
 
-use crate::jsonrpc::HTTP_ENDPOINT;
+const HTTP_ENDPOINT: &str = "https://api.node.glif.io/rpc/v0";
 
 fn get_lotus_client() -> LotusJsonRPCClient<JsonRpcClientImpl> {
     let url = Url::parse(HTTP_ENDPOINT).unwrap();
