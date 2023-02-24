@@ -1,8 +1,12 @@
 use libipld::store::StoreParams;
-use libp2p::{gossipsub::Gossipsub, identify, ping, swarm::NetworkBehaviour};
+use libp2p::{identify, ping, swarm::NetworkBehaviour};
 use libp2p_bitswap::Bitswap;
 
 mod discovery;
+mod membership;
+
+use self::discovery::Discovery;
+use self::membership::Membership;
 
 /// Libp2p behaviour to manage content resolution from other subnets, using:
 ///
@@ -14,8 +18,8 @@ pub struct IpldResolver<P: StoreParams> {
     ping: ping::Behaviour,
     identify: identify::Behaviour,
     discovery: discovery::Behaviour,
-    gossipsub: Gossipsub, // TODO (IPC-35): Wrap into Membership
-    bitswap: Bitswap<P>,  // TODO (IPC-36): Wrap into Resolve
+    membership: Membership,
+    bitswap: Bitswap<P>, // TODO (IPC-36): Wrap into Resolve
 }
 
 // Unfortunately by using `#[derive(NetworkBehaviour)]` we cannot easily inspects events
