@@ -38,8 +38,6 @@ pub enum DiscoveryEvent {
 /// Our other option for peer discovery would be to rely on the Peer Exchange of Gossipsub.
 /// However, the required Signed Records feature is not available in the Rust version of the library, as of v0.50.
 pub struct Discovery {
-    /// Our own peer ID.
-    local_peer_id: PeerId,
     /// User-defined list of nodes and their addresses.
     /// Typically includes bootstrap nodes, or it can be used for a static network.
     user_defined: Vec<(PeerId, Multiaddr)>,
@@ -139,12 +137,14 @@ impl NetworkBehaviour for Discovery {
 
         // Poll Kademlia.
         while let Poll::Ready(ev) = self.inner.poll(cx, params) {
-            // Hack to avoid having to repeat all mappings to change the generic type.
-            let ev = ev.map_out(|_| DiscoveryEvent::Connected(self.local_peer_id, vec![]));
             match ev {
-                // Not propagating behaviour events, just the ones meant for the Swarm.
-                NetworkBehaviourAction::GenerateEvent(_) => {}
-                other => return Poll::Ready(other),
+                // Not propagating Kademlia specific events, just the ones meant for the Swarm.
+                NetworkBehaviourAction::GenerateEvent(_out) => {
+                    continue;
+                }
+                other => {
+                    return Poll::Ready(other.map_out(|_| unreachable!("continue'd")));
+                }
             }
         }
 
