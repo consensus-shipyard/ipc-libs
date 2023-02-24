@@ -15,9 +15,8 @@ use std::fmt::Debug;
 pub use crate::lotus::client::LotusJsonRPCClient;
 pub use crate::lotus::message::{MpoolPushMessage, MpoolPushMessageResponseInner};
 pub use crate::lotus::message::{
-    ReadStateResponse, StateWaitMsgResponse, WalletKeyType, WalletListResponse,
+    ChainHeadResponse, ReadStateResponse, StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
-use crate::lotus::message::ChainHeadResponse;
 
 /// The network version of lotus network.
 /// see https://github.com/filecoin-project/go-state-types/blob/f6fd668a32b4b4a0bc39fd69d8a5f8fb11f49461/network/version.go#L7
