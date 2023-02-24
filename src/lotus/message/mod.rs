@@ -11,21 +11,6 @@ pub(crate) mod mpool;
 pub(crate) mod state;
 pub(crate) mod wallet;
 
-/// Exec actor parameters
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct ExecParams {
-    pub code_cid: Cid,
-    pub constructor_params: Vec<u8>,
-}
-
-/// Install actor parameters
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct InstallActorParams {
-    pub code: Vec<u8>,
-}
-
 /// Helper struct to interact with lotus node
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CIDMap {
