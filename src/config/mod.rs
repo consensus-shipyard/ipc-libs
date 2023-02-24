@@ -34,7 +34,7 @@ impl Config {
     }
 
     /// Reads a TOML configuration file specified in the `path` and returns a [`Config`] struct.
-    pub fn from_file(path: &str) -> Result<Self> {
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
         let config: Config = Config::from_toml_str(contents.as_str())?;
         Ok(config)
