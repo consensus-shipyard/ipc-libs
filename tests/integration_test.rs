@@ -7,6 +7,12 @@ use ipc_agent::manager::{LotusSubnetManager, SubnetManager};
 
 mod setup;
 
+/// To run this test:
+/// ```shell
+/// export IPC_JSON_RPC_TEST_HTTP_URL="http://127.0.0.1:<Your Node Port>/rpc/v0"
+/// export IPC_JSON_RPC_TEST_BEARER_TOKEN=<Your admin token>
+/// RUST_LOG=debug cargo test --test '*'
+/// ```
 #[tokio::test]
 #[ignore]
 async fn test_create_subnet_actor() {
