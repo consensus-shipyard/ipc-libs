@@ -1,3 +1,4 @@
+use fvm_shared::address::{Network, set_current_network};
 use fvm_shared::econ::TokenAmount;
 use ipc_sdk::subnet_id::{ROOTNET_ID};
 use ipc_subnet_actor::{ConsensusType, ConstructParams};
@@ -12,6 +13,8 @@ async fn test_create_subnet_actor() {
     let bearer_token = std::env::var("IPC_JSON_RPC_TEST_BEARER_TOKEN").ok();
     let http_url = std::env::var("IPC_JSON_RPC_TEST_HTTP_URL").unwrap();
     let lotus_client = setup::lotus_http_json_rpc_client(&http_url, bearer_token.as_deref());
+
+    set_current_network(Network::Testnet);
 
     let default_wallet = lotus_client.wallet_default().await.unwrap();
     let constructor_params = ConstructParams {
