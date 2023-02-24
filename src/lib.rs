@@ -1,6 +1,6 @@
-mod cli;
-mod config;
+pub mod cli;
+pub mod config;
 pub mod jsonrpc;
 pub mod lotus;
 pub mod manager;
-mod server;
+pub mod server;

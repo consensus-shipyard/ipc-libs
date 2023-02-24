@@ -7,6 +7,10 @@ use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use base64::Engine;
+use fil_actors_runtime::cbor;
+use fvm_ipld_encoding::RawBytes;
+use serde::de::DeserializeOwned;
 use strum::{AsRefStr, Display, EnumString};
 
 /// Exec actor parameters
@@ -72,7 +76,7 @@ pub struct ReadStateResponse<State> {
 pub struct Receipt {
     #[allow(dead_code)]
     pub exit_code: u32,
-    #[serde(rename = "return")]
+    #[serde(rename = "Return")]
     pub result: String,
     #[allow(dead_code)]
     pub gas_used: u64,
@@ -163,7 +167,7 @@ impl TryFrom<CIDMap> for Cid {
 
     fn try_from(cid_map: CIDMap) -> Result<Self, Self::Error> {
         let cid_option: Option<Cid> = cid_map.into();
-        cid_option.ok_or(anyhow!("cid not found"))
+        cid_option.ok_or_else(|| anyhow!("cid not found"))
     }
 }
 
@@ -189,6 +193,24 @@ impl From<Cid> for CIDMap {
             cid: Some(c.to_string()),
         }
     }
+}
+
+impl Receipt {
+   pub fn parse_result_into<T: DeserializeOwned>(self) -> anyhow::Result<T> {
+       let r = base64::engine::general_purpose::STANDARD.decode(self.result)
+           .map_err(|e| {
+               log::error!("cannot base64 decode due to {e:?}");
+               anyhow!("cannot decode return string")
+           })?;
+
+       cbor::deserialize::<T>(
+           &RawBytes::new(r),
+           "deserialize create subnet return response"
+       ).map_err(|e| {
+           log::error!("cannot decode bytes due to {e:?}");
+           anyhow!("cannot cbor deserialize return data")
+       })
+   }
 }
 
 #[cfg(test)]

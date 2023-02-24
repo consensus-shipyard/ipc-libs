@@ -1,7 +1,5 @@
-use ipc_client::jsonrpc::JsonRpcClientImpl;
-use ipc_client::lotus::LotusJsonRPCClient;
-
-pub const LOCAL_JSON_RPC_HTTP_URL: &str = "http://localhost:3030/rpc/v0";
+use ipc_agent::jsonrpc::JsonRpcClientImpl;
+use ipc_agent::lotus::LotusJsonRPCClient;
 
 pub fn http_json_rpc(url: &str, bearer_token: Option<&str>) -> JsonRpcClientImpl {
     JsonRpcClientImpl::new(url.parse().unwrap(), bearer_token)

@@ -5,7 +5,7 @@ use crate::lotus::message::{
 };
 use crate::jsonrpc::JsonRpcClient;
 use crate::lotus::{LotusClient, NetworkVersion};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
@@ -117,7 +117,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn state_network_version(&self, tip_sets: Vec<Cid>) -> Result<NetworkVersion> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statenetworkversion
         let params = json!([
-            tip_sets.into_iter().map(|cid| CIDMap::from(cid)).collect::<Vec<_>>()
+            tip_sets.into_iter().map(CIDMap::from).collect::<Vec<_>>()
         ]);
 
         let r = self
