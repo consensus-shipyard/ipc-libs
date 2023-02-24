@@ -21,7 +21,7 @@ pub struct LotusSubnetManager<T: JsonRpcClient> {
 #[async_trait]
 impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     async fn create_subnet(&self, from: Address, params: ConstructParams) -> Result<Address> {
-        if self.is_network_match(&params.parent).await? {
+        if !self.is_network_match(&params.parent).await? {
             return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
         }
 
