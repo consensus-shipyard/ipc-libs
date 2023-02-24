@@ -72,7 +72,7 @@ pub struct ReadStateResponse<State> {
 pub struct Receipt {
     #[allow(dead_code)]
     pub exit_code: u32,
-    #[serde(rename = "return")]
+    #[serde(rename = "Return")]
     pub result: String,
     #[allow(dead_code)]
     pub gas_used: u64,
