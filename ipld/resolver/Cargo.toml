@@ -10,6 +10,7 @@ license-file.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
 libp2p = { version = "0.50", default-features = false, features = ["gossipsub", "kad", "identify", "ping", "noise", "yamux", "tcp", "dns", "mplex", "request-response", "metrics", "tokio", "macros"] }
 libp2p-bitswap = "0.25"
