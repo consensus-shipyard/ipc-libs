@@ -181,6 +181,15 @@ impl Discovery {
             max_connections: config.max_connections,
         }
     }
+
+    /// Lookup a peer, unless we already know their address, so that we have a chance to connect to them later.
+    pub fn background_lookup(&mut self, peer_id: PeerId) {
+        if self.addresses_of_peer(&peer_id).is_empty() {
+            if let Some(kademlia) = self.inner.as_mut() {
+                kademlia.get_closest_peers(peer_id);
+            }
+        }
+    }
 }
 
 impl NetworkBehaviour for Discovery {
@@ -250,8 +259,8 @@ impl NetworkBehaviour for Discovery {
         // Trigger periodic queries.
         if self.lookup_interval.poll_tick(cx).is_ready() {
             if self.num_connections < self.max_connections {
-                let random_peer_id = PeerId::random();
                 if let Some(k) = self.inner.as_mut() {
+                    let random_peer_id = PeerId::random();
                     k.get_closest_peers(random_peer_id);
                 }
             }
