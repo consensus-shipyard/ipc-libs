@@ -17,6 +17,7 @@ pub use crate::lotus::message::{MpoolPushMessage, MpoolPushMessageResponseInner}
 pub use crate::lotus::message::{
     ReadStateResponse, StateWaitMsgResponse, WalletKeyType, WalletListResponse,
 };
+use crate::lotus::message::ChainHeadResponse;
 
 /// The network version of lotus network.
 /// see https://github.com/filecoin-project/go-state-types/blob/f6fd668a32b4b4a0bc39fd69d8a5f8fb11f49461/network/version.go#L7
@@ -58,4 +59,8 @@ pub trait LotusClient {
         address: Address,
         tipset: Cid,
     ) -> Result<ReadStateResponse<State>>;
+
+    /// Returns the current head of the chain.
+    /// See: https://lotus.filecoin.io/reference/lotus/chain/#chainhead
+    async fn chain_head(&self) -> Result<ChainHeadResponse>;
 }
