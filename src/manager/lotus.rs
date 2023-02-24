@@ -7,11 +7,12 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
 use fil_actors_runtime::{builtin::singletons::INIT_ACTOR_ADDR, cbor};
+use fil_actors_runtime::types::{INIT_EXEC_METHOD_NUM, InitExecParams, InitExecReturn};
+use fvm_ipld_encoding::RawBytes;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams, types::MANIFEST_ID};
-use crate::manager::params::{ExecParams, INIT_EXEC_METHOD_NUM};
 use super::subnet::{SubnetInfo, SubnetManager};
 
 pub struct LotusSubnetManager<T: JsonRpcClient> {
@@ -25,12 +26,9 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
         }
 
-        let actor_code_cid = self.get_subnet_actor_code_cid().await?;
-        let constructor_params = cbor::serialize(&params, "create subnet actor")?;
-
-        let exec_params = ExecParams {
-            code_cid: actor_code_cid,
-            constructor_params,
+        let exec_params = InitExecParams {
+            code_cid: self.get_subnet_actor_code_cid().await?,
+            constructor_params: cbor::serialize(&params, "create subnet actor")?,
         };
         log::debug!("create subnet for init actor with params: {exec_params:?}");
         let init_params = cbor::serialize(&exec_params, "init subnet actor params")?;
@@ -49,10 +47,15 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         );
 
         let state_wait_response = self.lotus_client.state_wait_msg(message_cid, nonce).await?;
-        let address_raw = state_wait_response.receipt.result;
-        log::info!("created subnet at address: {address_raw:}");
+        let result = state_wait_response.receipt.result;
+        log::debug!("created subnet raw result: {result:}");
 
-        Ok(Address::from_str(&address_raw)?)
+        let init_exec_return = cbor::deserialize::<InitExecReturn>(
+            &RawBytes::new(result.into_bytes()),
+            "deserialize create subnet return response"
+        )?;
+
+        Ok(init_exec_return.id_address)
     }
 
     async fn join_subnet(
