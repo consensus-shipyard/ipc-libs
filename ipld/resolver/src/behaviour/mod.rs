@@ -16,8 +16,8 @@ pub struct IpldResolver<P: StoreParams> {
     ping: ping::Behaviour,
     identify: identify::Behaviour,
     discovery: Discovery,
-    gossipsub: Gossipsub,
-    bitswap: Bitswap<P>,
+    gossipsub: Gossipsub, // TODO (IPC-35): Wrap into Membership
+    bitswap: Bitswap<P>,  // TODO (IPC-36): Wrap into Resolve
 }
 
 // Unfortunately by using `#[derive(NetworkBehaviour)]` we cannot easily inspects events
