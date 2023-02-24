@@ -47,15 +47,11 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         );
 
         let state_wait_response = self.lotus_client.state_wait_msg(message_cid, nonce).await?;
-        let result = state_wait_response.receipt.result;
-        log::debug!("created subnet raw result: {result:}");
+        let result = state_wait_response.receipt.parse_result_into::<InitExecReturn>()?;
+        let addr = result.id_address;
+        log::info!("created subnet result: {addr:}");
 
-        let init_exec_return = cbor::deserialize::<InitExecReturn>(
-            &RawBytes::new(result.into_bytes()),
-            "deserialize create subnet return response"
-        )?;
-
-        Ok(init_exec_return.id_address)
+        Ok(addr)
     }
 
     async fn join_subnet(
