@@ -1,9 +1,10 @@
 use std::collections::{HashMap, VecDeque};
 use std::task::{Context, Poll};
+use std::time::Duration;
 
 use ipc_sdk::subnet_id::SubnetID;
 use libp2p::core::connection::ConnectionId;
-use libp2p::gossipsub::{GossipsubEvent, GossipsubMessage, IdentTopic, Topic};
+use libp2p::gossipsub::{GossipsubEvent, GossipsubMessage, IdentTopic};
 use libp2p::identity::Keypair;
 use libp2p::swarm::derive_prelude::FromSwarm;
 use libp2p::swarm::{NetworkBehaviourAction, PollParameters};
@@ -13,10 +14,11 @@ use libp2p::{
     swarm::{ConnectionHandler, IntoConnectionHandler, NetworkBehaviour},
     PeerId,
 };
-use log::debug;
+use log::{debug, error};
 use tokio::time::Interval;
 
-use crate::provider_record::{SignedProviderRecord, Timestamp};
+use crate::provider_cache::SubnetProviderCache;
+use crate::provider_record::{ProviderRecord, SignedProviderRecord, Timestamp};
 
 /// `Gossipsub` subnet membership topic identifier.
 const PUBSUB_MEMBERSHIP: &str = "/ipc/membership";
@@ -41,7 +43,7 @@ pub enum Event {
     /// This should be okay, as in practice there is no significance to these
     /// peer IDs, we can even generate a fresh key-pair every time we run the
     /// resolver.
-    SubnetProvider(SignedProviderRecord),
+    SubnetProvider(ProviderRecord),
 }
 
 /// A [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
@@ -57,26 +59,15 @@ pub struct Behaviour {
     membership_topic: IdentTopic, // Topic::new(format!("{}/{}", PUBSUB_MEMBERSHIP, network_name)
     /// List of subnet IDs this agent is providing data for.
     subnet_ids: Vec<SubnetID>,
-    /// List of peer IDs supporting each individual subnet.
-    ///
-    /// TODO: Limit the number of peers and topic we track. How do we limit the subnets?
-    /// An agent will probably only be asked to resolve topics from the current subnet and
-    /// its children, but how do we know which are legitimate child subnets?
-    ///
-    /// TODO: How do we protect against DoS attacks trying to fill the memory with bogus data?
-    /// We could differentiate by tracking which peers we are actually connected to, and first
-    /// prune the ones we just heard about, but we don't know if they are legit.
-    subnet_membership: HashMap<SubnetID, Vec<PeerId>>,
-    /// Timestamp of the last record received about a peer.
-    ///
-    /// TODO: Add more meta-data, such as whether the peer was connected to at any point in time,
-    /// or whether it served data to us.
-    peer_timestamps: HashMap<PeerId, Timestamp>,
+    /// Caching the latest state of subnet providers.
+    provider_cache: SubnetProviderCache,
     /// Interval between publishing the currently supported subnets.
     ///
     /// This acts like a heartbeat; if a peer doesn't publish its snapshot for a long time,
     /// other agents can prune it from their cache and not try to contact for resolution.
     publish_interval: Interval,
+    /// Maximum time a provider can be without an update before it's pruned from the cache.
+    max_provider_age: Duration,
 }
 
 impl Behaviour {
@@ -104,6 +95,16 @@ impl Behaviour {
         self.publish_membership()
     }
 
+    /// Mark a peer as routable in the cache.
+    pub fn set_routable(&mut self, peer_id: PeerId) {
+        self.provider_cache.set_routable(peer_id)
+    }
+
+    /// Mark a peer as unroutable in the cache.
+    pub fn set_unroutable(&mut self, peer_id: PeerId) {
+        self.provider_cache.set_unroutable(peer_id)
+    }
+
     /// Send a message through Gossipsub to let everyone know about the current configuration.
     fn publish_membership(&mut self) -> anyhow::Result<()> {
         let record = SignedProviderRecord::new(&self.keypair, self.subnet_ids.clone())?;
@@ -113,7 +114,10 @@ impl Behaviour {
     }
 
     /// Remove any membership record that hasn't been updated for a long time.
-    fn prune_membership(&mut self) {}
+    fn prune_membership(&mut self) {
+        let cutoff_timestamp = Timestamp::now() - self.max_provider_age;
+        self.provider_cache.prune_providers(cutoff_timestamp);
+    }
 
     /// Parse and handle a [`GossipsubMessage`]. If it's from the expected topic,
     /// then raise domain event to let the rest of the application know about a
@@ -162,7 +166,9 @@ impl NetworkBehaviour for Behaviour {
 
         // Republish our current peer record snapshot and prune old records.
         if self.publish_interval.poll_tick(cx).is_ready() {
-            self.publish_membership();
+            if let Err(e) = self.publish_membership() {
+                error!("error publishing membership: {e}")
+            };
             self.prune_membership();
         }
 
@@ -186,11 +192,7 @@ impl NetworkBehaviour for Behaviour {
                         GossipsubEvent::GossipsubNotSupported { peer_id } => {
                             debug!("peer {peer_id} doesn't support gossipsub");
                         }
-                        GossipsubEvent::Message {
-                            propagation_source,
-                            message_id,
-                            message,
-                        } => {
+                        GossipsubEvent::Message { message, .. } => {
                             if let Some(ev) = self.handle_message(message) {
                                 return Poll::Ready(NetworkBehaviourAction::GenerateEvent(ev));
                             }

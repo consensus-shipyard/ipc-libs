@@ -1,4 +1,5 @@
-use std::time::SystemTime;
+use std::ops::{Add, Sub};
+use std::time::{Duration, SystemTime};
 
 use fvm_ipld_encoding::serde::{Deserialize, Serialize};
 use ipc_sdk::subnet_id::SubnetID;
@@ -31,31 +32,35 @@ impl Timestamp {
     }
 }
 
+impl Sub<Duration> for Timestamp {
+    type Output = Self;
+
+    fn sub(self, rhs: Duration) -> Self {
+        Self(self.0.saturating_sub(rhs.as_secs()))
+    }
+}
+
+impl Add<Duration> for Timestamp {
+    type Output = Self;
+
+    fn add(self, rhs: Duration) -> Self {
+        Self(self.0.saturating_add(rhs.as_secs()))
+    }
+}
+
 /// Record of the ability to provide data from a list of subnets.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct ProviderRecord {
     /// The ID of the peer we can contact to pull data from.
-    peer_id: PeerId,
+    pub peer_id: PeerId,
     /// The IDs of the subnets they are participating in.
-    subnet_ids: Vec<SubnetID>,
+    pub subnet_ids: Vec<SubnetID>,
     /// Timestamp from when the peer published this record.
     ///
     /// We use a timestamp instead of just a nonce so that we
     /// can drop records which are too old, indicating that
     /// the peer has dropped off.
-    timestamp: Timestamp,
-}
-
-impl ProviderRecord {
-    pub fn peer_id(&self) -> PeerId {
-        self.peer_id
-    }
-    pub fn subnet_ids(&self) -> &[SubnetID] {
-        self.subnet_ids.as_slice()
-    }
-    pub fn timestamp(&self) -> Timestamp {
-        self.timestamp
-    }
+    pub timestamp: Timestamp,
 }
 
 /// A [`ProviderRecord`] with a [`SignedEnvelope`] proving that the
