@@ -1,10 +1,6 @@
 use std::task::Context;
 
-use fvm_ipld_encoding::serde::{Deserialize, Serialize};
-use ipc_sdk::subnet_id::SubnetID;
-use libipld::multihash;
 use libp2p::core::connection::ConnectionId;
-use libp2p::core::{signed_envelope, DecodeError, SignedEnvelope};
 use libp2p::swarm::derive_prelude::FromSwarm;
 use libp2p::swarm::{NetworkBehaviourAction, PollParameters};
 use libp2p::Multiaddr;
@@ -14,89 +10,24 @@ use libp2p::{
     PeerId,
 };
 
-const DOMAIN_SEP: &str = "ipc-membership";
-const PROVIDER_RECORD_PAYLOAD_TYPE: &str = "/ipc/provider-record";
+use crate::provider_record::SignedProviderRecord;
 
-/// Unix timestamp in seconds since epoch, which we can use to select the
-/// more recent message during gossiping.
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
-pub struct Timestamp(u64);
-
-/// Record of the ability to provide data from a list of subnets.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProviderRecord {
-    /// The ID of the peer we can contact to pull data from.
-    peer_id: PeerId,
-    /// The IDs of the subnets they are participating in.
-    subnet_ids: Vec<SubnetID>,
-    /// Timestamp from when the peer published this record.
-    ///
-    /// We use a timestamp instead of just a nonce so that we
-    /// can drop records which are too old, indicating that
-    /// the peer has dropped off.
-    timestamp: Timestamp,
-}
-
-/// A [`ProviderRecord`] with a [`SignedEnvelope`] proving that the
-/// peer indeed is ready to provide the data for the listed subnets.
+/// Events emitted by the [`membership::Behaviour`] behaviour.
 #[derive(Debug)]
-pub struct SignedProviderRecord {
-    /// The deserialized and validated [`ProviderRecord`].
-    record: ProviderRecord,
-    /// The [`SignedEnvelope`] from which the record was deserialized from.
-    envelope: SignedEnvelope,
-}
-
-// Based on `libp2p_core::peer_record::PeerRecord`
-impl SignedProviderRecord {
-    pub fn from_signed_envelope(envelope: SignedEnvelope) -> Result<Self, FromEnvelopeError> {
-        let (payload, signing_key) = envelope.payload_and_signing_key(
-            String::from(DOMAIN_SEP),
-            PROVIDER_RECORD_PAYLOAD_TYPE.as_bytes(),
-        )?;
-
-        let record = fvm_ipld_encoding::from_slice::<ProviderRecord>(payload)?;
-
-        if record.peer_id != signing_key.to_peer_id() {
-            return Err(FromEnvelopeError::MismatchedSignature);
-        }
-
-        Ok(Self { record, envelope })
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum FromEnvelopeError {
-    /// Failed to extract the payload from the envelope.
-    #[error("Failed to extract payload from envelope")]
-    BadPayload(#[from] signed_envelope::ReadPayloadError),
-    /// Failed to decode the provided bytes as a [`ProviderRecord`].
-    #[error("Failed to decode bytes as ProviderRecord")]
-    InvalidProviderRecord(#[from] fvm_ipld_encoding::Error),
-    /// Failed to decode the peer ID.
-    #[error("Failed to decode bytes as PeerId")]
-    InvalidPeerId(#[from] multihash::Error),
-    /// The signer of the envelope is different than the peer id in the record.
-    #[error("The signer of the envelope is different than the peer id in the record")]
-    MismatchedSignature,
-}
-
-/// Events emitted by the [`Membership`] behaviour.
-#[derive(Debug)]
-pub enum MembershipEvent {
+pub enum Event {
     /// Indicate that a given peer is able to serve data from a list of subnets.
     SubnetProvider(SignedProviderRecord),
 }
 
-/// `Membership` is a [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
+/// A [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
 /// peer is able to resolve CIDs in different subnets.
-pub struct Membership {
+pub struct Behaviour {
     inner: Gossipsub,
 }
 
-impl NetworkBehaviour for Membership {
+impl NetworkBehaviour for Behaviour {
     type ConnectionHandler = <Gossipsub as NetworkBehaviour>::ConnectionHandler;
-    type OutEvent = MembershipEvent;
+    type OutEvent = Event;
 
     fn new_handler(&mut self) -> Self::ConnectionHandler {
         self.inner.new_handler()

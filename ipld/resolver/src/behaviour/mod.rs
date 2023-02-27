@@ -5,8 +5,6 @@ use libp2p_bitswap::Bitswap;
 mod discovery;
 mod membership;
 
-use self::membership::Membership;
-
 /// Libp2p behaviour to manage content resolution from other subnets, using:
 ///
 /// * Kademlia for peer discovery
@@ -17,8 +15,8 @@ pub struct IpldResolver<P: StoreParams> {
     ping: ping::Behaviour,
     identify: identify::Behaviour,
     discovery: discovery::Behaviour,
-    membership: Membership,
-    bitswap: Bitswap<P>, // TODO (IPC-36): Wrap into Resolve
+    membership: membership::Behaviour,
+    bitswap: Bitswap<P>, // TODO (IPC-36): Wrap
 }
 
 // Unfortunately by using `#[derive(NetworkBehaviour)]` we cannot easily inspects events
