@@ -2,8 +2,6 @@ use libipld::store::StoreParams;
 use libp2p::{gossipsub::Gossipsub, identify, ping, swarm::NetworkBehaviour};
 use libp2p_bitswap::Bitswap;
 
-use self::discovery::Discovery;
-
 mod discovery;
 
 /// Libp2p behaviour to manage content resolution from other subnets, using:
@@ -15,7 +13,7 @@ mod discovery;
 pub struct IpldResolver<P: StoreParams> {
     ping: ping::Behaviour,
     identify: identify::Behaviour,
-    discovery: Discovery,
+    discovery: discovery::Behaviour,
     gossipsub: Gossipsub, // TODO (IPC-35): Wrap into Membership
     bitswap: Bitswap<P>,  // TODO (IPC-36): Wrap into Resolve
 }
