@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::task::{Context, Poll};
 use std::time::Duration;
 
@@ -14,7 +14,7 @@ use libp2p::{
     swarm::{ConnectionHandler, IntoConnectionHandler, NetworkBehaviour},
     PeerId,
 };
-use log::{debug, error};
+use log::{debug, error, warn};
 use tokio::time::Interval;
 
 use crate::provider_cache::SubnetProviderCache;
@@ -43,7 +43,7 @@ pub enum Event {
     /// This should be okay, as in practice there is no significance to these
     /// peer IDs, we can even generate a fresh key-pair every time we run the
     /// resolver.
-    SubnetProvider(ProviderRecord),
+    AddedProvider(ProviderRecord),
 }
 
 /// A [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
@@ -95,16 +95,6 @@ impl Behaviour {
         self.publish_membership()
     }
 
-    /// Mark a peer as routable in the cache.
-    pub fn set_routable(&mut self, peer_id: PeerId) {
-        self.provider_cache.set_routable(peer_id)
-    }
-
-    /// Mark a peer as unroutable in the cache.
-    pub fn set_unroutable(&mut self, peer_id: PeerId) {
-        self.provider_cache.set_unroutable(peer_id)
-    }
-
     /// Send a message through Gossipsub to let everyone know about the current configuration.
     fn publish_membership(&mut self) -> anyhow::Result<()> {
         let record = SignedProviderRecord::new(&self.keypair, self.subnet_ids.clone())?;
@@ -113,10 +103,25 @@ impl Behaviour {
         Ok(())
     }
 
-    /// Remove any membership record that hasn't been updated for a long time.
-    fn prune_membership(&mut self) {
-        let cutoff_timestamp = Timestamp::now() - self.max_provider_age;
-        self.provider_cache.prune_providers(cutoff_timestamp);
+    /// Mark a peer as routable in the cache.
+    ///
+    /// Call this method when the discovery service learns the address of a peer.
+    pub fn set_routable(&mut self, peer_id: PeerId) {
+        self.provider_cache.set_routable(peer_id)
+    }
+
+    /// Mark a peer as unroutable in the cache.
+    ///
+    /// Call this method when the discovery service forgets the address of a peer.
+    pub fn set_unroutable(&mut self, peer_id: PeerId) {
+        self.provider_cache.set_unroutable(peer_id)
+    }
+
+    /// List the current providers of a subnet.
+    ///
+    /// Call this method when looking for a peer to resolve content from.
+    pub fn providers_of_subnet(&self, subnet_id: &SubnetID) -> Vec<PeerId> {
+        self.provider_cache.providers_of_subnet(subnet_id)
     }
 
     /// Parse and handle a [`GossipsubMessage`]. If it's from the expected topic,
@@ -124,7 +129,30 @@ impl Behaviour {
     /// provider. Also update all the book keeping in the behaviour that we use
     /// to answer future queries about the topic.
     fn handle_message(&mut self, msg: GossipsubMessage) -> Option<Event> {
-        todo!()
+        if msg.topic == self.membership_topic.hash() {
+            match SignedProviderRecord::from_bytes(&msg.data).map(|r| r.into_record()) {
+                Ok(record) => {
+                    if self.provider_cache.add_provider(&record) {
+                        return Some(Event::AddedProvider(record));
+                    }
+                }
+                Err(e) => {
+                    warn!(
+                        "Gossip message from peer {:?} could not be deserialized: {e}",
+                        msg.source
+                    );
+                }
+            }
+        } else {
+            warn!("unknown gossipsub topic: {}", msg.topic);
+        }
+        None
+    }
+
+    /// Remove any membership record that hasn't been updated for a long time.
+    fn prune_membership(&mut self) {
+        let cutoff_timestamp = Timestamp::now() - self.max_provider_age;
+        self.provider_cache.prune_providers(cutoff_timestamp);
     }
 }
 

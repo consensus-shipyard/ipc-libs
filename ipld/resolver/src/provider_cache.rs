@@ -55,7 +55,7 @@ impl SubnetProviderCache {
     /// Try to add a provider to the cache.
     ///
     /// Return `true` if succeeded, `false` if the peer is not yet routable.
-    pub fn add_provider(&mut self, record: ProviderRecord) -> bool {
+    pub fn add_provider(&mut self, record: &ProviderRecord) -> bool {
         if !self.is_routable(record.peer_id) {
             return false;
         }
@@ -67,8 +67,8 @@ impl SubnetProviderCache {
 
         if *timestamp < record.timestamp {
             *timestamp = record.timestamp;
-            for subnet_id in record.subnet_ids {
-                let providers = self.subnet_providers.entry(subnet_id).or_default();
+            for subnet_id in record.subnet_ids.iter() {
+                let providers = self.subnet_providers.entry(subnet_id.clone()).or_default();
                 providers.insert(record.peer_id);
             }
             self.prune_subnets();

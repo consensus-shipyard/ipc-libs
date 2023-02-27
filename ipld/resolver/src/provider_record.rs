@@ -108,12 +108,23 @@ impl SignedProviderRecord {
         Ok(Self { record, envelope })
     }
 
+    /// Deserialize then check the domain tags and the signature.
+    pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<Self> {
+        let envelope = SignedEnvelope::from_protobuf_encoding(&bytes)?;
+        let signed_record = Self::from_signed_envelope(envelope)?;
+        Ok(signed_record)
+    }
+
     pub fn record(&self) -> &ProviderRecord {
         &self.record
     }
 
     pub fn envelope(&self) -> &SignedEnvelope {
         &self.envelope
+    }
+
+    pub fn into_record(self) -> ProviderRecord {
+        self.record
     }
 
     pub fn into_envelope(self) -> SignedEnvelope {
