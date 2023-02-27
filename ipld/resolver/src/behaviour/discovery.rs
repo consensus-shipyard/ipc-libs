@@ -277,9 +277,9 @@ impl NetworkBehaviour for Behaviour {
                 // The Kademlia configuration should ensure that peers are added automatically to the bucket,
                 // without need for manual action, so this should be informational only.
                 // The only event which could be a warning is the `UnroutablePeer`; I don't fully understand
-                // under which conditions it can arise though. It might be a good idea to log that.
-                NetworkBehaviourAction::GenerateEvent(out) => {
-                    if let ev @ KademliaEvent::UnroutablePeer { .. } = out {
+                // under which conditions it can arise though, so let's log that one.
+                NetworkBehaviourAction::GenerateEvent(ev) => {
+                    if let KademliaEvent::UnroutablePeer { .. } = ev {
                         debug!("unexpected Kademlia event: {ev:?}")
                     }
                     continue;
