@@ -12,12 +12,14 @@ use serde::de::DeserializeOwned;
 use serde_json::json;
 
 use crate::jsonrpc::{JsonRpcClient, NO_PARAMS};
-use crate::lotus::message::mpool::{MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner};
-use crate::lotus::message::CIDMap;
-use crate::lotus::{LotusClient, NetworkVersion};
 use crate::lotus::message::chain::ChainHeadResponse;
+use crate::lotus::message::mpool::{
+    MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
+};
 use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
+use crate::lotus::message::CIDMap;
+use crate::lotus::{LotusClient, NetworkVersion};
 
 // RPC methods
 mod methods {
@@ -120,10 +122,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
     async fn state_network_version(&self, tip_sets: Vec<Cid>) -> Result<NetworkVersion> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statenetworkversion
-        let params = json!([tip_sets
-            .into_iter()
-            .map(|cid| CIDMap::from(cid))
-            .collect::<Vec<_>>()]);
+        let params = json!([tip_sets.into_iter().map(CIDMap::from).collect::<Vec<_>>()]);
 
         let r = self
             .client

@@ -7,7 +7,7 @@ pub struct StateWaitMsgResponse {
     #[allow(dead_code)]
     message: CIDMap,
     #[allow(dead_code)]
-    receipt: Receipt,
+    pub(crate) receipt: Receipt,
     #[allow(dead_code)]
     tip_set: Vec<CIDMap>,
     #[allow(dead_code)]

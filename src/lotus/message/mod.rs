@@ -6,10 +6,10 @@ use anyhow::anyhow;
 use cid::Cid;
 use serde::{Deserialize, Serialize};
 
-pub(crate) mod chain;
-pub(crate) mod mpool;
-pub(crate) mod state;
-pub(crate) mod wallet;
+pub mod chain;
+pub mod mpool;
+pub mod state;
+pub mod wallet;
 
 /// Helper struct to interact with lotus node
 #[derive(Deserialize, Serialize, Debug)]
