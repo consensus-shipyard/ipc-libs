@@ -186,4 +186,17 @@ mod test {
 
         signed_record2.record == signed_record.record
     }
+
+    #[quickcheck]
+    fn prop_tamper_proof(signed_record: SignedProviderRecord, idx: usize) -> bool {
+        let mut envelope_bytes = signed_record.envelope().clone().into_protobuf_encoding();
+        // Do some kind of mutation to a random byte in the envelope; after that it should not validate.
+        let idx = idx % envelope_bytes.len();
+        envelope_bytes[idx] = u8::MAX - envelope_bytes[idx];
+
+        match SignedEnvelope::from_protobuf_encoding(&envelope_bytes) {
+            Err(_) => return true, // Corrupted the protobuf itself.
+            Ok(envelope) => SignedProviderRecord::from_signed_envelope(envelope).is_err(),
+        }
+    }
 }
