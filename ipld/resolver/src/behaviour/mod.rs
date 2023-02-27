@@ -5,7 +5,6 @@ use libp2p_bitswap::Bitswap;
 mod discovery;
 mod membership;
 
-use self::discovery::Discovery;
 use self::membership::Membership;
 
 /// Libp2p behaviour to manage content resolution from other subnets, using:
