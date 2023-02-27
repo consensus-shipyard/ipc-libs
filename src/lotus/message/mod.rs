@@ -12,7 +12,7 @@ pub mod state;
 pub mod wallet;
 
 /// Helper struct to interact with lotus node
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CIDMap {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "/")]

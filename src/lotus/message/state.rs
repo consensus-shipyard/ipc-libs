@@ -1,4 +1,10 @@
+use anyhow::anyhow;
+use base64::Engine;
+use fil_actors_runtime::cbor;
+use fvm_ipld_encoding::RawBytes;
+use serde::de::DeserializeOwned;
 use serde::Deserialize;
+
 use crate::lotus::message::CIDMap;
 
 #[derive(Debug, Deserialize)]
@@ -30,8 +36,28 @@ pub struct ReadStateResponse<State> {
 pub struct Receipt {
     #[allow(dead_code)]
     exit_code: u32,
-    #[allow(dead_code)]
-    r#return: String,
+    #[serde(rename = "Return")]
+    pub result: String,
     #[allow(dead_code)]
     gas_used: u64,
+}
+
+impl Receipt {
+    pub fn parse_result_into<T: DeserializeOwned>(self) -> anyhow::Result<T> {
+        let r = base64::engine::general_purpose::STANDARD
+            .decode(self.result)
+            .map_err(|e| {
+                log::error!("cannot base64 decode due to {e:?}");
+                anyhow!("cannot decode return string")
+            })?;
+
+        cbor::deserialize::<T>(
+            &RawBytes::new(r),
+            "deserialize create subnet return response",
+        )
+        .map_err(|e| {
+            log::error!("cannot decode bytes due to {e:?}");
+            anyhow!("cannot cbor deserialize return data")
+        })
+    }
 }

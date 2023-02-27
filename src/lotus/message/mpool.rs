@@ -38,11 +38,8 @@ pub struct MpoolPushMessageResponseInner {
 }
 
 impl MpoolPushMessageResponseInner {
-    pub fn get_root_cid(&self) -> Option<Cid> {
-        self.cid
-            .cid
-            .as_ref()
-            .map(|s| Cid::from_str(s).expect("server sent invalid cid"))
+    pub fn cid(&self) -> anyhow::Result<Cid> {
+        Cid::try_from(self.cid.clone())
     }
 
     pub fn to(&self) -> anyhow::Result<Address> {
