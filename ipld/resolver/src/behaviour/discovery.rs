@@ -10,7 +10,10 @@ use std::{
 
 use libp2p::{
     core::{connection::ConnectionId, identity::PublicKey},
-    kad::{handler::KademliaHandlerProto, store::MemoryStore, Kademlia, KademliaConfig, QueryId},
+    kad::{
+        handler::KademliaHandlerProto, store::MemoryStore, Kademlia, KademliaConfig, KademliaEvent,
+        QueryId,
+    },
     multiaddr::Protocol,
     swarm::{
         behaviour::toggle::{Toggle, ToggleIntoConnectionHandler},
@@ -20,6 +23,7 @@ use libp2p::{
     },
     Multiaddr, PeerId,
 };
+use log::debug;
 use thiserror::Error;
 use tokio::time::Interval;
 
@@ -278,7 +282,14 @@ impl NetworkBehaviour for Discovery {
         while let Poll::Ready(ev) = self.inner.poll(cx, params) {
             match ev {
                 // Not propagating Kademlia specific events, just the ones meant for the Swarm.
-                NetworkBehaviourAction::GenerateEvent(_out) => {
+                // The Kademlia configuration should ensure that peers are added automatically to the bucket,
+                // without need for manual action, so this should be informational only.
+                // The only event which could be a warning is the `UnroutablePeer`; I don't fully understand
+                // under which conditions it can arise though. It might be a good idea to log that.
+                NetworkBehaviourAction::GenerateEvent(out) => {
+                    if let ev @ KademliaEvent::UnroutablePeer { .. } = out {
+                        debug!("unexpected Kademlia event: {ev:?}")
+                    }
                     continue;
                 }
                 other => {
