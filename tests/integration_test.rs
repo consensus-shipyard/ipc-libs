@@ -16,6 +16,8 @@ use ipc_agent::manager::{LotusSubnetManager, SubnetManager};
 #[tokio::test]
 #[ignore]
 async fn test_create_subnet_actor() {
+    env_logger::init();
+
     let bearer_token = std::env::var("IPC_JSON_RPC_TEST_BEARER_TOKEN").ok();
     let http_url = std::env::var("IPC_JSON_RPC_TEST_HTTP_URL").unwrap();
     let lotus_client = lotus_http_json_rpc_client(&http_url, bearer_token.as_deref());
@@ -52,6 +54,8 @@ async fn test_create_subnet_actor() {
 #[tokio::test]
 #[ignore]
 async fn test_join_subnet_actor() {
+    env_logger::init();
+
     let bearer_token = std::env::var("IPC_JSON_RPC_TEST_BEARER_TOKEN").ok();
     let http_url = std::env::var("IPC_JSON_RPC_TEST_HTTP_URL").unwrap();
     let subnet_id_string = std::env::var("IPC_JSON_RPC_TEST_SUBNET_ID").unwrap();
@@ -78,6 +82,8 @@ async fn test_join_subnet_actor() {
 #[tokio::test]
 #[ignore]
 async fn test_leave_subnet_actor() {
+    env_logger::init();
+
     let bearer_token = std::env::var("IPC_JSON_RPC_TEST_BEARER_TOKEN").ok();
     let http_url = std::env::var("IPC_JSON_RPC_TEST_HTTP_URL").unwrap();
     let subnet_id_string = std::env::var("IPC_JSON_RPC_TEST_SUBNET_ID").unwrap();
@@ -101,6 +107,8 @@ async fn test_leave_subnet_actor() {
 #[tokio::test]
 #[ignore]
 async fn test_kill_subnet_actor() {
+    env_logger::init();
+
     let bearer_token = std::env::var("IPC_JSON_RPC_TEST_BEARER_TOKEN").ok();
     let http_url = std::env::var("IPC_JSON_RPC_TEST_HTTP_URL").unwrap();
     let subnet_id_string = std::env::var("IPC_JSON_RPC_TEST_SUBNET_ID").unwrap();
