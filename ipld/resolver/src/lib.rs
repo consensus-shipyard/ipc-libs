@@ -5,3 +5,6 @@ mod behaviour;
 mod provider_record;
 #[allow(dead_code)]
 mod service;
+
+#[cfg(any(test, feature = "arb"))]
+mod arb;

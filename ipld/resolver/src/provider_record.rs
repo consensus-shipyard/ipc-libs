@@ -32,7 +32,7 @@ impl Timestamp {
 }
 
 /// Record of the ability to provide data from a list of subnets.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct ProviderRecord {
     /// The ID of the peer we can contact to pull data from.
     peer_id: PeerId,
@@ -60,7 +60,7 @@ impl ProviderRecord {
 
 /// A [`ProviderRecord`] with a [`SignedEnvelope`] proving that the
 /// peer indeed is ready to provide the data for the listed subnets.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SignedProviderRecord {
     /// The deserialized and validated [`ProviderRecord`].
     record: ProviderRecord,
@@ -110,6 +110,10 @@ impl SignedProviderRecord {
     pub fn envelope(&self) -> &SignedEnvelope {
         &self.envelope
     }
+
+    pub fn into_envelope(self) -> SignedEnvelope {
+        self.envelope
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -126,4 +130,60 @@ pub enum FromEnvelopeError {
     /// The signer of the envelope is different than the peer id in the record.
     #[error("The signer of the envelope is different than the peer id in the record")]
     MismatchedSignature,
+}
+
+#[cfg(any(test, feature = "arb"))]
+mod arb {
+    use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
+    use libp2p::identity::Keypair;
+    use quickcheck::Arbitrary;
+
+    use crate::arb::ArbAddress;
+
+    use super::SignedProviderRecord;
+
+    /// Create a valid [`SignedProviderRecord`] with a random key.
+    impl Arbitrary for SignedProviderRecord {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            // NOTE: Unfortunately the keys themselves are not deterministic, nor is the Timestamp.
+            let key = match u8::arbitrary(g) % 2 {
+                0 => Keypair::generate_ed25519(),
+                _ => Keypair::generate_secp256k1(),
+            };
+
+            // Limit the number of subnets and the depth of keys so data generation doesn't take too long.
+            let mut subnet_ids = Vec::new();
+            for _ in 0..u8::arbitrary(g) % 5 {
+                let mut parent = ROOTNET_ID.clone();
+                for _ in 0..=u8::arbitrary(g) % 5 {
+                    let addr = ArbAddress::arbitrary(g).0;
+                    parent = SubnetID::new_from_parent(&parent, addr);
+                }
+                subnet_ids.push(parent)
+            }
+
+            Self::new(&key, subnet_ids).expect("error creating signed envelope")
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use libp2p::core::SignedEnvelope;
+    use quickcheck_macros::quickcheck;
+
+    use super::SignedProviderRecord;
+
+    #[quickcheck]
+    fn prop_roundtrip(signed_record: SignedProviderRecord) -> bool {
+        let envelope_bytes = signed_record.envelope().clone().into_protobuf_encoding();
+
+        let envelope =
+            SignedEnvelope::from_protobuf_encoding(&envelope_bytes).expect("envelope roundtrip");
+
+        let signed_record2 =
+            SignedProviderRecord::from_signed_envelope(envelope).expect("record roundtrip");
+
+        signed_record2.record == signed_record.record
+    }
 }

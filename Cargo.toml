@@ -53,6 +53,9 @@ log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
 tokio = { version = "1.16", features = ["full"] }
+quickcheck = "1"
+quickcheck_macros = "1"
+
 
 fvm_ipld_encoding = "0.3"
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false }
