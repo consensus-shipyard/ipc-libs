@@ -52,7 +52,8 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         collateral: TokenAmount,
         params: JoinParams,
     ) -> Result<()> {
-        if !self.is_network_match(&subnet).await? {
+        let parent = subnet.parent().ok_or_else(|| anyhow!("cannot join root"))?;
+        if !self.is_network_match(&parent).await? {
             return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
         }
 
@@ -72,7 +73,8 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     }
 
     async fn leave_subnet(&self, subnet: SubnetID, from: Address) -> Result<()> {
-        if !self.is_network_match(&subnet).await? {
+        let parent = subnet.parent().ok_or_else(|| anyhow!("cannot leave root"))?;
+        if !self.is_network_match(&parent).await? {
             return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
         }
 
@@ -88,7 +90,8 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     }
 
     async fn kill_subnet(&self, subnet: SubnetID, from: Address) -> Result<()> {
-        if !self.is_network_match(&subnet).await? {
+        let parent = subnet.parent().ok_or_else(|| anyhow!("cannot kill root"))?;
+        if !self.is_network_match(&parent).await? {
             return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
         }
 
