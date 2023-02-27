@@ -44,7 +44,7 @@ pub struct DiscoveryConfig {
     /// Static list of addresses to bootstrap from.
     user_defined: Vec<(PeerId, Multiaddr)>,
     /// Number of connections at which point we pause further discovery lookups.
-    max_connections: usize,
+    target_connections: usize,
     /// Option to disable Kademlia, for example in a fixed static network.
     enable_kademlia: bool,
     /// Name of the network in the Kademlia protocol.
@@ -75,7 +75,7 @@ impl DiscoveryConfigBuilder {
             Ok(Self(DiscoveryConfig {
                 local_peer_id: local_public_key.to_peer_id(),
                 user_defined: Vec::new(),
-                max_connections: usize::MAX,
+                target_connections: usize::MAX,
                 enable_kademlia: true,
                 network_name,
             }))
@@ -84,7 +84,7 @@ impl DiscoveryConfigBuilder {
 
     /// Set the number of active connections at which we pause discovery.
     pub fn with_max_connections(&mut self, limit: usize) -> &mut Self {
-        self.0.max_connections = limit;
+        self.0.target_connections = limit;
         self
     }
 
@@ -139,7 +139,7 @@ pub struct Discovery {
     /// Number of current connections.
     num_connections: usize,
     /// Number of connections where further lookups are paused.
-    max_connections: usize,
+    target_connections: usize,
     /// Interval between random lookups.
     lookup_interval: Interval,
     /// Events to return when polled.
@@ -178,7 +178,7 @@ impl Discovery {
             lookup_interval: tokio::time::interval(Duration::from_secs(1)),
             outbox: VecDeque::new(),
             num_connections: 0,
-            max_connections: config.max_connections,
+            target_connections: config.target_connections,
         }
     }
 
@@ -258,7 +258,7 @@ impl NetworkBehaviour for Discovery {
 
         // Trigger periodic queries.
         if self.lookup_interval.poll_tick(cx).is_ready() {
-            if self.num_connections < self.max_connections {
+            if self.num_connections < self.target_connections {
                 if let Some(k) = self.inner.as_mut() {
                     let random_peer_id = PeerId::random();
                     k.get_closest_peers(random_peer_id);
