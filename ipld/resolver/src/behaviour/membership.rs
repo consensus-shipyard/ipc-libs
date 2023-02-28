@@ -111,7 +111,8 @@ impl Behaviour {
     ///
     /// Call this method when the discovery service forgets the address of a peer.
     pub fn set_unroutable(&mut self, peer_id: PeerId) {
-        self.provider_cache.set_unroutable(peer_id)
+        self.provider_cache.set_unroutable(peer_id);
+        self.outbox.push_back(Event::RemovedProvider(peer_id))
     }
 
     /// List the current providers of a subnet.
@@ -149,7 +150,10 @@ impl Behaviour {
     /// Remove any membership record that hasn't been updated for a long time.
     fn prune_membership(&mut self) {
         let cutoff_timestamp = Timestamp::now() - self.max_provider_age;
-        self.provider_cache.prune_providers(cutoff_timestamp);
+        let pruned = self.provider_cache.prune_providers(cutoff_timestamp);
+        for peer_id in pruned {
+            self.outbox.push_back(Event::RemovedProvider(peer_id))
+        }
     }
 }
 

@@ -147,7 +147,9 @@ impl SubnetProviderCache {
     }
 
     /// Prune any provider which hasn't provided an update since a cutoff timestamp.
-    pub fn prune_providers(&mut self, cutoff_timestamp: Timestamp) {
+    ///
+    /// Returns the list of pruned peers.
+    pub fn prune_providers(&mut self, cutoff_timestamp: Timestamp) -> Vec<PeerId> {
         let to_prune = self
             .peer_timestamps
             .iter()
@@ -160,9 +162,11 @@ impl SubnetProviderCache {
             })
             .collect::<Vec<_>>();
 
-        for peer_id in to_prune {
-            self.set_unroutable(peer_id)
+        for peer_id in to_prune.iter() {
+            self.set_unroutable(*peer_id);
         }
+
+        to_prune
     }
 
     /// List any known providers of a subnet.
@@ -226,32 +230,13 @@ mod tests {
         }
     }
 
-    #[quickcheck]
-    fn prop_subnets_pruned(records: TestRecords, max_subnets: usize) -> bool {
-        let max_subnets = max_subnets % 10;
-        let mut cache = SubnetProviderCache::new(max_subnets);
-        for record in records.0 {
-            cache.set_routable(record.peer_id);
-            if cache.add_provider(&record).is_none() {
-                return false;
-            }
-        }
-        cache.subnet_providers.len() <= max_subnets
-    }
+    type Providers = HashMap<SubnetID, HashSet<PeerId>>;
 
-    #[quickcheck]
-    fn prop_providers_listed(records: TestRecords) -> Result<(), String> {
-        let records = records.0;
-        let mut cache = SubnetProviderCache::new(usize::MAX);
-
-        for record in records.iter() {
-            cache.set_routable(record.peer_id);
-            cache.add_provider(record);
-        }
-
+    /// Build a provider mapping to check the cache against.
+    fn build_providers(records: &Vec<ProviderRecord>) -> Providers {
         // Only the last timestamp should be kept, but it might not be unique.
         let mut max_timestamps: HashMap<PeerId, Timestamp> = Default::default();
-        for record in records.iter() {
+        for record in records {
             let mts = max_timestamps.entry(record.peer_id).or_default();
             if *mts < record.timestamp {
                 *mts = record.timestamp;
@@ -276,6 +261,11 @@ mod tests {
             }
         }
 
+        providers
+    }
+
+    /// Check the cache against the reference built in the test.
+    fn check_providers(providers: &Providers, cache: &SubnetProviderCache) -> Result<(), String> {
         for (subnet_id, exp_peer_ids) in providers {
             let peer_ids = cache.providers_of_subnet(&subnet_id);
             if peer_ids.len() != exp_peer_ids.len() {
@@ -293,5 +283,54 @@ mod tests {
             }
         }
         Ok(())
+    }
+
+    #[quickcheck]
+    fn prop_subnets_pruned(records: TestRecords, max_subnets: usize) -> bool {
+        let max_subnets = max_subnets % 10;
+        let mut cache = SubnetProviderCache::new(max_subnets);
+        for record in records.0 {
+            cache.set_routable(record.peer_id);
+            if cache.add_provider(&record).is_none() {
+                return false;
+            }
+        }
+        cache.subnet_providers.len() <= max_subnets
+    }
+
+    #[quickcheck]
+    fn prop_providers_listed(records: TestRecords) -> Result<(), String> {
+        let records = records.0;
+        let mut cache = SubnetProviderCache::new(usize::MAX);
+
+        for record in records.iter() {
+            cache.set_routable(record.peer_id);
+            cache.add_provider(record);
+        }
+
+        let providers = build_providers(&records);
+
+        check_providers(&providers, &cache)
+    }
+
+    #[quickcheck]
+    fn prop_providers_pruned(
+        records: TestRecords,
+        cutoff_timestamp: Timestamp,
+    ) -> Result<(), String> {
+        let mut records = records.0;
+        let mut cache = SubnetProviderCache::new(usize::MAX);
+        for record in records.iter() {
+            cache.set_routable(record.peer_id);
+            cache.add_provider(record);
+        }
+        cache.prune_providers(cutoff_timestamp);
+
+        // Build a reference from only what has come after the cutoff timestamp.
+        records.retain(|r| r.timestamp >= cutoff_timestamp);
+
+        let providers = build_providers(&records);
+
+        check_providers(&providers, &cache)
     }
 }
