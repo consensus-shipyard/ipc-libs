@@ -58,6 +58,7 @@ mod tests {
     const SERVER_JSON_RPC_ADDR: &str = "127.0.0.1:3030";
     const ROOT_ID: &str = "/root";
     const CHILD_ID: &str = "/root/f0100";
+    const IPC_GATEWAY_ADDR: u64 = 64;
     const ROOT_AUTH_TOKEN: &str = "ROOT_AUTH_TOKEN";
     const CHILD_AUTH_TOKEN: &str = "CHILD_AUTH_TOKEN";
     const JSONRPC_API_HTTP: &str = "https://example.org/rpc/v0";
@@ -80,6 +81,7 @@ mod tests {
 
         let root = &config["root"];
         assert_eq!(root.id, *ROOTNET_ID);
+        assert_eq!(root.gateway_addr, IPC_GATEWAY_ADDR);
         assert_eq!(
             root.jsonrpc_api_http,
             Url::from_str(JSONRPC_API_HTTP).unwrap()
@@ -122,12 +124,14 @@ mod tests {
 
             [subnets.root]
             id = "{ROOT_ID}"
+            gateway_addr = {IPC_GATEWAY_ADDR}
             jsonrpc_api_http = "{JSONRPC_API_HTTP}"
             jsonrpc_api_ws = "{JSONRPC_API_WS}"
             auth_token = "{ROOT_AUTH_TOKEN}"
 
             [subnets.child]
             id = "{CHILD_ID}"
+            gateway_addr = {IPC_GATEWAY_ADDR}
             jsonrpc_api_http = "{JSONRPC_API_HTTP}"
             auth_token = "{CHILD_AUTH_TOKEN}"
             accounts = ["{ACCOUNT_ADDRESS}"]
