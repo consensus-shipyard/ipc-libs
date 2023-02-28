@@ -59,7 +59,6 @@ mod tests {
     const SERVER_JSON_RPC_ADDR: &str = "127.0.0.1:3030";
     const ROOT_ID: &str = "/root";
     const CHILD_ID: &str = "/root/f0100";
-    const IPC_GATEWAY_ADDR: u64 = 64;
     const ROOT_AUTH_TOKEN: &str = "ROOT_AUTH_TOKEN";
     const CHILD_AUTH_TOKEN: &str = "CHILD_AUTH_TOKEN";
     const JSONRPC_API_HTTP: &str = "https://example.org/rpc/v0";
