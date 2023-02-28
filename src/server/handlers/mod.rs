@@ -1,3 +1,8 @@
 //! The module contains the handlers implementation for the json rpc server.
 
-mod create;
+pub mod create;
+mod subnet;
+
+pub enum HandlersBundler {
+    CreateSubnet()
+}
