@@ -55,7 +55,7 @@ pub struct Config {
     /// Custom nodes which never expire, e.g. bootstrap or reserved nodes.
     ///
     /// The addresses must end with a `/p2p/<peer-id>` part.
-    pub user_defined: Vec<Multiaddr>,
+    pub static_addresses: Vec<Multiaddr>,
     /// Number of connections at which point we pause further discovery lookups.
     pub target_connections: usize,
     /// Option to disable Kademlia, for example in a fixed static network.
@@ -79,7 +79,7 @@ pub enum ConfigError {
 pub struct Behaviour {
     /// User-defined list of nodes and their addresses.
     /// Typically includes bootstrap nodes, or it can be used for a static network.
-    user_defined: Vec<(PeerId, Multiaddr)>,
+    static_addresses: Vec<(PeerId, Multiaddr)>,
     /// Kademlia behaviour, if enabled.
     inner: Toggle<Kademlia<MemoryStore>>,
     /// Number of current connections.
@@ -99,12 +99,12 @@ impl Behaviour {
             return Err(ConfigError::InvalidNetwork(nc.network_name));
         }
         // Parse static addresses.
-        let mut user_defined = Vec::new();
-        for multiaddr in dc.user_defined {
+        let mut static_addresses = Vec::new();
+        for multiaddr in dc.static_addresses {
             let mut addr = multiaddr.clone();
             if let Some(Protocol::P2p(mh)) = addr.pop() {
                 let peer_id = PeerId::from_multihash(mh).unwrap();
-                user_defined.push((peer_id, addr))
+                static_addresses.push((peer_id, addr))
             } else {
                 return Err(ConfigError::InvalidBootstrapAddress(multiaddr));
             }
@@ -119,7 +119,7 @@ impl Behaviour {
 
             let mut kademlia = Kademlia::with_config(nc.local_peer_id(), store, kad_config);
 
-            for (peer_id, addr) in user_defined.iter() {
+            for (peer_id, addr) in static_addresses.iter() {
                 kademlia.add_address(peer_id, addr.clone());
             }
 
@@ -134,7 +134,7 @@ impl Behaviour {
         };
 
         Ok(Self {
-            user_defined,
+            static_addresses,
             inner: kademlia_opt.into(),
             lookup_interval: tokio::time::interval(Duration::from_secs(1)),
             outbox: VecDeque::new(),
@@ -164,7 +164,7 @@ impl NetworkBehaviour for Behaviour {
 
     fn addresses_of_peer(&mut self, peer_id: &PeerId) -> Vec<Multiaddr> {
         let mut addrs = self
-            .user_defined
+            .static_addresses
             .iter()
             .filter(|(p, _)| p == peer_id)
             .map(|(_, a)| a.clone())
