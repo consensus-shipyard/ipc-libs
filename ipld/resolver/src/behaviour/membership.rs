@@ -6,7 +6,10 @@ use std::time::Duration;
 
 use ipc_sdk::subnet_id::SubnetID;
 use libp2p::core::connection::ConnectionId;
-use libp2p::gossipsub::{GossipsubEvent, GossipsubMessage, IdentTopic};
+use libp2p::gossipsub::{
+    GossipsubConfig, GossipsubConfigBuilder, GossipsubEvent, GossipsubMessage, IdentTopic,
+    MessageAuthenticity, MessageId, PeerScoreParams, PeerScoreThresholds, Topic,
+};
 use libp2p::identity::Keypair;
 use libp2p::swarm::derive_prelude::FromSwarm;
 use libp2p::swarm::{NetworkBehaviourAction, PollParameters};
@@ -19,16 +22,12 @@ use libp2p::{
 use log::{debug, error, warn};
 use tokio::time::Interval;
 
+use crate::hash::blake2b_256;
 use crate::provider_cache::{ProviderDelta, SubnetProviderCache};
 use crate::provider_record::{SignedProviderRecord, Timestamp};
 
 /// `Gossipsub` subnet membership topic identifier.
 const PUBSUB_MEMBERSHIP: &str = "/ipc/membership";
-
-struct Config {
-    /// Network name to be combined into the Gossipsub topic.
-    network_name: String,
-}
 
 /// Events emitted by the [`membership::Behaviour`] behaviour.
 #[derive(Debug)]
@@ -45,6 +44,95 @@ pub enum Event {
     Skipped(PeerId),
 }
 
+/// Valid configuration for [`membership::Behaviour`].
+pub struct Config {
+    /// Cryptographic key used to sign messages.
+    local_key: Keypair,
+    /// Topic to publish subnet membership to.
+    membership_topic: IdentTopic,
+    /// Validated [`GossipsubConfig`].
+    gossipsub_config: GossipsubConfig,
+    /// Scoring params for Gossipsub.
+    peer_score_params: PeerScoreParams,
+    /// Scoring thresholds for Gossipsub.
+    peer_score_thresholds: PeerScoreThresholds,
+    /// Maximum number of subnets to track in the cache.
+    max_subnets: usize,
+    /// Publish interval for supported subnets.
+    publish_interval: Duration,
+    /// Maximum age of provider records before the peer is removed without an update.
+    max_provider_age: Duration,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ConfigError {
+    #[error("invalid network: {0}")]
+    InvalidNetwork(String),
+    #[error("invalid gossipsub config: {0}")]
+    InvalidGossipsubConfig(String),
+}
+
+pub struct ConfigBuilder {
+    local_key: Keypair,
+    network_name: String,
+    pub max_subnets: usize,
+    pub publish_interval: Duration,
+    pub max_provider_age: Duration,
+}
+
+impl ConfigBuilder {
+    pub fn new(local_key: Keypair, network_name: String) -> Result<Self, ConfigError> {
+        if network_name.is_empty() {
+            return Err(ConfigError::InvalidNetwork(network_name));
+        }
+        Ok(Self {
+            local_key,
+            network_name,
+            max_subnets: 10,
+            publish_interval: Duration::from_secs(60),
+            max_provider_age: Duration::from_secs(300),
+        })
+    }
+
+    pub fn build(self) -> Result<Config, ConfigError> {
+        let membership_topic = Topic::new(format!("{}/{}", PUBSUB_MEMBERSHIP, self.network_name));
+        let mut gossipsub_config = GossipsubConfigBuilder::default();
+        // Set the maximum message size to 2MB.
+        gossipsub_config.max_transmit_size(2 << 20);
+        gossipsub_config.message_id_fn(|msg: &GossipsubMessage| {
+            let s = blake2b_256(&msg.data);
+            MessageId::from(s)
+        });
+
+        let gossipsub_config = gossipsub_config
+            .build()
+            .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
+
+        let peer_score_params = scoring::build_peer_score_params(membership_topic.clone());
+        peer_score_params
+            .validate()
+            .map_err(ConfigError::InvalidGossipsubConfig)?;
+
+        let peer_score_thresholds = scoring::build_peer_score_thresholds();
+        peer_score_thresholds
+            .validate()
+            .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
+
+        let config = Config {
+            local_key: self.local_key,
+            membership_topic,
+            gossipsub_config,
+            peer_score_params,
+            peer_score_thresholds,
+            max_subnets: self.max_subnets,
+            publish_interval: self.publish_interval,
+            max_provider_age: self.max_provider_age,
+        };
+
+        Ok(config)
+    }
+}
+
 /// A [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
 /// peer is able to resolve CIDs in different subnets.
 pub struct Behaviour {
@@ -55,7 +143,7 @@ pub struct Behaviour {
     /// [`Keypair`] used to construct [`SignedProviderRecord`] instances.
     keypair: Keypair,
     /// Name of the [`Gossipsub`] topic where subnet memberships are published.
-    membership_topic: IdentTopic, // Topic::new(format!("{}/{}", PUBSUB_MEMBERSHIP, network_name)
+    membership_topic: IdentTopic,
     /// List of subnet IDs this agent is providing data for.
     subnet_ids: Vec<SubnetID>,
     /// Caching the latest state of subnet providers.
@@ -70,6 +158,33 @@ pub struct Behaviour {
 }
 
 impl Behaviour {
+    pub fn new(config: Config) -> Self {
+        let mut gossipsub = Gossipsub::new(
+            MessageAuthenticity::Signed(config.local_key.clone()),
+            config.gossipsub_config,
+        )
+        .expect("error creating Gossipsub");
+
+        gossipsub
+            .with_peer_score(config.peer_score_params, config.peer_score_thresholds)
+            .expect("error setting scoring");
+
+        // Don't publish immediately, it's empty. Let the creator call `set_subnet_ids` to trigger initially.
+        let mut interval = tokio::time::interval(config.publish_interval);
+        interval.reset();
+
+        Self {
+            inner: gossipsub,
+            outbox: Default::default(),
+            keypair: config.local_key,
+            membership_topic: config.membership_topic,
+            subnet_ids: Default::default(),
+            provider_cache: SubnetProviderCache::new(config.max_subnets),
+            publish_interval: interval,
+            max_provider_age: config.max_provider_age,
+        }
+    }
+
     /// Set all the currently supported subnet IDs, then publish the updated list.
     pub fn set_subnet_ids(&mut self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
         self.subnet_ids = subnet_ids;
@@ -237,5 +352,24 @@ impl NetworkBehaviour for Behaviour {
         }
 
         Poll::Pending
+    }
+}
+
+// Forest has Filecoin specific values copied from Lotus. Not sure what values to use,
+// so I'll leave everything on default for now. Or maybe they should be left empty?
+mod scoring {
+
+    use libp2p::gossipsub::{IdentTopic, PeerScoreParams, PeerScoreThresholds, TopicScoreParams};
+
+    pub fn build_peer_score_params(membership_topic: IdentTopic) -> PeerScoreParams {
+        let mut params = PeerScoreParams::default();
+        params
+            .topics
+            .insert(membership_topic.hash(), TopicScoreParams::default());
+        params
+    }
+
+    pub fn build_peer_score_thresholds() -> PeerScoreThresholds {
+        PeerScoreThresholds::default()
     }
 }

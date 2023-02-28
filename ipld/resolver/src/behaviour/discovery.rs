@@ -25,7 +25,6 @@ use libp2p::{
     Multiaddr, PeerId,
 };
 use log::debug;
-use thiserror::Error;
 use tokio::time::Interval;
 
 // NOTE: The Discovery behaviour is largely based on what exists in Forest. If it ain't broken...
@@ -63,7 +62,7 @@ pub struct Config {
     network_name: String,
 }
 
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum ConfigError {
     #[error("invalid network: {0}")]
     InvalidNetwork(String),
@@ -92,7 +91,7 @@ impl ConfigBuilder {
     }
 
     /// Set the number of active connections at which we pause discovery.
-    pub fn with_max_connections(&mut self, limit: usize) -> &mut Self {
+    pub fn with_target_connections(&mut self, limit: usize) -> &mut Self {
         self.0.target_connections = limit;
         self
     }
