@@ -1,5 +1,7 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
+use crate::config::JSON_RPC_ENDPOINT;
+use crate::config::{Server as JsonRPCServerConfig, JSON_RPC_VERSION};
 use crate::server::request::JSONRPCRequest;
 use crate::server::response::{JSONRPCErrorResponse, JSONRPCResultResponse};
 use bytes::Bytes;
@@ -7,8 +9,6 @@ use warp::http::StatusCode;
 use warp::reject::Reject;
 use warp::reply::with_status;
 use warp::{Filter, Rejection, Reply};
-use crate::config::{JSON_RPC_VERSION, Server as JsonRPCServerConfig};
-use crate::config::JSON_RPC_ENDPOINT;
 
 /// The IPC JSON RPC node that contains all the methods and handlers. The underlying implementation
 /// is using `warp`.
@@ -38,8 +38,13 @@ impl JsonRPCServer {
 
     /// Runs the node in the current thread
     pub async fn run(&self) {
-        log::info!("IPC agent rpc node listening at {:?}", self.config.json_rpc_address);
-        warp::serve(json_rpc_filter()).run(self.config.json_rpc_address).await;
+        log::info!(
+            "IPC agent rpc node listening at {:?}",
+            self.config.json_rpc_address
+        );
+        warp::serve(json_rpc_filter())
+            .run(self.config.json_rpc_address)
+            .await;
     }
 }
 
@@ -111,11 +116,11 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, warp::Rejection>
 
 #[cfg(test)]
 mod tests {
+    use crate::config::JSON_RPC_ENDPOINT;
+    use crate::config::JSON_RPC_VERSION;
     use crate::server::jsonrpc::{json_rpc_filter, JSONRPCResultResponse};
     use crate::server::request::JSONRPCRequest;
-    use crate::config::JSON_RPC_VERSION;
     use warp::http::StatusCode;
-    use crate::config::JSON_RPC_ENDPOINT;
 
     #[tokio::test]
     async fn test_json_rpc_filter_works() {

@@ -9,10 +9,10 @@ use cid::Cid;
 use serde::{Deserialize, Serialize};
 
 pub mod chain;
+pub mod ipc;
 pub mod mpool;
 pub mod state;
 pub mod wallet;
-pub mod ipc;
 
 /// Helper struct to interact with lotus node
 #[derive(Deserialize, Serialize, Debug, Clone)]

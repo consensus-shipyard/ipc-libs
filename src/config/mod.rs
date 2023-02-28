@@ -16,8 +16,8 @@ use std::path::Path;
 use anyhow::Result;
 use serde::Deserialize;
 pub use server::Server;
-pub use subnet::Subnet;
 pub use server::JSON_RPC_ENDPOINT;
+pub use subnet::Subnet;
 
 pub const JSON_RPC_VERSION: &str = "2.0";
 
@@ -51,7 +51,7 @@ mod tests {
 
     use fvm_shared::address::Address;
     use indoc::formatdoc;
-    use ipc_sdk::subnet_id::{ROOTNET_ID, SubnetID};
+    use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
     use url::Url;
 
     use crate::config::Config;
@@ -64,7 +64,8 @@ mod tests {
     const CHILD_AUTH_TOKEN: &str = "CHILD_AUTH_TOKEN";
     const JSONRPC_API_HTTP: &str = "https://example.org/rpc/v0";
     const JSONRPC_API_WS: &str = "ws://example.org/rpc/v0";
-    const ACCOUNT_ADDRESS: &str = "f3thgjtvoi65yzdcoifgqh6utjbaod3ukidxrx34heu34d6avx6z7r5766t5jqt42a44ehzcnw3u5ehz47n42a";
+    const ACCOUNT_ADDRESS: &str =
+        "f3thgjtvoi65yzdcoifgqh6utjbaod3ukidxrx34heu34d6avx6z7r5766t5jqt42a44ehzcnw3u5ehz47n42a";
 
     #[test]
     fn check_server_config() {
@@ -90,24 +91,15 @@ mod tests {
             root.jsonrpc_api_ws.as_ref().unwrap(),
             &Url::from_str(JSONRPC_API_WS).unwrap()
         );
-        assert_eq!(
-            root.auth_token.as_ref().unwrap(),
-            ROOT_AUTH_TOKEN
-        );
+        assert_eq!(root.auth_token.as_ref().unwrap(), ROOT_AUTH_TOKEN);
 
         let child = &config["child"];
-        assert_eq!(
-            child.id,
-            SubnetID::from_str(CHILD_ID).unwrap(),
-        );
+        assert_eq!(child.id, SubnetID::from_str(CHILD_ID).unwrap(),);
         assert_eq!(
             child.jsonrpc_api_http,
             Url::from_str(JSONRPC_API_HTTP).unwrap(),
         );
-        assert_eq!(
-            child.auth_token.as_ref().unwrap(),
-            CHILD_AUTH_TOKEN,
-        );
+        assert_eq!(child.auth_token.as_ref().unwrap(), CHILD_AUTH_TOKEN,);
         assert_eq!(
             child.accounts.as_ref(),
             vec![Address::from_str(ACCOUNT_ADDRESS).unwrap()],

@@ -1,9 +1,9 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use ipc_sdk::subnet_id::SubnetID;
-use url::Url;
 use fvm_shared::address::Address;
+use ipc_sdk::subnet_id::SubnetID;
 use serde::Deserialize;
+use url::Url;
 
 use crate::config::deserialize::{deserialize_accounts, deserialize_subnet_id};
 

@@ -4,10 +4,10 @@
 
 mod daemon;
 
-use clap::{Parser, Subcommand};
-use std::fmt::Debug;
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
 use crate::cli::CommandLineHandler;
+use clap::{Parser, Subcommand};
+use std::fmt::Debug;
 
 /// The collection of all subcommands to be called, see clap's documentation for usage. Internal
 /// to the current mode. Register a new command accordingly.
