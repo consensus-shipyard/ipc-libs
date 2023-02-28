@@ -48,6 +48,8 @@ pub enum Event {
 
 /// Configuration for [`membership::Behaviour`].
 pub struct Config {
+    /// User defined list of subnets which will never be pruned from the cache.
+    pub static_subnets: Vec<SubnetID>,
     /// Maximum number of subnets to track in the cache.
     pub max_subnets: usize,
     /// Publish interval for supported subnets.
@@ -130,7 +132,7 @@ impl Behaviour {
             local_key: nc.local_key,
             membership_topic,
             subnet_ids: Default::default(),
-            provider_cache: SubnetProviderCache::new(mc.max_subnets),
+            provider_cache: SubnetProviderCache::new(mc.max_subnets, mc.static_subnets),
             publish_interval: interval,
             max_provider_age: mc.max_provider_age,
         })
@@ -158,6 +160,15 @@ impl Behaviour {
         }
         self.subnet_ids.retain(|id| id != &subnet_id);
         self.publish_membership()
+    }
+
+    /// Make sure a subnet is not pruned.
+    ///
+    /// This method could be called in a parent subnet when the ledger indicates
+    /// there is a known child subnet, so we make sure this subnet cannot be
+    /// crowded out during the initial phase of bootstrapping the network.
+    pub fn pin_subnet(&mut self, subnet_id: SubnetID) {
+        self.provider_cache.pin_subnet(subnet_id)
     }
 
     /// Send a message through Gossipsub to let everyone know about the current configuration.
