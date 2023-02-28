@@ -233,7 +233,6 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let subnet_actor = child_subnet_id.subnet_actor().to_string();
         let params =
             json!([GATEWAY_ACTOR_ADDRESS, {"Parent": parent.to_string(), "Actor": subnet_actor}]);
-        println!("{}", params);
 
         let r = self
             .client
