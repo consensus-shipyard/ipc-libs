@@ -18,7 +18,7 @@ use log::{debug, error, warn};
 use tokio::time::Interval;
 
 use crate::provider_cache::SubnetProviderCache;
-use crate::provider_record::{ProviderRecord, SignedProviderRecord, Timestamp};
+use crate::provider_record::{SignedProviderRecord, Timestamp};
 
 /// `Gossipsub` subnet membership topic identifier.
 const PUBSUB_MEMBERSHIP: &str = "/ipc/membership";
@@ -31,19 +31,16 @@ struct Config {
 /// Events emitted by the [`membership::Behaviour`] behaviour.
 #[derive(Debug)]
 pub enum Event {
-    /// Indicate that a given peer is able to serve data from a list of subnets.
-    ///
-    /// Note that each the event contains the snapshot of the currently provided
-    /// subnets, not a delta. This means that if there were two peers using the
-    /// same keys running on different addresses, e.g. if the same operator ran
-    /// something supporting subnet A on one address, and another process supporting
-    /// subnet B on a different address, these would override each other, unless
-    /// they have different public keys (and thus peer IDs) associated with them.
-    ///
-    /// This should be okay, as in practice there is no significance to these
-    /// peer IDs, we can even generate a fresh key-pair every time we run the
-    /// resolver.
-    AddedProvider(ProviderRecord),
+    /// Indicate that a given peer is able to serve data from an *additional* list of subnets.
+    AddedProvider((PeerId, Vec<SubnetID>)),
+
+    /// Indicate that we no longer treat a peer as routable and removed all their supported subnet associations.
+    RemovedProvider(PeerId),
+
+    /// We could not add a provider record to the cache because the chache hasn't
+    /// been told yet that the provider peer is routable. This event can be used
+    /// to trigger a lookup by the discovery module to learn the address.
+    SkippedProvider(PeerId),
 }
 
 /// A [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
@@ -131,11 +128,11 @@ impl Behaviour {
     fn handle_message(&mut self, msg: GossipsubMessage) -> Option<Event> {
         if msg.topic == self.membership_topic.hash() {
             match SignedProviderRecord::from_bytes(&msg.data).map(|r| r.into_record()) {
-                Ok(record) => {
-                    if self.provider_cache.add_provider(&record) {
-                        return Some(Event::AddedProvider(record));
-                    }
-                }
+                Ok(record) => match self.provider_cache.add_provider(&record) {
+                    None => return Some(Event::SkippedProvider(record.peer_id)),
+                    Some(ids) if ids.is_empty() => return None,
+                    Some(ids) => return Some(Event::AddedProvider((record.peer_id, ids))),
+                },
                 Err(e) => {
                     warn!(
                         "Gossip message from peer {:?} could not be deserialized: {e}",

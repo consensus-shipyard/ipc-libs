@@ -54,11 +54,16 @@ impl SubnetProviderCache {
 
     /// Try to add a provider to the cache.
     ///
-    /// Return `true` if succeeded, `false` if the peer is not yet routable.
-    pub fn add_provider(&mut self, record: &ProviderRecord) -> bool {
+    /// Returns `None` if the peer is not routable and nothing could be added.
+    ///
+    /// Returns `Some<Vec<SubnetID>>` if the peer is routable, containing the
+    /// newly added associations for this peer.
+    pub fn add_provider(&mut self, record: &ProviderRecord) -> Option<Vec<SubnetID>> {
         if !self.is_routable(record.peer_id) {
-            return false;
+            return None;
         }
+
+        let mut new_subnet_ids = Vec::new();
 
         let timestamp = self
             .peer_timestamps
@@ -69,18 +74,24 @@ impl SubnetProviderCache {
             *timestamp = record.timestamp;
             for subnet_id in record.subnet_ids.iter() {
                 let providers = self.subnet_providers.entry(subnet_id.clone()).or_default();
-                providers.insert(record.peer_id);
+                if providers.insert(record.peer_id) {
+                    new_subnet_ids.push(subnet_id.clone());
+                }
             }
-            self.prune_subnets();
+            let removed_subnet_ids = self.prune_subnets();
+            new_subnet_ids.retain(|id| !removed_subnet_ids.contains(id))
         }
 
-        true
+        Some(new_subnet_ids)
     }
 
     /// Ensure we don't have more than `max_subnets` number of subnets in the cache.
-    fn prune_subnets(&mut self) {
-        let to_prune = self.subnet_providers.len().saturating_sub(self.max_subnets);
+    ///
+    /// Returns the removed subnet IDs.
+    fn prune_subnets(&mut self) -> HashSet<SubnetID> {
+        let mut removed_subnet_ids = HashSet::new();
 
+        let to_prune = self.subnet_providers.len().saturating_sub(self.max_subnets);
         if to_prune > 0 {
             let mut counts = self
                 .subnet_providers
@@ -92,8 +103,11 @@ impl SubnetProviderCache {
 
             for (subnet_id, _) in counts.into_iter().take(to_prune) {
                 self.subnet_providers.remove(&subnet_id);
+                removed_subnet_ids.insert(subnet_id);
             }
         }
+
+        removed_subnet_ids
     }
 
     /// Prune any provider which hasn't provided an update since a cutoff timestamp.

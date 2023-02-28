@@ -49,6 +49,17 @@ impl Add<Duration> for Timestamp {
 }
 
 /// Record of the ability to provide data from a list of subnets.
+///
+/// Note that each the record contains the snapshot of the currently provided
+/// subnets, not a delta. This means that if there were two peers using the
+/// same keys running on different addresses, e.g. if the same operator ran
+/// something supporting subnet A on one address, and another process supporting
+/// subnet B on a different address, these would override each other, unless
+/// they have different public keys (and thus peer IDs) associated with them.
+///
+/// This should be okay, as in practice there is no significance to these
+/// peer IDs, we can even generate a fresh key-pair every time we run the
+/// resolver.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct ProviderRecord {
     /// The ID of the peer we can contact to pull data from.
