@@ -126,66 +126,74 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, warp::Rejection>
 
 #[cfg(test)]
 mod tests {
-    // use crate::server::jsonrpc::{json_rpc_filter, JSONRPCResultResponse};
-    // use crate::server::request::JSONRPCRequest;
-    // use crate::config::JSON_RPC_VERSION;
-    // use warp::http::StatusCode;
-    // use crate::config::JSON_RPC_ENDPOINT;
-    //
-    // #[tokio::test]
-    // async fn test_json_rpc_filter_works() {
-    //     let filter = json_rpc_filter();
-    //
-    //     let foo = "foo".to_string();
-    //     let jsonrpc = String::from(JSON_RPC_VERSION);
-    //     let id = 0;
-    //
-    //     let req = JSONRPCRequest {
-    //         id,
-    //         jsonrpc: jsonrpc.clone(),
-    //         method: foo.clone(),
-    //         params: Default::default(),
-    //     };
-    //
-    //     let value = warp::test::request()
-    //         .method("POST")
-    //         .path(&format!("/{JSON_RPC_ENDPOINT:}"))
-    //         .json(&req)
-    //         .reply(&filter)
-    //         .await;
-    //
-    //     let v = serde_json::from_slice::<JSONRPCResultResponse<()>>(value.body()).unwrap();
-    //
-    //     assert_eq!(v.id, id);
-    //     assert_eq!(v.jsonrpc, jsonrpc);
-    //     assert_eq!(v.result, ());
-    // }
-    //
-    // #[tokio::test]
-    // async fn test_json_rpc_filter_cannot_parse_param() {
-    //     let filter = json_rpc_filter();
-    //
-    //     let value = warp::test::request()
-    //         .method("POST")
-    //         .path(&format!("/{JSON_RPC_ENDPOINT:}"))
-    //         .json(&())
-    //         .reply(&filter)
-    //         .await;
-    //
-    //     assert_eq!(StatusCode::BAD_REQUEST, value.status());
-    // }
-    //
-    // #[tokio::test]
-    // async fn test_json_rpc_filter_not_found() {
-    //     let filter = json_rpc_filter();
-    //
-    //     let value = warp::test::request()
-    //         .method("POST")
-    //         .path("/random")
-    //         .json(&())
-    //         .reply(&filter)
-    //         .await;
-    //
-    //     assert_eq!(StatusCode::NOT_FOUND, value.status());
-    // }
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use crate::server::jsonrpc::{ArcHandlers, json_rpc_filter, JSONRPCResultResponse};
+    use crate::server::request::JSONRPCRequest;
+    use crate::config::JSON_RPC_VERSION;
+    use warp::http::StatusCode;
+    use crate::config::JSON_RPC_ENDPOINT;
+    use crate::server::Handlers;
+
+    fn get_test_handlers() -> ArcHandlers {
+        Arc::new(Handlers::construct(HashMap::default()))
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_json_rpc_filter_works() {
+        let filter = json_rpc_filter(get_test_handlers());
+
+        let foo = "foo".to_string();
+        let jsonrpc = String::from(JSON_RPC_VERSION);
+        let id = 0;
+
+        let req = JSONRPCRequest {
+            id,
+            jsonrpc: jsonrpc.clone(),
+            method: foo.clone(),
+            params: Default::default(),
+        };
+
+        let value = warp::test::request()
+            .method("POST")
+            .path(&format!("/{JSON_RPC_ENDPOINT:}"))
+            .json(&req)
+            .reply(&filter)
+            .await;
+
+        let v = serde_json::from_slice::<JSONRPCResultResponse<()>>(value.body()).unwrap();
+
+        assert_eq!(v.id, id);
+        assert_eq!(v.jsonrpc, jsonrpc);
+        assert_eq!(v.result, ());
+    }
+
+    #[tokio::test]
+    async fn test_json_rpc_filter_cannot_parse_param() {
+        let filter = json_rpc_filter(get_test_handlers());
+
+        let value = warp::test::request()
+            .method("POST")
+            .path(&format!("/{JSON_RPC_ENDPOINT:}"))
+            .json(&())
+            .reply(&filter)
+            .await;
+
+        assert_eq!(StatusCode::BAD_REQUEST, value.status());
+    }
+
+    #[tokio::test]
+    async fn test_json_rpc_filter_not_found() {
+        let filter = json_rpc_filter(get_test_handlers());
+
+        let value = warp::test::request()
+            .method("POST")
+            .path("/random")
+            .json(&())
+            .reply(&filter)
+            .await;
+
+        assert_eq!(StatusCode::NOT_FOUND, value.status());
+    }
 }
