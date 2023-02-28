@@ -42,7 +42,7 @@ impl JsonRPCServer {
     pub async fn run(&self) {
         log::info!("IPC agent rpc node listening at {:?}", self.config.server.json_rpc_address);
 
-        let handlers = Arc::new(Handlers::construct());
+        let handlers = Arc::new(Handlers::new());
         warp::serve(json_rpc_filter(handlers)).run(self.config.server.json_rpc_address).await;
     }
 }
@@ -135,7 +135,7 @@ mod tests {
     use crate::server::Handlers;
 
     fn get_test_handlers() -> ArcHandlers {
-        Arc::new(Handlers::construct())
+        Arc::new(Handlers::new())
     }
 
     #[tokio::test]

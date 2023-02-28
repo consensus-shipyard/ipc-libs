@@ -22,8 +22,9 @@ pub struct Handlers {
 }
 
 impl Handlers {
-    pub fn construct() -> Self {
+    pub fn new() -> Self {
         let mut handlers = HashMap::new();
+
         let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler{});
         handlers.insert(String::from("create_subnet"), create_subnet);
 
