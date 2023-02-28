@@ -5,6 +5,28 @@ use libp2p::PeerId;
 
 use crate::provider_record::{ProviderRecord, Timestamp};
 
+/// Change in the supported subnets of a peer.
+#[derive(Debug)]
+pub struct ProviderDelta {
+    pub added: Vec<SubnetID>,
+    pub removed: Vec<SubnetID>,
+}
+
+impl ProviderDelta {
+    pub fn is_empty(&self) -> bool {
+        self.added.is_empty() && self.removed.is_empty()
+    }
+}
+
+impl Default for ProviderDelta {
+    fn default() -> Self {
+        Self {
+            added: Default::default(),
+            removed: Default::default(),
+        }
+    }
+}
+
 pub struct SubnetProviderCache {
     /// Maximum number of subnets to track, to protect against DoS attacks, trying to
     /// flood someone with subnets that don't actually exist. When the number of subnets
@@ -56,33 +78,47 @@ impl SubnetProviderCache {
     ///
     /// Returns `None` if the peer is not routable and nothing could be added.
     ///
-    /// Returns `Some<Vec<SubnetID>>` if the peer is routable, containing the
-    /// newly added associations for this peer.
-    pub fn add_provider(&mut self, record: &ProviderRecord) -> Option<Vec<SubnetID>> {
+    /// Returns `Some` if the peer is routable, containing the newly added
+    /// and newly removed associations for this peer.
+    pub fn add_provider(&mut self, record: &ProviderRecord) -> Option<ProviderDelta> {
         if !self.is_routable(record.peer_id) {
             return None;
         }
 
-        let mut new_subnet_ids = Vec::new();
+        let mut delta = ProviderDelta::default();
 
-        let timestamp = self
-            .peer_timestamps
-            .entry(record.peer_id)
-            .or_insert_with(|| Timestamp::default());
+        let timestamp = self.peer_timestamps.entry(record.peer_id).or_default();
 
         if *timestamp < record.timestamp {
             *timestamp = record.timestamp;
-            for subnet_id in record.subnet_ids.iter() {
-                let providers = self.subnet_providers.entry(subnet_id.clone()).or_default();
-                if providers.insert(record.peer_id) {
-                    new_subnet_ids.push(subnet_id.clone());
+
+            // The currently supported subnets of the peer.
+            let mut subnet_ids = HashSet::new();
+            subnet_ids.extend(record.subnet_ids.iter());
+
+            // Remove the peer from subnets it no longer supports.
+            for (subnet_id, peer_ids) in self.subnet_providers.iter_mut() {
+                if !subnet_ids.contains(subnet_id) {
+                    if peer_ids.remove(&record.peer_id) {
+                        delta.removed.push(subnet_id.clone());
+                    }
                 }
             }
+
+            // Add peer to new subnets it supports now.
+            for subnet_id in record.subnet_ids.iter() {
+                let peer_ids = self.subnet_providers.entry(subnet_id.clone()).or_default();
+                if peer_ids.insert(record.peer_id) {
+                    delta.added.push(subnet_id.clone());
+                }
+            }
+
+            // Remove subnets that have been added but are too small to survive a pruning.
             let removed_subnet_ids = self.prune_subnets();
-            new_subnet_ids.retain(|id| !removed_subnet_ids.contains(id))
+            delta.added.retain(|id| !removed_subnet_ids.contains(id))
         }
 
-        Some(new_subnet_ids)
+        Some(delta)
     }
 
     /// Ensure we don't have more than `max_subnets` number of subnets in the cache.
@@ -143,24 +179,49 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use ipc_sdk::subnet_id::SubnetID;
-    use libp2p::PeerId;
+    use libp2p::{identity::Keypair, PeerId};
     use quickcheck::Arbitrary;
     use quickcheck_macros::quickcheck;
 
-    use crate::provider_record::SignedProviderRecord;
+    use crate::{
+        arb::ArbSubnetID,
+        provider_record::{ProviderRecord, Timestamp},
+    };
 
     use super::SubnetProviderCache;
 
     #[derive(Debug, Clone)]
-    struct TestRecords(Vec<SignedProviderRecord>);
+    struct TestRecords(Vec<ProviderRecord>);
 
-    // Limited number of records.
+    // Limited number of records from a limited set of peers.
     impl Arbitrary for TestRecords {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let rc = usize::arbitrary(g) % 20;
+            let pc = 1 + rc / 2;
+
+            let mut ps = Vec::new();
             let mut rs = Vec::new();
-            for _ in 0..u8::arbitrary(g) % 10 {
-                rs.push(SignedProviderRecord::arbitrary(g))
+
+            for _ in 0..pc {
+                let pk = Keypair::generate_ed25519();
+                let peer_id = pk.public().to_peer_id();
+                ps.push(peer_id)
             }
+
+            for _ in 0..rc {
+                let peer_id = ps[usize::arbitrary(g) % ps.len()];
+                let mut subnet_ids = Vec::new();
+                for _ in 0..usize::arbitrary(g) % 5 {
+                    subnet_ids.push(ArbSubnetID::arbitrary(g).0)
+                }
+                let record = ProviderRecord {
+                    peer_id,
+                    subnet_ids,
+                    timestamp: Timestamp::arbitrary(g),
+                };
+                rs.push(record)
+            }
+
             Self(rs)
         }
     }
@@ -170,9 +231,8 @@ mod tests {
         let max_subnets = max_subnets % 10;
         let mut cache = SubnetProviderCache::new(max_subnets);
         for record in records.0 {
-            let record = record.record();
             cache.set_routable(record.peer_id);
-            if cache.add_provider(record).is_none() {
+            if cache.add_provider(&record).is_none() {
                 return false;
             }
         }
@@ -181,13 +241,33 @@ mod tests {
 
     #[quickcheck]
     fn prop_providers_listed(records: TestRecords) -> Result<(), String> {
+        let records = records.0;
         let mut cache = SubnetProviderCache::new(usize::MAX);
-        let mut providers: HashMap<SubnetID, HashSet<PeerId>> = Default::default();
-        for record in records.0 {
-            let record = record.record();
+
+        for record in records.iter() {
             cache.set_routable(record.peer_id);
             cache.add_provider(record);
+        }
 
+        // Only the last timestamp should be kept, but it might not be unique.
+        let mut max_timestamps: HashMap<PeerId, Timestamp> = Default::default();
+        for record in records.iter() {
+            let mts = max_timestamps.entry(record.peer_id).or_default();
+            if *mts < record.timestamp {
+                *mts = record.timestamp;
+            }
+        }
+
+        let mut providers: HashMap<SubnetID, HashSet<PeerId>> = Default::default();
+        let mut seen: HashSet<PeerId> = Default::default();
+
+        for record in records {
+            if record.timestamp != max_timestamps[&record.peer_id] {
+                continue;
+            }
+            if !seen.insert(record.peer_id) {
+                continue;
+            }
             for subnet_id in record.subnet_ids.iter() {
                 providers
                     .entry(subnet_id.clone())
@@ -195,13 +275,15 @@ mod tests {
                     .insert(record.peer_id);
             }
         }
+
         for (subnet_id, exp_peer_ids) in providers {
             let peer_ids = cache.providers_of_subnet(&subnet_id);
             if peer_ids.len() != exp_peer_ids.len() {
                 return Err(format!(
-                    "expected {} peers; got {}",
+                    "expected {} peers, got {} in subnet {:?}",
                     exp_peer_ids.len(),
-                    peer_ids.len()
+                    peer_ids.len(),
+                    subnet_id
                 ));
             }
             for peer_id in peer_ids {

@@ -1,4 +1,5 @@
 use fvm_shared::address::Address;
+use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
 use quickcheck::Arbitrary;
 
 /// Unfortunately an arbitrary `DelegatedAddress` can be inconsistent
@@ -14,5 +15,19 @@ impl Arbitrary for ArbAddress {
         let bz = addr.to_bytes();
         let addr = Address::from_bytes(&bz).expect("address roundtrip works");
         Self(addr)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ArbSubnetID(pub SubnetID);
+
+impl Arbitrary for ArbSubnetID {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        let mut parent = ROOTNET_ID.clone();
+        for _ in 0..=u8::arbitrary(g) % 5 {
+            let addr = ArbAddress::arbitrary(g).0;
+            parent = SubnetID::new_from_parent(&parent, addr);
+        }
+        Self(parent)
     }
 }

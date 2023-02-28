@@ -167,13 +167,18 @@ pub enum FromEnvelopeError {
 
 #[cfg(any(test, feature = "arb"))]
 mod arb {
-    use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
     use libp2p::identity::Keypair;
     use quickcheck::Arbitrary;
 
-    use crate::arb::ArbAddress;
+    use crate::arb::ArbSubnetID;
 
-    use super::SignedProviderRecord;
+    use super::{SignedProviderRecord, Timestamp};
+
+    impl Arbitrary for Timestamp {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Self(u64::arbitrary(g).saturating_add(1))
+        }
+    }
 
     /// Create a valid [`SignedProviderRecord`] with a random key.
     impl Arbitrary for SignedProviderRecord {
@@ -187,12 +192,8 @@ mod arb {
             // Limit the number of subnets and the depth of keys so data generation doesn't take too long.
             let mut subnet_ids = Vec::new();
             for _ in 0..u8::arbitrary(g) % 5 {
-                let mut parent = ROOTNET_ID.clone();
-                for _ in 0..=u8::arbitrary(g) % 5 {
-                    let addr = ArbAddress::arbitrary(g).0;
-                    parent = SubnetID::new_from_parent(&parent, addr);
-                }
-                subnet_ids.push(parent)
+                let subnet_id = ArbSubnetID::arbitrary(g);
+                subnet_ids.push(subnet_id.0)
             }
 
             Self::new(&key, subnet_ids).expect("error creating signed envelope")

@@ -17,7 +17,7 @@ use libp2p::{
 use log::{debug, error, warn};
 use tokio::time::Interval;
 
-use crate::provider_cache::SubnetProviderCache;
+use crate::provider_cache::{ProviderDelta, SubnetProviderCache};
 use crate::provider_record::{SignedProviderRecord, Timestamp};
 
 /// `Gossipsub` subnet membership topic identifier.
@@ -31,8 +31,8 @@ struct Config {
 /// Events emitted by the [`membership::Behaviour`] behaviour.
 #[derive(Debug)]
 pub enum Event {
-    /// Indicate that a given peer is able to serve data from an *additional* list of subnets.
-    AddedProvider((PeerId, Vec<SubnetID>)),
+    /// Indicate a change in the subnets a peer is known to support.
+    UpdatedProvider((PeerId, ProviderDelta)),
 
     /// Indicate that we no longer treat a peer as routable and removed all their supported subnet associations.
     RemovedProvider(PeerId),
@@ -130,8 +130,8 @@ impl Behaviour {
             match SignedProviderRecord::from_bytes(&msg.data).map(|r| r.into_record()) {
                 Ok(record) => match self.provider_cache.add_provider(&record) {
                     None => return Some(Event::SkippedProvider(record.peer_id)),
-                    Some(ids) if ids.is_empty() => return None,
-                    Some(ids) => return Some(Event::AddedProvider((record.peer_id, ids))),
+                    Some(d) if d.is_empty() => return None,
+                    Some(d) => return Some(Event::UpdatedProvider((record.peer_id, d))),
                 },
                 Err(e) => {
                     warn!(
