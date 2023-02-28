@@ -32,6 +32,12 @@ impl Timestamp {
     }
 }
 
+impl Default for Timestamp {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+
 impl Sub<Duration> for Timestamp {
     type Output = Self;
 
@@ -195,7 +201,7 @@ mod arb {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use libp2p::core::SignedEnvelope;
     use quickcheck_macros::quickcheck;
 

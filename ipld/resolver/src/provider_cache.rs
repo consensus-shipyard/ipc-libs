@@ -68,7 +68,7 @@ impl SubnetProviderCache {
         let timestamp = self
             .peer_timestamps
             .entry(record.peer_id)
-            .or_insert(record.timestamp);
+            .or_insert_with(|| Timestamp::default());
 
         if *timestamp < record.timestamp {
             *timestamp = record.timestamp;
@@ -135,5 +135,81 @@ impl SubnetProviderCache {
             .get(subnet_id)
             .map(|hs| hs.iter().cloned().collect())
             .unwrap_or_default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{HashMap, HashSet};
+
+    use ipc_sdk::subnet_id::SubnetID;
+    use libp2p::PeerId;
+    use quickcheck::Arbitrary;
+    use quickcheck_macros::quickcheck;
+
+    use crate::provider_record::SignedProviderRecord;
+
+    use super::SubnetProviderCache;
+
+    #[derive(Debug, Clone)]
+    struct TestRecords(Vec<SignedProviderRecord>);
+
+    // Limited number of records.
+    impl Arbitrary for TestRecords {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let mut rs = Vec::new();
+            for _ in 0..u8::arbitrary(g) % 10 {
+                rs.push(SignedProviderRecord::arbitrary(g))
+            }
+            Self(rs)
+        }
+    }
+
+    #[quickcheck]
+    fn prop_subnets_pruned(records: TestRecords, max_subnets: usize) -> bool {
+        let max_subnets = max_subnets % 10;
+        let mut cache = SubnetProviderCache::new(max_subnets);
+        for record in records.0 {
+            let record = record.record();
+            cache.set_routable(record.peer_id);
+            if cache.add_provider(record).is_none() {
+                return false;
+            }
+        }
+        cache.subnet_providers.len() <= max_subnets
+    }
+
+    #[quickcheck]
+    fn prop_providers_listed(records: TestRecords) -> Result<(), String> {
+        let mut cache = SubnetProviderCache::new(usize::MAX);
+        let mut providers: HashMap<SubnetID, HashSet<PeerId>> = Default::default();
+        for record in records.0 {
+            let record = record.record();
+            cache.set_routable(record.peer_id);
+            cache.add_provider(record);
+
+            for subnet_id in record.subnet_ids.iter() {
+                providers
+                    .entry(subnet_id.clone())
+                    .or_default()
+                    .insert(record.peer_id);
+            }
+        }
+        for (subnet_id, exp_peer_ids) in providers {
+            let peer_ids = cache.providers_of_subnet(&subnet_id);
+            if peer_ids.len() != exp_peer_ids.len() {
+                return Err(format!(
+                    "expected {} peers; got {}",
+                    exp_peer_ids.len(),
+                    peer_ids.len()
+                ));
+            }
+            for peer_id in peer_ids {
+                if !exp_peer_ids.contains(&peer_id) {
+                    return Err("wrong peer ID".into());
+                }
+            }
+        }
+        Ok(())
     }
 }
