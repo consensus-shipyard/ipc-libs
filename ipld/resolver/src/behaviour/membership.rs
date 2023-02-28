@@ -139,13 +139,13 @@ impl Behaviour {
     }
 
     /// Set all the currently supported subnet IDs, then publish the updated list.
-    pub fn set_subnet_ids(&mut self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
+    pub fn set_provided_subnets(&mut self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
         self.subnet_ids = subnet_ids;
         self.publish_membership()
     }
 
     /// Add a subnet to the list of supported subnets, then publish the updated list.
-    pub fn add_subnet_id(&mut self, subnet_id: SubnetID) -> anyhow::Result<()> {
+    pub fn add_provided_subnet(&mut self, subnet_id: SubnetID) -> anyhow::Result<()> {
         if self.subnet_ids.contains(&subnet_id) {
             return Ok(());
         }
@@ -154,7 +154,7 @@ impl Behaviour {
     }
 
     /// Remove a subnet from the list of supported subnets, then publish the updated list.
-    pub fn remove_subnet_id(&mut self, subnet_id: SubnetID) -> anyhow::Result<()> {
+    pub fn remove_provided_subnet(&mut self, subnet_id: SubnetID) -> anyhow::Result<()> {
         if !self.subnet_ids.contains(&subnet_id) {
             return Ok(());
         }
