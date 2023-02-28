@@ -7,8 +7,8 @@ use std::time::Duration;
 use ipc_sdk::subnet_id::SubnetID;
 use libp2p::core::connection::ConnectionId;
 use libp2p::gossipsub::{
-    GossipsubConfig, GossipsubConfigBuilder, GossipsubEvent, GossipsubMessage, IdentTopic,
-    MessageAuthenticity, MessageId, PeerScoreParams, PeerScoreThresholds, Topic,
+    GossipsubConfigBuilder, GossipsubEvent, GossipsubMessage, IdentTopic, MessageAuthenticity,
+    MessageId, Topic,
 };
 use libp2p::identity::Keypair;
 use libp2p::swarm::derive_prelude::FromSwarm;
@@ -44,24 +44,35 @@ pub enum Event {
     Skipped(PeerId),
 }
 
-/// Valid configuration for [`membership::Behaviour`].
+/// Configuration for [`membership::Behaviour`].
 pub struct Config {
     /// Cryptographic key used to sign messages.
     local_key: Keypair,
-    /// Topic to publish subnet membership to.
-    membership_topic: IdentTopic,
-    /// Validated [`GossipsubConfig`].
-    gossipsub_config: GossipsubConfig,
-    /// Scoring params for Gossipsub.
-    peer_score_params: PeerScoreParams,
-    /// Scoring thresholds for Gossipsub.
-    peer_score_thresholds: PeerScoreThresholds,
+    /// Network name to be combined into a topic.
+    network_name: String,
     /// Maximum number of subnets to track in the cache.
-    max_subnets: usize,
+    pub max_subnets: usize,
     /// Publish interval for supported subnets.
-    publish_interval: Duration,
+    pub publish_interval: Duration,
     /// Maximum age of provider records before the peer is removed without an update.
-    max_provider_age: Duration,
+    pub max_provider_age: Duration,
+}
+
+impl Config {
+    /// Construct a new config instance with the given key and network, using default values for the rest.
+    pub fn new(local_key: Keypair, network_name: String) -> Result<Self, ConfigError> {
+        if network_name.is_empty() {
+            Err(ConfigError::InvalidNetwork(network_name))
+        } else {
+            Ok(Self {
+                local_key,
+                network_name,
+                max_subnets: 10,
+                publish_interval: Duration::from_secs(60),
+                max_provider_age: Duration::from_secs(300),
+            })
+        }
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -70,67 +81,6 @@ pub enum ConfigError {
     InvalidNetwork(String),
     #[error("invalid gossipsub config: {0}")]
     InvalidGossipsubConfig(String),
-}
-
-pub struct ConfigBuilder {
-    local_key: Keypair,
-    network_name: String,
-    pub max_subnets: usize,
-    pub publish_interval: Duration,
-    pub max_provider_age: Duration,
-}
-
-impl ConfigBuilder {
-    pub fn new(local_key: Keypair, network_name: String) -> Result<Self, ConfigError> {
-        if network_name.is_empty() {
-            return Err(ConfigError::InvalidNetwork(network_name));
-        }
-        Ok(Self {
-            local_key,
-            network_name,
-            max_subnets: 10,
-            publish_interval: Duration::from_secs(60),
-            max_provider_age: Duration::from_secs(300),
-        })
-    }
-
-    pub fn build(self) -> Result<Config, ConfigError> {
-        let membership_topic = Topic::new(format!("{}/{}", PUBSUB_MEMBERSHIP, self.network_name));
-        let mut gossipsub_config = GossipsubConfigBuilder::default();
-        // Set the maximum message size to 2MB.
-        gossipsub_config.max_transmit_size(2 << 20);
-        gossipsub_config.message_id_fn(|msg: &GossipsubMessage| {
-            let s = blake2b_256(&msg.data);
-            MessageId::from(s)
-        });
-
-        let gossipsub_config = gossipsub_config
-            .build()
-            .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
-
-        let peer_score_params = scoring::build_peer_score_params(membership_topic.clone());
-        peer_score_params
-            .validate()
-            .map_err(ConfigError::InvalidGossipsubConfig)?;
-
-        let peer_score_thresholds = scoring::build_peer_score_thresholds();
-        peer_score_thresholds
-            .validate()
-            .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
-
-        let config = Config {
-            local_key: self.local_key,
-            membership_topic,
-            gossipsub_config,
-            peer_score_params,
-            peer_score_thresholds,
-            max_subnets: self.max_subnets,
-            publish_interval: self.publish_interval,
-            max_provider_age: self.max_provider_age,
-        };
-
-        Ok(config)
-    }
 }
 
 /// A [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
@@ -158,31 +108,48 @@ pub struct Behaviour {
 }
 
 impl Behaviour {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config) -> Result<Self, ConfigError> {
+        let membership_topic = Topic::new(format!("{}/{}", PUBSUB_MEMBERSHIP, config.network_name));
+
+        let mut gossipsub_config = GossipsubConfigBuilder::default();
+        // Set the maximum message size to 2MB.
+        gossipsub_config.max_transmit_size(2 << 20);
+        gossipsub_config.message_id_fn(|msg: &GossipsubMessage| {
+            let s = blake2b_256(&msg.data);
+            MessageId::from(s)
+        });
+
+        let gossipsub_config = gossipsub_config
+            .build()
+            .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
+
         let mut gossipsub = Gossipsub::new(
             MessageAuthenticity::Signed(config.local_key.clone()),
-            config.gossipsub_config,
+            gossipsub_config,
         )
-        .expect("error creating Gossipsub");
+        .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
 
         gossipsub
-            .with_peer_score(config.peer_score_params, config.peer_score_thresholds)
-            .expect("error setting scoring");
+            .with_peer_score(
+                scoring::build_peer_score_params(membership_topic.clone()),
+                scoring::build_peer_score_thresholds(),
+            )
+            .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
 
         // Don't publish immediately, it's empty. Let the creator call `set_subnet_ids` to trigger initially.
         let mut interval = tokio::time::interval(config.publish_interval);
         interval.reset();
 
-        Self {
+        Ok(Self {
             inner: gossipsub,
             outbox: Default::default(),
             keypair: config.local_key,
-            membership_topic: config.membership_topic,
+            membership_topic,
             subnet_ids: Default::default(),
             provider_cache: SubnetProviderCache::new(config.max_subnets),
             publish_interval: interval,
             max_provider_age: config.max_provider_age,
-        }
+        })
     }
 
     /// Set all the currently supported subnet IDs, then publish the updated list.
