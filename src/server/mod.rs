@@ -1,9 +1,9 @@
 //! The ipc-agent json rpc node.
 
-use std::fmt::Debug;
 use anyhow::Result;
-use serde::de::DeserializeOwned;
 use async_trait::async_trait;
+use serde::de::DeserializeOwned;
+use std::fmt::Debug;
 
 pub mod jsonrpc;
 pub mod request;
