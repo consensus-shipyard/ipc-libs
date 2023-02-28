@@ -10,7 +10,6 @@ use crate::config::deserialize::{deserialize_accounts, deserialize_subnet_id};
 pub struct Subnet {
     #[serde(deserialize_with = "deserialize_subnet_id")]
     pub id: SubnetID,
-    pub gateway_addr: u64,
     pub jsonrpc_api_http: Url,
     pub jsonrpc_api_ws: Option<Url>,
     pub auth_token: Option<String>,

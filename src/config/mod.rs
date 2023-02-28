@@ -18,6 +18,7 @@ pub use subnet::Subnet;
 pub use server::JSON_RPC_ENDPOINT;
 
 pub const JSON_RPC_VERSION: &str = "2.0";
+pub const IPC_GATEWAY_ADDR: u64 = 64;
 
 /// The top-level struct representing the config. Calls to [`Config::from_file`] deserialize into
 /// this struct.
@@ -81,7 +82,6 @@ mod tests {
 
         let root = &config["root"];
         assert_eq!(root.id, *ROOTNET_ID);
-        assert_eq!(root.gateway_addr, IPC_GATEWAY_ADDR);
         assert_eq!(
             root.jsonrpc_api_http,
             Url::from_str(JSONRPC_API_HTTP).unwrap()
@@ -124,14 +124,12 @@ mod tests {
 
             [subnets.root]
             id = "{ROOT_ID}"
-            gateway_addr = {IPC_GATEWAY_ADDR}
             jsonrpc_api_http = "{JSONRPC_API_HTTP}"
             jsonrpc_api_ws = "{JSONRPC_API_WS}"
             auth_token = "{ROOT_AUTH_TOKEN}"
 
             [subnets.child]
             id = "{CHILD_ID}"
-            gateway_addr = {IPC_GATEWAY_ADDR}
             jsonrpc_api_http = "{JSONRPC_API_HTTP}"
             auth_token = "{CHILD_AUTH_TOKEN}"
             accounts = ["{ACCOUNT_ADDRESS}"]
