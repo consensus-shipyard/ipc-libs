@@ -311,6 +311,33 @@ mod tests {
     }
 
     #[quickcheck]
+    fn prop_subnets_pinned(records: TestRecords) -> Result<(), String> {
+        // Find two subnets to pin.
+        let providers = build_providers(&records.0);
+        if providers.len() < 2 {
+            return Ok(());
+        }
+
+        let subnets = providers.keys().take(2).collect::<Vec<_>>();
+
+        let mut cache = SubnetProviderCache::new(3, vec![subnets[0].clone()]);
+        cache.pin_subnet(subnets[1].clone());
+
+        for record in records.0 {
+            cache.set_routable(record.peer_id);
+            cache.add_provider(&record);
+        }
+
+        if !cache.subnet_providers.contains_key(&subnets[0]) {
+            return Err("static subnet not found".into());
+        }
+        if !cache.subnet_providers.contains_key(&subnets[1]) {
+            return Err("pinned subnet not found".into());
+        }
+        Ok(())
+    }
+
+    #[quickcheck]
     fn prop_providers_listed(records: TestRecords) -> Result<(), String> {
         let records = records.0;
         let mut cache = SubnetProviderCache::new(usize::MAX, Vec::new());
