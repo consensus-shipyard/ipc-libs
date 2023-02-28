@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::server::request::JSONRPCRequest;
 use crate::server::response::{JSONRPCErrorResponse, JSONRPCResultResponse};
 use bytes::Bytes;

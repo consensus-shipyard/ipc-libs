@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Deserialization utils for config mod.
 
 use ipc_sdk::subnet_id::SubnetID;

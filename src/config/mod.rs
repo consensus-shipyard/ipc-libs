@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Provides a simple way of reading configuration files.
 //!
 //! Reads a TOML config file for the IPC Agent and deserializes it in a type-safe way into a
