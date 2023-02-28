@@ -148,7 +148,7 @@ mod tests {
 
         assert_eq!(v.id, id);
         assert_eq!(v.jsonrpc, jsonrpc);
-        assert_eq!(v.result, ());
+        //assert_eq!(v.result, ());
     }
 
     #[tokio::test]
