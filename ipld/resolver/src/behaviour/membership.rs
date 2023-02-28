@@ -26,6 +26,8 @@ use crate::hash::blake2b_256;
 use crate::provider_cache::{ProviderDelta, SubnetProviderCache};
 use crate::provider_record::{SignedProviderRecord, Timestamp};
 
+use super::NetworkConfig;
+
 /// `Gossipsub` subnet membership topic identifier.
 const PUBSUB_MEMBERSHIP: &str = "/ipc/membership";
 
@@ -46,33 +48,12 @@ pub enum Event {
 
 /// Configuration for [`membership::Behaviour`].
 pub struct Config {
-    /// Cryptographic key used to sign messages.
-    local_key: Keypair,
-    /// Network name to be combined into a topic.
-    network_name: String,
     /// Maximum number of subnets to track in the cache.
     pub max_subnets: usize,
     /// Publish interval for supported subnets.
     pub publish_interval: Duration,
     /// Maximum age of provider records before the peer is removed without an update.
     pub max_provider_age: Duration,
-}
-
-impl Config {
-    /// Construct a new config instance with the given key and network, using default values for the rest.
-    pub fn new(local_key: Keypair, network_name: String) -> Result<Self, ConfigError> {
-        if network_name.is_empty() {
-            Err(ConfigError::InvalidNetwork(network_name))
-        } else {
-            Ok(Self {
-                local_key,
-                network_name,
-                max_subnets: 10,
-                publish_interval: Duration::from_secs(60),
-                max_provider_age: Duration::from_secs(300),
-            })
-        }
-    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -90,8 +71,8 @@ pub struct Behaviour {
     inner: Gossipsub,
     /// Events to return when polled.
     outbox: VecDeque<Event>,
-    /// [`Keypair`] used to construct [`SignedProviderRecord`] instances.
-    keypair: Keypair,
+    /// [`Keypair`] used to sign [`SignedProviderRecord`] instances.
+    local_key: Keypair,
     /// Name of the [`Gossipsub`] topic where subnet memberships are published.
     membership_topic: IdentTopic,
     /// List of subnet IDs this agent is providing data for.
@@ -108,8 +89,11 @@ pub struct Behaviour {
 }
 
 impl Behaviour {
-    pub fn new(config: Config) -> Result<Self, ConfigError> {
-        let membership_topic = Topic::new(format!("{}/{}", PUBSUB_MEMBERSHIP, config.network_name));
+    pub fn new(nc: NetworkConfig, mc: Config) -> Result<Self, ConfigError> {
+        if nc.network_name.is_empty() {
+            return Err(ConfigError::InvalidNetwork(nc.network_name));
+        }
+        let membership_topic = Topic::new(format!("{}/{}", PUBSUB_MEMBERSHIP, nc.network_name));
 
         let mut gossipsub_config = GossipsubConfigBuilder::default();
         // Set the maximum message size to 2MB.
@@ -124,7 +108,7 @@ impl Behaviour {
             .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
 
         let mut gossipsub = Gossipsub::new(
-            MessageAuthenticity::Signed(config.local_key.clone()),
+            MessageAuthenticity::Signed(nc.local_key.clone()),
             gossipsub_config,
         )
         .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
@@ -137,18 +121,18 @@ impl Behaviour {
             .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
 
         // Don't publish immediately, it's empty. Let the creator call `set_subnet_ids` to trigger initially.
-        let mut interval = tokio::time::interval(config.publish_interval);
+        let mut interval = tokio::time::interval(mc.publish_interval);
         interval.reset();
 
         Ok(Self {
             inner: gossipsub,
             outbox: Default::default(),
-            keypair: config.local_key,
+            local_key: nc.local_key,
             membership_topic,
             subnet_ids: Default::default(),
-            provider_cache: SubnetProviderCache::new(config.max_subnets),
+            provider_cache: SubnetProviderCache::new(mc.max_subnets),
             publish_interval: interval,
-            max_provider_age: config.max_provider_age,
+            max_provider_age: mc.max_provider_age,
         })
     }
 
@@ -178,7 +162,7 @@ impl Behaviour {
 
     /// Send a message through Gossipsub to let everyone know about the current configuration.
     fn publish_membership(&mut self) -> anyhow::Result<()> {
-        let record = SignedProviderRecord::new(&self.keypair, self.subnet_ids.clone())?;
+        let record = SignedProviderRecord::new(&self.local_key, self.subnet_ids.clone())?;
         let data = record.into_envelope().into_protobuf_encoding();
         let _msg_id = self.inner.publish(self.membership_topic.clone(), data)?;
         Ok(())
