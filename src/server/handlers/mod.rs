@@ -1,16 +1,12 @@
 //! The module contains the handlers implementation for the json rpc server.
 
 pub mod create;
-mod subnet;
 
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
-use std::sync::Arc;
 use serde_json::Value;
 pub use create::{CreateSubnetResponse, CreateSubnetParams};
-use crate::config::Subnet;
 use crate::server::create::CreateSubnetHandler;
-use crate::server::handlers::subnet::SubnetManagerShared;
 use crate::server::JsonRPCRequestHandler;
 
 pub type Method = String;
@@ -26,12 +22,9 @@ pub struct Handlers {
 }
 
 impl Handlers {
-    pub fn construct(subnets: HashMap<String, Subnet>) -> Self {
+    pub fn construct() -> Self {
         let mut handlers = HashMap::new();
-
-        let shared = Arc::new(SubnetManagerShared::new(subnets));
-
-        let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(shared));
+        let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler{});
         handlers.insert(String::from("create_subnet"), create_subnet);
 
         Self { handlers }
