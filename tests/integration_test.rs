@@ -66,7 +66,7 @@ async fn test_join_subnet_actor() {
     let default_wallet = lotus_client.wallet_default().await.unwrap();
 
     let subnet = SubnetID::from_str(&subnet_id_string).unwrap();
-    let collateral = TokenAmount::from_atto(10);
+    let collateral = TokenAmount::from_atto(5_u64.pow(18));
     let params = JoinParams { validator_net_addr: "test".to_string() };
 
     let subnet_manager = LotusSubnetManager::new(lotus_client);
@@ -90,6 +90,13 @@ async fn test_leave_subnet_actor() {
     let lotus_client = lotus_http_json_rpc_client(&http_url, bearer_token.as_deref());
 
     set_current_network(Network::Testnet);
+
+    // let tipset = cid::Cid::from_str("bafy2bzacealxse66eedvywnb3zfoa2zka3as7wfwgle5vaxe4ksxd7a6m4wgq").unwrap();
+    // let state = lotus_client.read_state::<serde_json::Value>(
+    //     fvm_shared::address::Address::from_str("t01003").unwrap(),
+    //     tipset
+    // ).await.unwrap();
+    // println!("{state:?}");
 
     let default_wallet = lotus_client.wallet_default().await.unwrap();
     let subnet = SubnetID::from_str(&subnet_id_string).unwrap();
