@@ -8,6 +8,9 @@ use std::fmt::Debug;
 pub mod jsonrpc;
 pub mod request;
 pub mod response;
+mod handlers;
+
+pub use handlers::*;
 
 /// The JSON RPC server request handler trait.
 #[async_trait]
