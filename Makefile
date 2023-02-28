@@ -6,7 +6,7 @@ build:
 	cargo build --release
 
 test:
-	cargo test --release
+	cargo test --release --workspace
 
 clean:
 	cargo clean
