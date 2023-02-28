@@ -16,5 +16,5 @@ pub trait JsonRPCRequestHandler {
     type Response: Debug + Serialize;
 
     /// Handles the request sent to the json rpc server. Returns a response back.
-    async fn handle(&self, request: &Self::Request) -> Result<Self::Response>;
+    async fn handle(&self, request: Self::Request) -> Result<Self::Response>;
 }
