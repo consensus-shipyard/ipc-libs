@@ -27,12 +27,23 @@ use crate::behaviour::{
     MembershipConfig, NetworkConfig,
 };
 
-/// Keeps track of where to send query responses to.
-type QueryMap = HashMap<content::QueryId, oneshot::Sender<anyhow::Result<()>>>;
-
 /// Result of attempting to resolve a CID.
 pub type ResolveResult = anyhow::Result<()>;
 
+/// State of a query. The fallback peers can be used
+/// if the current attempt fails.
+struct Query {
+    cid: Cid,
+    subnet_id: SubnetID,
+    fallback_peer_ids: Vec<PeerId>,
+    response_channel: oneshot::Sender<ResolveResult>,
+}
+
+/// Keeps track of where to send query responses to.
+type QueryMap = HashMap<content::QueryId, Query>;
+
+/// Error returned when we tried to get a CID from a subnet for
+/// which we currently have no peers to contact
 #[derive(thiserror::Error, Debug)]
 #[error("No known peers for subnet {0}")]
 pub struct NoKnownPeers(SubnetID);
@@ -150,8 +161,7 @@ impl<P: StoreParams> Service<P> {
                 swarm_event = self.swarm.next() => match swarm_event {
                     // Events raised by our behaviours.
                     Some(SwarmEvent::Behaviour(event)) => {
-                        self.handle_behaviour_event(
-                            event)
+                        self.handle_behaviour_event(event)
                     },
                     // Connection events are handled by the behaviours, passed directly from the Swarm.
                     Some(_) => { },
@@ -237,11 +247,41 @@ impl<P: StoreParams> Service<P> {
     fn handle_content_event(&mut self, event: content::Event) {
         match event {
             content::Event::Complete(query_id, result) => {
-                if let Some(tx) = self.queries.remove(&query_id) {
-                    send_resolve_result(tx, result)
+                if let Some(query) = self.queries.remove(&query_id) {
+                    self.handle_query_result(query, result);
                 } else {
                     warn!("query ID not found");
                 }
+            }
+        }
+    }
+
+    /// Handle the results from a resolve attempt. If it succeeded, notify the
+    /// listener. Otherwise if we have fallback peers to try, start another
+    /// query and send the result to them. By default these are the peers
+    /// we know support the subnet, but weren't connected to when the we
+    /// first attempted the resolution.
+    fn handle_query_result(&mut self, mut query: Query, result: ResolveResult) {
+        match result {
+            Ok(_) => send_resolve_result(query.response_channel, result),
+            Err(_) if query.fallback_peer_ids.is_empty() => {
+                send_resolve_result(query.response_channel, result)
+            }
+            Err(e) => {
+                debug!(
+                    "resolving {} from {} failed with {}, but there are {} fallback peers to try",
+                    query.cid,
+                    query.subnet_id,
+                    e,
+                    query.fallback_peer_ids.len()
+                );
+
+                // Now we can go all in; alternatively we could take the next N peers.
+                let peers = std::mem::take(&mut query.fallback_peer_ids);
+
+                let query_id = self.content_mut().resolve(query.cid, peers);
+
+                self.queries.insert(query_id, query);
             }
         }
     }
@@ -259,13 +299,33 @@ impl<P: StoreParams> Service<P> {
                     self.membership_mut().pin_subnet(id)
                 }
             }
-            Request::Resolve(cid, subnet_id, tx) => {
+            Request::Resolve(cid, subnet_id, response_channel) => {
                 let peers = self.membership_mut().providers_of_subnet(&subnet_id);
                 if peers.is_empty() {
-                    send_resolve_result(tx, Err(anyhow!(NoKnownPeers(subnet_id))));
+                    send_resolve_result(response_channel, Err(anyhow!(NoKnownPeers(subnet_id))));
                 } else {
+                    let (connected, known) = peers
+                        .into_iter()
+                        .partition::<Vec<_>, _>(|id| self.swarm.is_connected(id));
+
+                    let (peers, fallback) = if connected.is_empty() {
+                        (known, vec![])
+                    } else {
+                        // Use just the connected ones, however many there are.
+                        // Alternatively we could take the first N combined.
+                        (connected, known)
+                    };
+
+                    let query = Query {
+                        cid,
+                        subnet_id,
+                        response_channel,
+                        fallback_peer_ids: fallback,
+                    };
+
                     let query_id = self.content_mut().resolve(cid, peers);
-                    self.queries.insert(query_id, tx);
+
+                    self.queries.insert(query_id, query);
                 }
             }
         }
