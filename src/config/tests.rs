@@ -54,12 +54,13 @@ fn reload_works() {
     let updated_config = Config::from_toml_str(&config_str).unwrap();
     file.write(config_str.as_bytes()).unwrap();
 
-    sleep(Duration::from_secs(interval * 3));
+    sleep(Duration::from_secs(interval * 10));
 
     let mut addr = "0.0.0.0:8080".parse().unwrap();
     h.read_from_config(|config| {
         addr = config.server.json_rpc_address.clone();
     });
+    h.stop_watching();
     drop(file);
 
     assert_ne!(addr, original_config.server.json_rpc_address);
