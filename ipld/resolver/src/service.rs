@@ -18,9 +18,9 @@ use libp2p::{
 };
 use libp2p::{identify, ping};
 use libp2p_bitswap::BitswapStore;
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use tokio::select;
-use tokio::sync::oneshot;
+use tokio::sync::oneshot::{self, Sender};
 
 use crate::behaviour::{
     self, content, discovery, membership, Behaviour, BehaviourEvent, ConfigError, DiscoveryConfig,
@@ -29,6 +29,13 @@ use crate::behaviour::{
 
 /// Keeps track of where to send query responses to.
 type QueryMap = HashMap<content::QueryId, oneshot::Sender<anyhow::Result<()>>>;
+
+/// Result of attempting to resolve a CID.
+pub type ResolveResult = anyhow::Result<()>;
+
+#[derive(thiserror::Error, Debug)]
+#[error("No known peers for subnet {0}")]
+pub struct NoKnownPeers(SubnetID);
 
 pub struct ConnectionConfig {
     /// The address where we will listen to incoming connections.
@@ -44,18 +51,12 @@ pub struct Config {
     connection: ConnectionConfig,
 }
 
-/// Result of attempting to resolve a CID.
-pub type ResolutionResult = anyhow::Result<()>;
-
 /// Internal requests to enqueue to the [`Service`]
 enum Request {
     SetProvidedSubnets(Vec<SubnetID>),
     PinSubnets(Vec<SubnetID>),
-    Resolve(Cid, oneshot::Sender<ResolutionResult>),
+    Resolve(Cid, SubnetID, oneshot::Sender<ResolveResult>),
 }
-
-/// Indicate that the server is no longer listening.
-pub struct Disconnected;
 
 /// A facade to the [`Service`] to provide a nicer interface than message passing would allow on its own.
 #[derive(Clone)]
@@ -80,10 +81,13 @@ impl Client {
         self.send_request(req)
     }
 
-    /// Send a CID for resolution, await its completion, then return the result, to be inspected by the caller.
-    pub async fn resolve(&self, cid: Cid) -> anyhow::Result<ResolutionResult> {
+    /// Send a CID for resolution from a specific subnet, await its completion,
+    /// then return the result, to be inspected by the caller.
+    ///
+    /// Upon success, the data should be found in the store.
+    pub async fn resolve(&self, cid: Cid, subnet_id: SubnetID) -> anyhow::Result<ResolveResult> {
         let (tx, rx) = oneshot::channel();
-        let req = Request::Resolve(cid, tx);
+        let req = Request::Resolve(cid, subnet_id, tx);
         self.send_request(req)?;
         let res = rx.await?;
         Ok(res)
@@ -141,7 +145,6 @@ impl<P: StoreParams> Service<P> {
         // Start the swarm.
         Swarm::listen_on(&mut self.swarm, self.listen_addr.clone())?;
 
-        // TODO: Should there be some control channel to close the service?
         loop {
             select! {
                 swarm_event = self.swarm.next() => match swarm_event {
@@ -155,7 +158,15 @@ impl<P: StoreParams> Service<P> {
                     // The connection is closed.
                     None => { break; },
                 },
-                // TODO: Add a channel for internal requests.
+                request = self.request_rx.recv() => match request {
+                    // A Client sent us a request.
+                    Some(req) => self.handle_request(req),
+                    // All Client instances have been dropped.
+                    // We could keep the Swarm alive to serve content to others,
+                    // but we ourselves are unable to send requests. Let's treat
+                    // this as time to quit.
+                    None => { break; }
+                }
             };
         }
         Ok(())
@@ -200,11 +211,8 @@ impl<P: StoreParams> Service<P> {
     }
 
     fn handle_identify_event(&mut self, event: identify::Event) {
-        match event {
-            identify::Event::Error { peer_id, error } => {
-                warn!("Error identifying {peer_id}: {error}")
-            }
-            _ => {}
+        if let identify::Event::Error { peer_id, error } = event {
+            warn!("Error identifying {peer_id}: {error}")
         }
     }
 
@@ -225,15 +233,39 @@ impl<P: StoreParams> Service<P> {
         }
     }
 
+    /// Handle Bitswap lookup result.
     fn handle_content_event(&mut self, event: content::Event) {
         match event {
             content::Event::Complete(query_id, result) => {
                 if let Some(tx) = self.queries.remove(&query_id) {
-                    if tx.send(result).is_err() {
-                        debug!("error sending query result");
-                    }
+                    send_resolve_result(tx, result)
                 } else {
                     warn!("query ID not found");
+                }
+            }
+        }
+    }
+
+    /// Handle an internal request coming from a [`Client`].
+    fn handle_request(&mut self, request: Request) {
+        match request {
+            Request::SetProvidedSubnets(ids) => {
+                if let Err(e) = self.membership_mut().set_provided_subnets(ids) {
+                    error!("error setting subnet providers: {e}")
+                }
+            }
+            Request::PinSubnets(ids) => {
+                for id in ids {
+                    self.membership_mut().pin_subnet(id)
+                }
+            }
+            Request::Resolve(cid, subnet_id, tx) => {
+                let peers = self.membership_mut().providers_of_subnet(&subnet_id);
+                if peers.is_empty() {
+                    send_resolve_result(tx, Err(anyhow!(NoKnownPeers(subnet_id))));
+                } else {
+                    let query_id = self.content_mut().resolve(cid, peers);
+                    self.queries.insert(query_id, tx);
                 }
             }
         }
@@ -249,6 +281,12 @@ impl<P: StoreParams> Service<P> {
     }
     fn content_mut(&mut self) -> &mut behaviour::content::Behaviour<P> {
         self.swarm.behaviour_mut().content_mut()
+    }
+}
+
+fn send_resolve_result(tx: Sender<ResolveResult>, res: ResolveResult) {
+    if tx.send(res).is_err() {
+        error!("error sending resolve result; listener closed")
     }
 }
 
