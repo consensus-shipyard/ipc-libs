@@ -20,8 +20,6 @@ impl <T: JsonRpcClient> ManagerConfigBundle<T> {
 /// The json rpc subnet manager wrapper struct. This struct can be shared by all the subnet methods.
 /// As such, there is no need to re-init the same SubnetManager for different methods.
 pub(crate) struct SubnetManagerShared<T: JsonRpcClient> {
-    // subnets: HashMap<String, Subnet>,
-    // managers: HashMap<String, LotusSubnetManager<T>>,
     bundles: HashMap<String, ManagerConfigBundle<T>>,
 }
 
