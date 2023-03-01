@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use libipld::store::StoreParams;
+use libp2p::futures::channel::oneshot;
 use libp2p::futures::StreamExt;
 use libp2p::swarm::SwarmEvent;
 use libp2p::{
@@ -22,6 +24,9 @@ use crate::behaviour::{
     MembershipConfig, NetworkConfig,
 };
 
+/// Keeps track of where to send query responses to.
+type QueryMap = HashMap<content::QueryId, oneshot::Sender<anyhow::Result<()>>>;
+
 pub struct ConnectionConfig {
     /// The address where we will listen to incoming connections.
     listen_addr: Multiaddr,
@@ -36,12 +41,14 @@ pub struct Config {
     connection: ConnectionConfig,
 }
 
-pub struct IpldResolverService<P: StoreParams> {
+/// The `Service` handles P2P communication to resolve IPLD content by wrapping and driving a number of `libp2p` behaviours.
+pub struct Service<P: StoreParams> {
     listen_addr: Multiaddr,
     swarm: Swarm<Behaviour<P>>,
+    queries: QueryMap,
 }
 
-impl<P: StoreParams> IpldResolverService<P> {
+impl<P: StoreParams> Service<P> {
     pub fn new<S>(config: Config, store: S) -> Result<Self, ConfigError>
     where
         S: BitswapStore<Params = P>,
@@ -68,6 +75,7 @@ impl<P: StoreParams> IpldResolverService<P> {
         Ok(Self {
             listen_addr: config.connection.listen_addr,
             swarm,
+            queries: Default::default(),
         })
     }
 
@@ -162,7 +170,15 @@ impl<P: StoreParams> IpldResolverService<P> {
 
     fn handle_content_event(&mut self, event: content::Event) {
         match event {
-            content::Event::Complete(_query_id, _result) => todo!("add book keeping"),
+            content::Event::Complete(query_id, result) => {
+                if let Some(tx) = self.queries.remove(&query_id) {
+                    if tx.send(result).is_err() {
+                        debug!("error sending query result");
+                    }
+                } else {
+                    warn!("query ID not found");
+                }
+            }
         }
     }
 
