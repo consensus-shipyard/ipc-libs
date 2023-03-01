@@ -328,10 +328,10 @@ mod tests {
             cache.add_provider(&record);
         }
 
-        if !cache.subnet_providers.contains_key(&subnets[0]) {
+        if !cache.subnet_providers.contains_key(subnets[0]) {
             return Err("static subnet not found".into());
         }
-        if !cache.subnet_providers.contains_key(&subnets[1]) {
+        if !cache.subnet_providers.contains_key(subnets[1]) {
             return Err("pinned subnet not found".into());
         }
         Ok(())

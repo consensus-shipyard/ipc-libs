@@ -120,7 +120,7 @@ impl Behaviour {
                 scoring::build_peer_score_params(membership_topic.clone()),
                 scoring::build_peer_score_thresholds(),
             )
-            .map_err(|s| ConfigError::InvalidGossipsubConfig(s.into()))?;
+            .map_err(ConfigError::InvalidGossipsubConfig)?;
 
         // Don't publish immediately, it's empty. Let the creator call `set_subnet_ids` to trigger initially.
         let mut interval = tokio::time::interval(mc.publish_interval);
