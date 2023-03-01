@@ -15,7 +15,7 @@ const PAYLOAD_TYPE: &str = "/ipc/provider-record";
 
 /// Unix timestamp in seconds since epoch, which we can use to select the
 /// more recent message during gossiping.
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug, Serialize, Deserialize, Default)]
 pub struct Timestamp(u64);
 
 impl Timestamp {
@@ -31,12 +31,6 @@ impl Timestamp {
     /// Seconds elapsed since Unix epoch.
     pub fn as_secs(&self) -> u64 {
         self.0
-    }
-}
-
-impl Default for Timestamp {
-    fn default() -> Self {
-        Self(0)
     }
 }
 
@@ -129,7 +123,7 @@ impl SignedProviderRecord {
 
     /// Deserialize then check the domain tags and the signature.
     pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<Self> {
-        let envelope = SignedEnvelope::from_protobuf_encoding(&bytes)?;
+        let envelope = SignedEnvelope::from_protobuf_encoding(bytes)?;
         let signed_record = Self::from_signed_envelope(envelope)?;
         Ok(signed_record)
     }
@@ -231,7 +225,7 @@ mod tests {
         envelope_bytes[idx] = u8::MAX - envelope_bytes[idx];
 
         match SignedEnvelope::from_protobuf_encoding(&envelope_bytes) {
-            Err(_) => return true, // Corrupted the protobuf itself.
+            Err(_) => true, // Corrupted the protobuf itself.
             Ok(envelope) => SignedProviderRecord::from_signed_envelope(envelope).is_err(),
         }
     }

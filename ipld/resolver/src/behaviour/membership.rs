@@ -34,15 +34,15 @@ struct Config {
 #[derive(Debug)]
 pub enum Event {
     /// Indicate a change in the subnets a peer is known to support.
-    UpdatedProvider((PeerId, ProviderDelta)),
+    Updated((PeerId, ProviderDelta)),
 
     /// Indicate that we no longer treat a peer as routable and removed all their supported subnet associations.
-    RemovedProvider(PeerId),
+    Removed(PeerId),
 
     /// We could not add a provider record to the cache because the chache hasn't
     /// been told yet that the provider peer is routable. This event can be used
     /// to trigger a lookup by the discovery module to learn the address.
-    SkippedProvider(PeerId),
+    Skipped(PeerId),
 }
 
 /// A [`NetworkBehaviour`] internally using [`Gossipsub`] to learn which
@@ -114,7 +114,7 @@ impl Behaviour {
     /// Call this method when the discovery service forgets the address of a peer.
     pub fn set_unroutable(&mut self, peer_id: PeerId) {
         self.provider_cache.set_unroutable(peer_id);
-        self.outbox.push_back(Event::RemovedProvider(peer_id))
+        self.outbox.push_back(Event::Removed(peer_id))
     }
 
     /// List the current providers of a subnet.
@@ -132,9 +132,9 @@ impl Behaviour {
         if msg.topic == self.membership_topic.hash() {
             match SignedProviderRecord::from_bytes(&msg.data).map(|r| r.into_record()) {
                 Ok(record) => match self.provider_cache.add_provider(&record) {
-                    None => return Some(Event::SkippedProvider(record.peer_id)),
+                    None => return Some(Event::Skipped(record.peer_id)),
                     Some(d) if d.is_empty() => return None,
-                    Some(d) => return Some(Event::UpdatedProvider((record.peer_id, d))),
+                    Some(d) => return Some(Event::Updated((record.peer_id, d))),
                 },
                 Err(e) => {
                     warn!(
@@ -154,7 +154,7 @@ impl Behaviour {
         let cutoff_timestamp = Timestamp::now() - self.max_provider_age;
         let pruned = self.provider_cache.prune_providers(cutoff_timestamp);
         for peer_id in pruned {
-            self.outbox.push_back(Event::RemovedProvider(peer_id))
+            self.outbox.push_back(Event::Removed(peer_id))
         }
     }
 }

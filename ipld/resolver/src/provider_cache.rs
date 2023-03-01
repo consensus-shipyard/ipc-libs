@@ -8,7 +8,7 @@ use libp2p::PeerId;
 use crate::provider_record::{ProviderRecord, Timestamp};
 
 /// Change in the supported subnets of a peer.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ProviderDelta {
     pub added: Vec<SubnetID>,
     pub removed: Vec<SubnetID>,
@@ -17,15 +17,6 @@ pub struct ProviderDelta {
 impl ProviderDelta {
     pub fn is_empty(&self) -> bool {
         self.added.is_empty() && self.removed.is_empty()
-    }
-}
-
-impl Default for ProviderDelta {
-    fn default() -> Self {
-        Self {
-            added: Default::default(),
-            removed: Default::default(),
-        }
     }
 }
 
@@ -100,10 +91,8 @@ impl SubnetProviderCache {
 
             // Remove the peer from subnets it no longer supports.
             for (subnet_id, peer_ids) in self.subnet_providers.iter_mut() {
-                if !subnet_ids.contains(subnet_id) {
-                    if peer_ids.remove(&record.peer_id) {
-                        delta.removed.push(subnet_id.clone());
-                    }
+                if !subnet_ids.contains(subnet_id) && peer_ids.remove(&record.peer_id) {
+                    delta.removed.push(subnet_id.clone());
                 }
             }
 
@@ -269,7 +258,7 @@ mod tests {
     /// Check the cache against the reference built in the test.
     fn check_providers(providers: &Providers, cache: &SubnetProviderCache) -> Result<(), String> {
         for (subnet_id, exp_peer_ids) in providers {
-            let peer_ids = cache.providers_of_subnet(&subnet_id);
+            let peer_ids = cache.providers_of_subnet(subnet_id);
             if peer_ids.len() != exp_peer_ids.len() {
                 return Err(format!(
                     "expected {} peers, got {} in subnet {:?}",
