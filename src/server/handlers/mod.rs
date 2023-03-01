@@ -17,6 +17,7 @@ enum HandlerWrapper {
 }
 
 /// The collection of all json rpc handlers
+#[derive(Default)]
 pub struct Handlers {
     handlers: HashMap<Method, HandlerWrapper>,
 }

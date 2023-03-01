@@ -1,5 +1,3 @@
-use std::str::FromStr;
-use ipc_sdk::subnet_id::SubnetID;
 use url::Url;
 
 use crate::jsonrpc::JsonRpcClientImpl;
