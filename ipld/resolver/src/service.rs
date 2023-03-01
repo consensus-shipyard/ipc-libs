@@ -1,10 +1,12 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use std::collections::HashMap;
 use std::time::Duration;
 
-// Copyright 2022-2023 Protocol Labs
-// SPDX-License-Identifier: MIT
+use anyhow::anyhow;
+use ipc_sdk::subnet_id::SubnetID;
 use libipld::store::StoreParams;
-use libp2p::futures::channel::oneshot;
+use libipld::Cid;
 use libp2p::futures::StreamExt;
 use libp2p::swarm::SwarmEvent;
 use libp2p::{
@@ -18,6 +20,7 @@ use libp2p::{identify, ping};
 use libp2p_bitswap::BitswapStore;
 use log::{debug, trace, warn};
 use tokio::select;
+use tokio::sync::oneshot;
 
 use crate::behaviour::{
     self, content, discovery, membership, Behaviour, BehaviourEvent, ConfigError, DiscoveryConfig,
@@ -41,15 +44,62 @@ pub struct Config {
     connection: ConnectionConfig,
 }
 
+/// Result of attempting to resolve a CID.
+pub type ResolutionResult = anyhow::Result<()>;
+
+/// Internal requests to enqueue to the [`Service`]
+enum Request {
+    SetProvidedSubnets(Vec<SubnetID>),
+    PinSubnets(Vec<SubnetID>),
+    Resolve(Cid, oneshot::Sender<ResolutionResult>),
+}
+
+/// Indicate that the server is no longer listening.
+pub struct Disconnected;
+
+/// A facade to the [`Service`] to provide a nicer interface than message passing would allow on its own.
+#[derive(Clone)]
+pub struct Client {
+    request_tx: tokio::sync::mpsc::UnboundedSender<Request>,
+}
+
+impl Client {
+    fn send_request(&self, req: Request) -> anyhow::Result<()> {
+        self.request_tx
+            .send(req)
+            .map_err(|_| anyhow!("disconnected"))
+    }
+
+    pub fn set_provided_subnets(&self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
+        let req = Request::SetProvidedSubnets(subnet_ids);
+        self.send_request(req)
+    }
+
+    pub fn pin_subnets(&self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
+        let req = Request::PinSubnets(subnet_ids);
+        self.send_request(req)
+    }
+
+    /// Send a CID for resolution, await its completion, then return the result, to be inspected by the caller.
+    pub async fn resolve(&self, cid: Cid) -> anyhow::Result<ResolutionResult> {
+        let (tx, rx) = oneshot::channel();
+        let req = Request::Resolve(cid, tx);
+        self.send_request(req)?;
+        let res = rx.await?;
+        Ok(res)
+    }
+}
+
 /// The `Service` handles P2P communication to resolve IPLD content by wrapping and driving a number of `libp2p` behaviours.
 pub struct Service<P: StoreParams> {
     listen_addr: Multiaddr,
     swarm: Swarm<Behaviour<P>>,
     queries: QueryMap,
+    request_rx: tokio::sync::mpsc::UnboundedReceiver<Request>,
 }
 
 impl<P: StoreParams> Service<P> {
-    pub fn new<S>(config: Config, store: S) -> Result<Self, ConfigError>
+    pub fn new<S>(config: Config, store: S) -> Result<(Self, Client), ConfigError>
     where
         S: BitswapStore<Params = P>,
     {
@@ -72,11 +122,18 @@ impl<P: StoreParams> Service<P> {
             .connection_event_buffer_size(64)
             .build();
 
-        Ok(Self {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+
+        let service = Self {
             listen_addr: config.connection.listen_addr,
             swarm,
             queries: Default::default(),
-        })
+            request_rx: rx,
+        };
+
+        let client = Client { request_tx: tx };
+
+        Ok((service, client))
     }
 
     /// Start the swarm listening for incoming connections and drive the events forward.
