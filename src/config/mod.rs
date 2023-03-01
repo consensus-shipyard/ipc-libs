@@ -1,12 +1,14 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Provides a simple way of reading configuration files.
 //!
 //! Reads a TOML config file for the IPC Agent and deserializes it in a type-safe way into a
 //! [`Config`] struct.
 
 mod deserialize;
+mod hot;
 mod server;
 mod subnet;
-mod hot;
 
 #[cfg(test)]
 mod tests;
@@ -16,11 +18,11 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::Result;
+pub use hot::HotReloadingConfig;
 use serde::Deserialize;
 pub use server::Server;
-pub use subnet::Subnet;
 pub use server::JSON_RPC_ENDPOINT;
-pub use hot::HotReloadingConfig;
+pub use subnet::Subnet;
 
 pub const JSON_RPC_VERSION: &str = "2.0";
 pub const IPC_GATEWAY_ADDR: u64 = 64;

@@ -1,4 +1,4 @@
-use std::io::{Write};
+use std::io::Write;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::thread::sleep;
@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use fvm_shared::address::Address;
 use indoc::formatdoc;
-use ipc_sdk::subnet_id::{ROOTNET_ID, SubnetID};
+use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
 use tempfile::NamedTempFile;
 use url::Url;
 
@@ -20,7 +20,8 @@ const ROOT_AUTH_TOKEN: &str = "ROOT_AUTH_TOKEN";
 const CHILD_AUTH_TOKEN: &str = "CHILD_AUTH_TOKEN";
 const JSONRPC_API_HTTP: &str = "https://example.org/rpc/v0";
 const JSONRPC_API_WS: &str = "ws://example.org/rpc/v0";
-const ACCOUNT_ADDRESS: &str = "f3thgjtvoi65yzdcoifgqh6utjbaod3ukidxrx34heu34d6avx6z7r5766t5jqt42a44ehzcnw3u5ehz47n42a";
+const ACCOUNT_ADDRESS: &str =
+    "f3thgjtvoi65yzdcoifgqh6utjbaod3ukidxrx34heu34d6avx6z7r5766t5jqt42a44ehzcnw3u5ehz47n42a";
 
 #[test]
 fn check_server_config() {
@@ -38,7 +39,13 @@ fn reload_works() {
     let original_config = Config::from_toml_str(&config_str).unwrap();
 
     let mut file = NamedTempFile::new().unwrap();
-    let path = file.path().as_os_str().clone().to_os_string().into_string().unwrap();
+    let path = file
+        .path()
+        .as_os_str()
+        .clone()
+        .to_os_string()
+        .into_string()
+        .unwrap();
 
     file.write(config_str.as_bytes()).unwrap();
 
@@ -46,7 +53,10 @@ fn reload_works() {
 
     let h = HotReloadingConfig::new_with_watcher(path.clone(), interval).unwrap();
     h.read_from_config(|config| {
-        assert_eq!(config.server.json_rpc_address, original_config.server.json_rpc_address);
+        assert_eq!(
+            config.server.json_rpc_address,
+            original_config.server.json_rpc_address
+        );
     });
 
     let mut file = file.reopen().unwrap();
@@ -81,24 +91,15 @@ fn check_subnets_config() {
         root.jsonrpc_api_ws.as_ref().unwrap(),
         &Url::from_str(JSONRPC_API_WS).unwrap()
     );
-    assert_eq!(
-        root.auth_token.as_ref().unwrap(),
-        ROOT_AUTH_TOKEN
-    );
+    assert_eq!(root.auth_token.as_ref().unwrap(), ROOT_AUTH_TOKEN);
 
     let child = &config["child"];
-    assert_eq!(
-        child.id,
-        SubnetID::from_str(CHILD_ID).unwrap(),
-    );
+    assert_eq!(child.id, SubnetID::from_str(CHILD_ID).unwrap(),);
     assert_eq!(
         child.jsonrpc_api_http,
         Url::from_str(JSONRPC_API_HTTP).unwrap(),
     );
-    assert_eq!(
-        child.auth_token.as_ref().unwrap(),
-        CHILD_AUTH_TOKEN,
-    );
+    assert_eq!(child.auth_token.as_ref().unwrap(), CHILD_AUTH_TOKEN,);
     assert_eq!(
         child.accounts.as_ref(),
         vec![Address::from_str(ACCOUNT_ADDRESS).unwrap()],
@@ -107,7 +108,7 @@ fn check_subnets_config() {
 
 fn config_str() -> String {
     formatdoc!(
-            r#"
+        r#"
             [server]
             json_rpc_address = "{SERVER_JSON_RPC_ADDR}"
 
@@ -130,7 +131,7 @@ fn config_str() -> String {
 
 fn config_str_diff_addr() -> String {
     formatdoc!(
-            r#"
+        r#"
             [server]
             json_rpc_address = "127.0.0.1:3031"
 
