@@ -48,7 +48,7 @@ mod tests {
     use std::net::SocketAddr;
     use std::str::FromStr;
 
-    use fvm_shared::address::Address;
+    use fvm_shared::address::{Address, Network};
     use indoc::formatdoc;
     use ipc_sdk::subnet_id::{ROOTNET_ID, SubnetID};
     use url::Url;
@@ -57,6 +57,7 @@ mod tests {
 
     // Arguments for the config's fields
     const SERVER_JSON_RPC_ADDR: &str = "127.0.0.1:3030";
+    const NETWORK: u8 = 0;
     const ROOT_ID: &str = "/root";
     const CHILD_ID: &str = "/root/f0100";
     const ROOT_AUTH_TOKEN: &str = "ROOT_AUTH_TOKEN";
@@ -72,6 +73,11 @@ mod tests {
             config.json_rpc_address,
             SocketAddr::from_str(SERVER_JSON_RPC_ADDR).unwrap(),
             "invalid server rpc address"
+        );
+        assert_eq!(
+            config.network,
+            Network::Mainnet,
+            "invalid network"
         );
     }
 
@@ -118,6 +124,7 @@ mod tests {
             r#"
             [server]
             json_rpc_address = "{SERVER_JSON_RPC_ADDR}"
+            network = {NETWORK}
 
             [subnets]
 

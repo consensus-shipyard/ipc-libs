@@ -2,6 +2,7 @@ use std::sync::Arc;
 use crate::server::request::JSONRPCRequest;
 use crate::server::response::{JSONRPCError, JSONRPCErrorResponse, JSONRPCResultResponse};
 use bytes::Bytes;
+use fvm_shared::address::set_current_network;
 use warp::http::StatusCode;
 use warp::reject::Reject;
 use warp::reply::with_status;
@@ -41,6 +42,9 @@ impl JsonRPCServer {
     /// Runs the node in the current thread
     pub async fn run(&self) {
         log::info!("IPC agent rpc node listening at {:?}", self.config.server.json_rpc_address);
+
+        // need to set network, otherwise Address::from_str will throw error.
+        set_current_network(self.config.server.network);
 
         let handlers = Arc::new(Handlers::new(self.config.subnets.clone()));
         warp::serve(json_rpc_filter(handlers)).run(self.config.server.json_rpc_address).await;

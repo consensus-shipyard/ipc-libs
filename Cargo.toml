@@ -29,6 +29,7 @@ tokio = { workspace = true }
 tokio-tungstenite = { version = "0.18.0", features = ["native-tls"] }
 derive_builder = "0.12.0"
 num-traits = "0.2.15"
+num-derive = "0.3.3"
 env_logger = "0.10.0"
 base64 = "0.21.0"
 strum = { version = "0.24", features = ["derive"] }
