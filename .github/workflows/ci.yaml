@@ -80,7 +80,7 @@ jobs:
         with:
           release-name: v0.3.1
           # Caching everything separately, in case they don't ask for the same things to be compiled.
-          cache-key: ${{ matrix.make.name }}-${{ matrix.os }}-${{matrix.rust}}-${{ hashFiles('**/Cargo.lock') }}
+          cache-key: ${{ matrix.make.name }}-${{ matrix.os }}-${{matrix.rust}}-${{ hashFiles('Cargo.lock', 'rust-toolchain', 'rust-toolchain.toml') }}
           # Not sure why we should ever update a cache that has the hash of the lock file in it.
           # In Forest it only contains the rust-toolchain, so it makes sense to update because dependencies could have changed.
           cache-update: false
