@@ -42,7 +42,7 @@ impl JsonRPCServer {
     pub async fn run(&self) {
         log::info!("IPC agent rpc node listening at {:?}", self.config.server.json_rpc_address);
 
-        let handlers = Arc::new(Handlers::new());
+        let handlers = Arc::new(Handlers::new(self.config.subnets.clone()));
         warp::serve(json_rpc_filter(handlers)).run(self.config.server.json_rpc_address).await;
     }
 }
@@ -126,6 +126,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, warp::Rejection>
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::Arc;
     use crate::server::jsonrpc::{ArcHandlers, json_rpc_filter, JSONRPCResultResponse};
     use crate::server::request::JSONRPCRequest;
@@ -135,7 +136,7 @@ mod tests {
     use crate::server::Handlers;
 
     fn get_test_handlers() -> ArcHandlers {
-        Arc::new(Handlers::new())
+        Arc::new(Handlers::new(HashMap::new()))
     }
 
     #[tokio::test]
