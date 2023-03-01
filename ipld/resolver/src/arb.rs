@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
 use quickcheck::Arbitrary;

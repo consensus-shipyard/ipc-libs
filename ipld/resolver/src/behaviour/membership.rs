@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use std::collections::VecDeque;
 use std::task::{Context, Poll};
 use std::time::Duration;
