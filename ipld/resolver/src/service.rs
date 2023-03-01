@@ -3,6 +3,8 @@ use std::time::Duration;
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use libipld::store::StoreParams;
+use libp2p::futures::StreamExt;
+use libp2p::swarm::SwarmEvent;
 use libp2p::{
     core::{muxing::StreamMuxerBox, transport::Boxed},
     identity::Keypair,
@@ -10,9 +12,15 @@ use libp2p::{
     swarm::{ConnectionLimits, SwarmBuilder},
     yamux, Multiaddr, PeerId, Swarm, Transport,
 };
+use libp2p::{identify, ping};
 use libp2p_bitswap::BitswapStore;
+use log::{debug, trace, warn};
+use tokio::select;
 
-use crate::behaviour::{Behaviour, ConfigError, DiscoveryConfig, MembershipConfig, NetworkConfig};
+use crate::behaviour::{
+    self, content, discovery, membership, Behaviour, BehaviourEvent, ConfigError, DiscoveryConfig,
+    MembershipConfig, NetworkConfig,
+};
 
 pub struct ConnectionConfig {
     /// The address where we will listen to incoming connections.
@@ -29,6 +37,7 @@ pub struct Config {
 }
 
 pub struct IpldResolverService<P: StoreParams> {
+    listen_addr: Multiaddr,
     swarm: Swarm<Behaviour<P>>,
 }
 
@@ -56,12 +65,117 @@ impl<P: StoreParams> IpldResolverService<P> {
             .connection_event_buffer_size(64)
             .build();
 
-        Ok(Self { swarm })
+        Ok(Self {
+            listen_addr: config.connection.listen_addr,
+            swarm,
+        })
     }
 
     /// Start the swarm listening for incoming connections and drive the events forward.
-    pub async fn run(self) -> anyhow::Result<()> {
-        todo!("IPC-37")
+    pub async fn run(mut self) -> anyhow::Result<()> {
+        // Start the swarm.
+        Swarm::listen_on(&mut self.swarm, self.listen_addr.clone())?;
+
+        // TODO: Should there be some control channel to close the service?
+        loop {
+            select! {
+                swarm_event = self.swarm.next() => match swarm_event {
+                    // Events raised by our behaviours.
+                    Some(SwarmEvent::Behaviour(event)) => {
+                        self.handle_behaviour_event(
+                            event)
+                    },
+                    // Connection events are handled by the behaviours, passed directly from the Swarm.
+                    Some(_) => { },
+                    // The connection is closed.
+                    None => { break; },
+                },
+                // TODO: Add a channel for internal requests.
+            };
+        }
+        Ok(())
+    }
+
+    /// Handle events that the [`NetworkBehaviour`] for our [`Behaviour`] macro generated, one for each field.
+    fn handle_behaviour_event(&mut self, event: BehaviourEvent<P>) {
+        match event {
+            BehaviourEvent::Ping(e) => self.handle_ping_event(e),
+            BehaviourEvent::Identify(e) => self.handle_identify_event(e),
+            BehaviourEvent::Discovery(e) => self.handle_discovery_event(e),
+            BehaviourEvent::Membership(e) => self.handle_membership_event(e),
+            BehaviourEvent::Content(e) => self.handle_content_event(e),
+        }
+    }
+
+    // Copied from Forest.
+    fn handle_ping_event(&mut self, event: ping::Event) {
+        let peer_id = event.peer.to_base58();
+        match event.result {
+            Ok(ping::Success::Ping { rtt }) => {
+                trace!(
+                    "PingSuccess::Ping rtt to {} is {} ms",
+                    peer_id,
+                    rtt.as_millis()
+                );
+            }
+            Ok(ping::Success::Pong) => {
+                trace!("PingSuccess::Pong from {peer_id}");
+            }
+            Err(ping::Failure::Timeout) => {
+                debug!("PingFailure::Timeout from {peer_id}");
+            }
+            Err(ping::Failure::Other { error }) => {
+                warn!("PingFailure::Other from {peer_id}: {error}");
+            }
+            Err(ping::Failure::Unsupported) => {
+                warn!("Banning peer {peer_id} due to protocol error");
+                self.swarm.ban_peer_id(event.peer);
+            }
+        }
+    }
+
+    fn handle_identify_event(&mut self, event: identify::Event) {
+        match event {
+            identify::Event::Error { peer_id, error } => {
+                warn!("Error identifying {peer_id}: {error}")
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_discovery_event(&mut self, event: discovery::Event) {
+        match event {
+            discovery::Event::Added(peer_id, _) => self.membership_mut().set_routable(peer_id),
+            discovery::Event::Removed(peer_id) => self.membership_mut().set_unroutable(peer_id),
+            discovery::Event::Connected(_, _) => {}
+            discovery::Event::Disconnected(_, _) => {}
+        }
+    }
+
+    fn handle_membership_event(&mut self, event: membership::Event) {
+        match event {
+            membership::Event::Skipped(peer_id) => self.discovery_mut().background_lookup(peer_id),
+            membership::Event::Updated(_, _) => {}
+            membership::Event::Removed(_) => {}
+        }
+    }
+
+    fn handle_content_event(&mut self, event: content::Event) {
+        match event {
+            content::Event::Complete(_query_id, _result) => todo!("add book keeping"),
+        }
+    }
+
+    // The following are helper functions because Rust Analyzer has trouble with recognising that `swarm.behaviour_mut()` is a legal call.
+
+    fn discovery_mut(&mut self) -> &mut behaviour::discovery::Behaviour {
+        self.swarm.behaviour_mut().discovery_mut()
+    }
+    fn membership_mut(&mut self) -> &mut behaviour::membership::Behaviour {
+        self.swarm.behaviour_mut().membership_mut()
+    }
+    fn content_mut(&mut self) -> &mut behaviour::content::Behaviour<P> {
+        self.swarm.behaviour_mut().content_mut()
     }
 }
 

@@ -10,9 +10,9 @@ use libp2p::{
 };
 use libp2p_bitswap::BitswapStore;
 
-mod content;
-mod discovery;
-mod membership;
+pub mod content;
+pub mod discovery;
+pub mod membership;
 
 pub use discovery::Config as DiscoveryConfig;
 pub use membership::Config as MembershipConfig;
@@ -82,5 +82,17 @@ impl<P: StoreParams> Behaviour<P> {
             membership: membership::Behaviour::new(nc, mc)?,
             content: content::Behaviour::new(store),
         })
+    }
+
+    pub fn discovery_mut(&mut self) -> &mut discovery::Behaviour {
+        &mut self.discovery
+    }
+
+    pub fn membership_mut(&mut self) -> &mut membership::Behaviour {
+        &mut self.membership
+    }
+
+    pub fn content_mut(&mut self) -> &mut content::Behaviour<P> {
+        &mut self.content
     }
 }

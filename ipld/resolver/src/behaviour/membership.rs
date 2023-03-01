@@ -36,7 +36,7 @@ const PUBSUB_MEMBERSHIP: &str = "/ipc/membership";
 #[derive(Debug)]
 pub enum Event {
     /// Indicate a change in the subnets a peer is known to support.
-    Updated((PeerId, ProviderDelta)),
+    Updated(PeerId, ProviderDelta),
 
     /// Indicate that we no longer treat a peer as routable and removed all their supported subnet associations.
     Removed(PeerId),
@@ -218,7 +218,7 @@ impl Behaviour {
                 Ok(record) => match self.provider_cache.add_provider(&record) {
                     None => return Some(Event::Skipped(record.peer_id)),
                     Some(d) if d.is_empty() => return None,
-                    Some(d) => return Some(Event::Updated((record.peer_id, d))),
+                    Some(d) => return Some(Event::Updated(record.peer_id, d)),
                 },
                 Err(e) => {
                     warn!(
