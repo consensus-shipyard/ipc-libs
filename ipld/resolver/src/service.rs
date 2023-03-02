@@ -76,17 +76,20 @@ pub struct Client {
 }
 
 impl Client {
+    /// Send a request to the [`Service`], unless it has stopped listening.
     fn send_request(&self, req: Request) -> anyhow::Result<()> {
         self.request_tx
             .send(req)
             .map_err(|_| anyhow!("disconnected"))
     }
 
+    /// Set the complete list of subnets currently supported by this node.
     pub fn set_provided_subnets(&self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
         let req = Request::SetProvidedSubnets(subnet_ids);
         self.send_request(req)
     }
 
+    /// Add a list of subnets we know really exist and we are interested in them.
     pub fn pin_subnets(&self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
         let req = Request::PinSubnets(subnet_ids);
         self.send_request(req)
@@ -344,6 +347,7 @@ impl<P: StoreParams> Service<P> {
     }
 }
 
+/// Respond to the sender of the query, if they are still listening.
 fn send_resolve_result(tx: Sender<ResolveResult>, res: ResolveResult) {
     if tx.send(res).is_err() {
         error!("error sending resolve result; listener closed")
