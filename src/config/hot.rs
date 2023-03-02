@@ -50,13 +50,13 @@ impl HotReloadingConfig {
         })
     }
 
-    /// Read from the config file. Since `Config
+    /// Read from the config file.
     pub fn read_from_config(&self, mut read_fn: impl FnMut(&Config)) {
         let config = self.config.read().unwrap();
         read_fn(&config.config);
     }
 
-    pub fn stop_watching(&self) {
+    pub fn stop_watcher(&self) {
         self.stop_signal_tx.send(()).unwrap_or_default();
     }
 

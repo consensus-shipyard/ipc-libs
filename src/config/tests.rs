@@ -99,7 +99,7 @@ fn reload_works() {
     h.read_from_config(|config| {
         addr = Some(config.server.json_rpc_address);
     });
-    h.stop_watching();
+    h.stop_watcher();
     tx.send(()).unwrap_or_default();
 
     let addr = addr.unwrap();
