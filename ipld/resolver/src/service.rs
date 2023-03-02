@@ -142,12 +142,28 @@ pub struct Service<P: StoreParams> {
 }
 
 impl<P: StoreParams> Service<P> {
+    /// Build a [`Service`] and a [`Client`] with the default `tokio` transport.
     pub fn new<S>(config: Config, store: S) -> Result<(Self, Client), ConfigError>
     where
         S: BitswapStore<Params = P>,
     {
+        Self::new_with_transport(config, store, build_transport)
+    }
+
+    /// Build a [`Service`] and a [`Client`] by passing in a transport factory function.
+    ///
+    /// The main goal is to be facilitate testing with a [`MemoryTransport`].
+    pub fn new_with_transport<S, F>(
+        config: Config,
+        store: S,
+        transport: F,
+    ) -> Result<(Self, Client), ConfigError>
+    where
+        S: BitswapStore<Params = P>,
+        F: FnOnce(Keypair) -> Boxed<(PeerId, StreamMuxerBox)>,
+    {
         let peer_id = config.network.local_peer_id();
-        let transport = build_transport(config.network.local_key.clone());
+        let transport = transport(config.network.local_key.clone());
         let behaviour = Behaviour::new(config.network, config.discovery, config.membership, store)?;
 
         // NOTE: Hardcoded values from Forest. Will leave them as is until we know we need to change.
