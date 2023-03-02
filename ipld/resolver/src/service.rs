@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use anyhow::anyhow;
+use bloom::{BloomFilter, ASMS};
 use ipc_sdk::subnet_id::SubnetID;
 use libipld::store::StoreParams;
 use libipld::Cid;
@@ -53,6 +54,8 @@ pub struct ConnectionConfig {
     listen_addr: Multiaddr,
     /// Maximum number of incoming connections.
     max_incoming: u32,
+    /// Expected number of peers, for sizing the Bloom filter.
+    expected_peer_count: u32,
 }
 
 pub struct Config {
@@ -114,6 +117,7 @@ pub struct Service<P: StoreParams> {
     swarm: Swarm<Behaviour<P>>,
     queries: QueryMap,
     request_rx: tokio::sync::mpsc::UnboundedReceiver<Request>,
+    background_lookup_filter: BloomFilter,
 }
 
 impl<P: StoreParams> Service<P> {
@@ -147,6 +151,10 @@ impl<P: StoreParams> Service<P> {
             swarm,
             queries: Default::default(),
             request_rx: rx,
+            background_lookup_filter: BloomFilter::with_rate(
+                0.1,
+                config.connection.expected_peer_count,
+            ),
         };
 
         let client = Client { request_tx: tx };
@@ -240,7 +248,12 @@ impl<P: StoreParams> Service<P> {
 
     fn handle_membership_event(&mut self, event: membership::Event) {
         match event {
-            membership::Event::Skipped(peer_id) => self.discovery_mut().background_lookup(peer_id),
+            membership::Event::Skipped(peer_id) => {
+                // Don't repeatedly look up peers we can't add to the routing table.
+                if self.background_lookup_filter.insert(&peer_id) {
+                    self.discovery_mut().background_lookup(peer_id)
+                }
+            }
             membership::Event::Updated(_, _) => {}
             membership::Event::Removed(_) => {}
         }
