@@ -2639,6 +2639,7 @@ dependencies = [
  "libp2p-mplex",
  "libp2p-noise 0.41.0",
  "libp2p-ping",
+ "libp2p-plaintext",
  "libp2p-quic",
  "libp2p-request-response",
  "libp2p-swarm",
@@ -2946,6 +2947,23 @@ dependencies = [
  "libp2p-swarm",
  "log",
  "rand 0.8.5",
+ "void",
+]
+
+[[package]]
+name = "libp2p-plaintext"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c43ab37fb4102682ae9a248dc2e6a8e7b941ec75cf24aed103060a788e0fd15"
+dependencies = [
+ "asynchronous-codec",
+ "bytes",
+ "futures",
+ "libp2p-core 0.38.0",
+ "log",
+ "prost",
+ "prost-build",
+ "unsigned-varint",
  "void",
 ]
 

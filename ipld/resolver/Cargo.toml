@@ -30,6 +30,7 @@ libp2p = { version = "0.50", default-features = false, features = [
   "macros",
   "serde",
   "secp256k1",
+  "plaintext",
 ] }
 libp2p-bitswap = "0.25"
 libipld = { workspace = true }
