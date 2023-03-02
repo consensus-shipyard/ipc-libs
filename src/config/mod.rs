@@ -15,8 +15,8 @@ use std::path::Path;
 
 use anyhow::Result;
 use serde::Deserialize;
-pub use server::Server;
 pub use server::JSON_RPC_ENDPOINT;
+pub use server::{json_rpc_methods, Server};
 pub use subnet::Subnet;
 
 pub const JSON_RPC_VERSION: &str = "2.0";

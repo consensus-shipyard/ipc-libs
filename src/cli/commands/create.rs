@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Create subnet cli command handler.
 
 use async_trait::async_trait;
@@ -6,8 +8,9 @@ use fvm_shared::clock::ChainEpoch;
 use std::fmt::Debug;
 
 use crate::cli::CommandLineHandler;
+use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::server::{CreateSubnetParams, CreateSubnetResponse, CREATE_SUBNET_METHOD};
+use crate::server::{CreateSubnetParams, CreateSubnetResponse};
 
 /// The command to create a new subnet actor.
 pub(crate) struct CreateSubnet;
@@ -32,7 +35,10 @@ impl CommandLineHandler for CreateSubnet {
         let json_rpc_client = JsonRpcClientImpl::new(url, None);
 
         let address = json_rpc_client
-            .request::<CreateSubnetResponse>(CREATE_SUBNET_METHOD, serde_json::to_value(params)?)
+            .request::<CreateSubnetResponse>(
+                json_rpc_methods::CREATE_SUBNET,
+                serde_json::to_value(params)?,
+            )
             .await?
             .address;
 

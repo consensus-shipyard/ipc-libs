@@ -5,6 +5,7 @@
 mod create;
 mod daemon;
 
+use crate::cli::commands::create::{CreateSubnet, CreateSubnetArgs};
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
 use crate::cli::CommandLineHandler;
 use clap::{Parser, Subcommand};
@@ -20,6 +21,7 @@ enum Commands {
     /// and not in the background as what daemon processes are. Still, this struct contains `Daemon`
     /// due to the convention from `lotus` and the expected behavior from the filecoin user group.
     Daemon(LaunchDaemonArgs),
+    CreateSubnet(CreateSubnetArgs),
 }
 
 /// The overall command line struct to be used by `clap`.
@@ -65,6 +67,7 @@ pub async fn cli() {
 
     let r = match &args.command {
         Commands::Daemon(args) => LaunchDaemon::handle(args).await,
+        Commands::CreateSubnet(args) => CreateSubnet::handle(args).await,
     };
 
     if let Err(e) = r {

@@ -4,6 +4,7 @@
 
 pub mod create;
 
+use crate::config::json_rpc_methods;
 use crate::server::create::CreateSubnetHandler;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::{anyhow, Result};
@@ -12,8 +13,6 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 pub type Method = String;
-
-pub const CREATE_SUBNET_METHOD: &str = "create_subnet";
 
 /// A util enum to avoid Box<dyn> mess in Handlers struct
 enum HandlerWrapper {
@@ -30,7 +29,7 @@ impl Handlers {
         let mut handlers = HashMap::new();
 
         let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler {});
-        handlers.insert(String::from(CREATE_SUBNET_METHOD), create_subnet);
+        handlers.insert(String::from(json_rpc_methods::CREATE_SUBNET), create_subnet);
 
         Self { handlers }
     }

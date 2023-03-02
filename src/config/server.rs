@@ -9,3 +9,7 @@ pub const JSON_RPC_ENDPOINT: &str = "json_rpc";
 pub struct Server {
     pub json_rpc_address: SocketAddr,
 }
+
+pub mod json_rpc_methods {
+    pub const CREATE_SUBNET: &str = "create_subnet";
+}
