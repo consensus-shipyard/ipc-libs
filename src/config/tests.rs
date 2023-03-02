@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use std::io::Write;
 use std::net::SocketAddr;
 use std::str::FromStr;
