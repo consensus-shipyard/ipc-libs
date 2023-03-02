@@ -13,6 +13,8 @@ use std::collections::HashMap;
 
 pub type Method = String;
 
+pub const CREATE_SUBNET_METHOD: &str = "create_subnet";
+
 /// A util enum to avoid Box<dyn> mess in Handlers struct
 enum HandlerWrapper {
     CreateSubnet(CreateSubnetHandler),
@@ -28,7 +30,7 @@ impl Handlers {
         let mut handlers = HashMap::new();
 
         let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler {});
-        handlers.insert(String::from("create_subnet"), create_subnet);
+        handlers.insert(String::from(CREATE_SUBNET_METHOD), create_subnet);
 
         Self { handlers }
     }

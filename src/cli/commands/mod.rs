@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 //! This mod contains the different command line implementations.
 
+mod create;
 mod daemon;
 
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};

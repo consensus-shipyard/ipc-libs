@@ -18,8 +18,6 @@ impl CommandLineHandler for LaunchDaemon {
     type Arguments = LaunchDaemonArgs;
 
     async fn handle(arguments: &Self::Arguments) -> anyhow::Result<()> {
-        env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-
         log::debug!("launching json rpc server with args: {:?}", arguments);
 
         let config = Config::from_file(&arguments.config_file)?;
