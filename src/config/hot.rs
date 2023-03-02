@@ -37,7 +37,6 @@ impl HotReloadingConfig {
             ) {
                 Ok(_) => {}
                 Err(e) => {
-                    println!("watch log failed due to {e:?}");
                     log::error!("watch log failed due to {e:?}");
                 }
             }
