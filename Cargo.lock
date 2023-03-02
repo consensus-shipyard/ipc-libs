@@ -2441,6 +2441,7 @@ dependencies = [
  "log",
  "quickcheck",
  "quickcheck_macros",
+ "rand 0.8.5",
  "serde",
  "thiserror",
  "tokio",

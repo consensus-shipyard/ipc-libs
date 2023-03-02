@@ -46,8 +46,8 @@ fvm_ipld_blockstore = { workspace = true, optional = true }
 [dev-dependencies]
 quickcheck = { workspace = true }
 quickcheck_macros = { workspace = true }
+rand = { workspace = true }
 fvm_shared = { workspace = true, features = ["arb"] }
-
 
 [features]
 default = ["arb", "missing_blocks"]

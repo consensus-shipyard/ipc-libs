@@ -51,18 +51,18 @@ pub struct NoKnownPeers(SubnetID);
 
 pub struct ConnectionConfig {
     /// The address where we will listen to incoming connections.
-    listen_addr: Multiaddr,
+    pub listen_addr: Multiaddr,
     /// Maximum number of incoming connections.
-    max_incoming: u32,
+    pub max_incoming: u32,
     /// Expected number of peers, for sizing the Bloom filter.
-    expected_peer_count: u32,
+    pub expected_peer_count: u32,
 }
 
 pub struct Config {
-    network: NetworkConfig,
-    discovery: DiscoveryConfig,
-    membership: MembershipConfig,
-    connection: ConnectionConfig,
+    pub network: NetworkConfig,
+    pub discovery: DiscoveryConfig,
+    pub membership: MembershipConfig,
+    pub connection: ConnectionConfig,
 }
 
 /// Internal requests to enqueue to the [`Service`]
