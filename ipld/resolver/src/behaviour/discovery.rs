@@ -124,14 +124,16 @@ impl Behaviour {
 
             let mut kademlia = Kademlia::with_config(nc.local_peer_id(), store, kad_config);
 
-            for (peer_id, addr) in static_addresses.iter() {
-                kademlia.add_address(peer_id, addr.clone());
+            // Bootstrap from the seeds. The first seed to stand up might have nobody to bootstrap from,
+            // although ideally there would be at least another peer, so we can easily restart it and come back.
+            if !static_addresses.is_empty() {
+                for (peer_id, addr) in static_addresses.iter() {
+                    kademlia.add_address(peer_id, addr.clone());
+                }
+                kademlia
+                    .bootstrap()
+                    .map_err(|_| ConfigError::NoBootstrapAddress)?;
             }
-
-            // This shouldn't happen, we already checked the config.
-            kademlia
-                .bootstrap()
-                .map_err(|_| ConfigError::NoBootstrapAddress)?;
 
             Some(kademlia)
         } else {
