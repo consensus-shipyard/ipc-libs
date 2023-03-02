@@ -3,10 +3,10 @@
 //! Hot reloading config
 
 use crate::config::Config;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, RecvTimeoutError, TryRecvError};
 use std::sync::{mpsc, Arc, RwLock};
 use std::thread;
 use std::time::Duration;
@@ -14,11 +14,13 @@ use std::time::Duration;
 pub struct HotReloadingConfig {
     config: Arc<RwLock<ConfigWrapper>>,
     stop_signal_tx: mpsc::Sender<()>,
+    reload_notify_rx: mpsc::Receiver<()>,
 }
 
 impl HotReloadingConfig {
     pub fn new_with_watcher(path: String, watch_interval: u64) -> Result<Self> {
         let (stop_signal_tx, stop_signal_rx) = channel();
+        let (reload_notify_tx, reload_notify_rx) = channel();
 
         let config = Arc::new(RwLock::new(ConfigWrapper {
             config: Config::from_file(path.clone())?,
@@ -26,9 +28,16 @@ impl HotReloadingConfig {
 
         let config_cloned = config.clone();
         thread::spawn(move || {
-            match watch_and_update(&config_cloned, &path, stop_signal_rx, watch_interval) {
+            match watch_and_update(
+                &config_cloned,
+                &path,
+                stop_signal_rx,
+                watch_interval,
+                reload_notify_tx,
+            ) {
                 Ok(_) => {}
                 Err(e) => {
+                    println!("watch log failed due to {e:?}");
                     log::error!("watch log failed due to {e:?}");
                 }
             }
@@ -37,6 +46,7 @@ impl HotReloadingConfig {
         Ok(Self {
             config,
             stop_signal_tx,
+            reload_notify_rx,
         })
     }
 
@@ -49,6 +59,17 @@ impl HotReloadingConfig {
     pub fn stop_watching(&self) {
         self.stop_signal_tx.send(()).unwrap_or_default();
     }
+
+    /// Attempts to get a modification signal without blocking. Returns true if modification is
+    /// observed, returns false if no modification is observed.
+    pub fn try_wait_modification(&self) -> Result<bool> {
+        let r = match self.reload_notify_rx.try_recv() {
+            Ok(_) => true,
+            Err(TryRecvError::Empty) => false,
+            Err(TryRecvError::Disconnected) => return Err(anyhow!("notification stopped")),
+        };
+        Ok(r)
+    }
 }
 
 struct ConfigWrapper {
@@ -60,6 +81,7 @@ fn watch_and_update(
     path: impl AsRef<Path>,
     stop_signal_rx: mpsc::Receiver<()>,
     watch_interval: u64,
+    reload_notify_tx: mpsc::Sender<()>,
 ) -> Result<()> {
     // Create a channel to receive the events.
     let (tx, rx) = channel();
@@ -73,14 +95,16 @@ fn watch_and_update(
 
     watcher.watch(path.as_ref(), RecursiveMode::NonRecursive)?;
 
-    // This is a simple loop, but you may want to use more complex logic here,
-    // for example to handle I/O.
     loop {
         if let Ok(()) = stop_signal_rx.try_recv() {
             break;
         }
 
-        let event = rx.recv_timeout(Duration::from_secs(watch_interval))??;
+        let event = match rx.recv_timeout(Duration::from_secs(watch_interval)) {
+            Ok(event) => event?,
+            Err(RecvTimeoutError::Timeout) => continue,
+            Err(RecvTimeoutError::Disconnected) => break,
+        };
         if let Event {
             kind: notify::event::EventKind::Modify(_),
             ..
@@ -89,6 +113,7 @@ fn watch_and_update(
             match Config::from_file(path.as_ref()) {
                 Ok(c) => {
                     config.write().unwrap().config = c;
+                    reload_notify_tx.send(())?;
                 }
                 Err(e) => {
                     log::error!("cannot read config file: {e:?}");

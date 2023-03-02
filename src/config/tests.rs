@@ -3,6 +3,8 @@
 use std::io::Write;
 use std::net::SocketAddr;
 use std::str::FromStr;
+use std::sync::mpsc::channel;
+use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -44,16 +46,15 @@ fn reload_works() {
     let path = file
         .path()
         .as_os_str()
-        .clone()
         .to_os_string()
         .into_string()
         .unwrap();
 
-    file.write(config_str.as_bytes()).unwrap();
+    file.write_all(config_str.as_bytes()).unwrap();
 
     let interval = 1;
 
-    let h = HotReloadingConfig::new_with_watcher(path.clone(), interval).unwrap();
+    let h = HotReloadingConfig::new_with_watcher(path, interval).unwrap();
     h.read_from_config(|config| {
         assert_eq!(
             config.server.json_rpc_address,
@@ -61,22 +62,50 @@ fn reload_works() {
         );
     });
 
-    let mut file = file.reopen().unwrap();
-    let config_str = config_str_diff_addr();
-    let updated_config = Config::from_toml_str(&config_str).unwrap();
-    file.write(config_str.as_bytes()).unwrap();
+    let (tx, rx) = channel();
+    let t1 = thread::spawn(move || {
+        let mut loop_num = 1;
 
-    sleep(Duration::from_secs(interval * 10));
+        // we need to loop here because we need to make sure the
+        // config update is picked up by the watcher thread.
+        // It is possible that when the `file.write_all` is done,
+        // `wait_for_modification` has not yet being called. Need
+        // to loop and update to make sure the update is propagated.
+        loop {
+            let config_str = config_str_diff_addr(loop_num);
+            loop_num += 1;
 
-    let mut addr = "0.0.0.0:8080".parse().unwrap();
+            let mut file = file.reopen().unwrap();
+            file.write_all(config_str.as_bytes()).unwrap();
+
+            match rx.try_recv() {
+                Ok(_) => break,
+                Err(_) => {
+                    sleep(Duration::from_secs(1));
+                }
+            }
+        }
+    });
+
+    loop {
+        let is_modified = h.try_wait_modification().unwrap();
+        if is_modified {
+            println!("config modification detected");
+            break;
+        }
+    }
+
+    let mut addr = None;
     h.read_from_config(|config| {
-        addr = config.server.json_rpc_address.clone();
+        addr = Some(config.server.json_rpc_address);
     });
     h.stop_watching();
-    drop(file);
+    tx.send(()).unwrap_or_default();
 
+    let addr = addr.unwrap();
     assert_ne!(addr, original_config.server.json_rpc_address);
-    assert_eq!(addr, updated_config.server.json_rpc_address);
+
+    t1.join().unwrap();
 }
 
 #[test]
@@ -131,11 +160,11 @@ fn config_str() -> String {
     )
 }
 
-fn config_str_diff_addr() -> String {
+fn config_str_diff_addr(idx: u8) -> String {
     formatdoc!(
         r#"
             [server]
-            json_rpc_address = "127.0.0.1:3031"
+            json_rpc_address = "127.0.0.1:303{idx}"
 
             [subnets]
 
