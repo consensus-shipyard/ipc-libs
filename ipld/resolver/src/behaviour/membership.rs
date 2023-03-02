@@ -178,6 +178,11 @@ impl Behaviour {
         self.provider_cache.pin_subnet(subnet_id)
     }
 
+    /// Make a subnet pruneable.
+    pub fn unpin_subnet(&mut self, subnet_id: &SubnetID) {
+        self.provider_cache.unpin_subnet(subnet_id)
+    }
+
     /// Send a message through Gossipsub to let everyone know about the current configuration.
     fn publish_membership(&mut self) -> anyhow::Result<()> {
         let record = SignedProviderRecord::new(&self.local_key, self.subnet_ids.clone())?;

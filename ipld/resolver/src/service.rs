@@ -68,7 +68,10 @@ pub struct Config {
 /// Internal requests to enqueue to the [`Service`]
 enum Request {
     SetProvidedSubnets(Vec<SubnetID>),
-    PinSubnets(Vec<SubnetID>),
+    AddProvidedSubnet(SubnetID),
+    RemoveProvidedSubnet(SubnetID),
+    PinSubnet(SubnetID),
+    UnpinSubnet(SubnetID),
     Resolve(Cid, SubnetID, oneshot::Sender<ResolveResult>),
 }
 
@@ -92,9 +95,27 @@ impl Client {
         self.send_request(req)
     }
 
-    /// Add a list of subnets we know really exist and we are interested in them.
-    pub fn pin_subnets(&self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
-        let req = Request::PinSubnets(subnet_ids);
+    /// Add a subnet supported by this node.
+    pub fn add_provided_subnets(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
+        let req = Request::AddProvidedSubnet(subnet_id);
+        self.send_request(req)
+    }
+
+    /// Remove a subnet no longer supported by this node.
+    pub fn remove_provided_subnets(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
+        let req = Request::RemoveProvidedSubnet(subnet_id);
+        self.send_request(req)
+    }
+
+    /// Add a subnet we know really exist and we are interested in them.
+    pub fn pin_subnet(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
+        let req = Request::PinSubnet(subnet_id);
+        self.send_request(req)
+    }
+
+    /// Unpin a we are no longer interested in.
+    pub fn unpin_subnet(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
+        let req = Request::UnpinSubnet(subnet_id);
         self.send_request(req)
     }
 
@@ -307,14 +328,22 @@ impl<P: StoreParams> Service<P> {
         match request {
             Request::SetProvidedSubnets(ids) => {
                 if let Err(e) = self.membership_mut().set_provided_subnets(ids) {
-                    error!("error setting subnet providers: {e}")
+                    error!("error setting provided subnets: {e}")
                 }
             }
-            Request::PinSubnets(ids) => {
-                for id in ids {
-                    self.membership_mut().pin_subnet(id)
+            Request::AddProvidedSubnet(id) => {
+                if let Err(e) = self.membership_mut().add_provided_subnet(id) {
+                    error!("error adding provided subnet: {e}")
                 }
             }
+            Request::RemoveProvidedSubnet(id) => {
+                if let Err(e) = self.membership_mut().remove_provided_subnet(id) {
+                    error!("error removing provided subnet: {e}")
+                }
+            }
+            Request::PinSubnet(id) => self.membership_mut().pin_subnet(id),
+            Request::UnpinSubnet(id) => self.membership_mut().unpin_subnet(&id),
+
             Request::Resolve(cid, subnet_id, response_channel) => {
                 let peers = self.membership_mut().providers_of_subnet(&subnet_id);
                 if peers.is_empty() {
