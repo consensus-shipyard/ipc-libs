@@ -106,20 +106,22 @@ impl ClusterBuilder {
 async fn single_bootstrap_single_provider_resolve_one() {
     let _ = env_logger::builder().is_test(true).try_init();
 
+    // Choose agents.
+    let cluster_size = 3;
+    let bootstrap_idx = 0;
+    let provider_idx = 1;
+    let resolver_idx = 2;
+
     // TODO: Get the seed from QuickCheck
-    let mut builder = ClusterBuilder::new(5, 123456u64);
+    let mut builder = ClusterBuilder::new(cluster_size, 123456u64);
 
     // Build a cluster of nodes.
     for i in 0..builder.size {
-        builder.add_node(if i == 0 { None } else { Some(0) });
+        builder.add_node(if i == 0 { None } else { Some(bootstrap_idx) });
     }
 
     // Start the swarms.
     let mut cluster = builder.run();
-
-    // Choose agents.
-    let provider_idx = 2;
-    let resolver_idx = 3;
 
     // Mark one of them as the provider of some subnet.
     let subnet_id = make_subnet_id(1001);
@@ -175,7 +177,7 @@ fn make_config(rng: &mut StdRng, cluster_size: u32, bootstrap_addr: Option<Multi
         membership: MembershipConfig {
             static_subnets: vec![],
             max_subnets: 10,
-            publish_interval: Duration::from_secs(5),
+            publish_interval: Duration::from_secs(2),
             max_provider_age: Duration::from_secs(60),
         },
     };
