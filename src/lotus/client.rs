@@ -19,7 +19,10 @@ use serde_json::json;
 use crate::config::Subnet;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::message::chain::ChainHeadResponse;
-use crate::lotus::message::ipc::{IPCGetPrevCheckpointForChildResponse, IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
+use crate::lotus::message::ipc::{
+    IPCGetPrevCheckpointForChildResponse, IPCReadGatewayStateResponse,
+    IPCReadSubnetActorStateResponse,
+};
 use crate::lotus::message::mpool::{
     MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
 };
@@ -283,11 +286,17 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
-    async fn ipc_read_subnet_actor_state(&self, tip_set: Cid) -> Result<IPCReadSubnetActorStateResponse> {
+    async fn ipc_read_subnet_actor_state(
+        &self,
+        tip_set: Cid,
+    ) -> Result<IPCReadSubnetActorStateResponse> {
         let params = json!([GATEWAY_ACTOR_ADDRESS, [CIDMap::from(tip_set)]]);
         let r = self
             .client
-            .request::<IPCReadSubnetActorStateResponse>(methods::IPC_READ_SUBNET_ACTOR_STATE, params)
+            .request::<IPCReadSubnetActorStateResponse>(
+                methods::IPC_READ_SUBNET_ACTOR_STATE,
+                params,
+            )
             .await?;
         Ok(r)
     }
