@@ -199,6 +199,11 @@ impl<P: StoreParams> Service<P> {
         Ok((service, client))
     }
 
+    /// Address where the service will be available, once started.
+    pub fn listen_addr(&self) -> &Multiaddr {
+        &self.listen_addr
+    }
+
     /// Start the swarm listening for incoming connections and drive the events forward.
     pub async fn run(mut self) -> anyhow::Result<()> {
         // Start the swarm.

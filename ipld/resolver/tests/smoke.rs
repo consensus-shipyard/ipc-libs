@@ -38,21 +38,42 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 mod store;
 use store::*;
 
+struct ClusterBuilder {
+    size: u32,
+    rng: StdRng,
+    services: Vec<Service<TestStoreParams>>,
+    clients: Vec<Client>,
+    stores: Vec<TestBlockstore>,
+}
+
+impl ClusterBuilder {
+    fn new(size: u32, seed: u64) -> Self {
+        Self {
+            size,
+            rng: rand::rngs::StdRng::seed_from_u64(seed),
+            services: Default::default(),
+            clients: Default::default(),
+            stores: Default::default(),
+        }
+    }
+
+    fn add_node(&mut self, bootstrap: Option<usize>) {
+        let bootstrap_addr = bootstrap.map(|i| self.services[i].listen_addr()).cloned();
+        let config = make_config(&mut self.rng, self.size, bootstrap_addr);
+        let (svc, cli, store) = make_service(config);
+        self.services.push(svc);
+        self.clients.push(cli);
+        self.stores.push(store);
+    }
+}
+
 #[tokio::test]
 async fn cluster_resolve() {
-    let seed = 123456u64; // TODO: Get it from QuickCheck.
-    let size = 10;
-
-    let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
-    let mut svcs = Vec::new();
-    let mut clis = Vec::new();
-    let mut stores = Vec::new();
-
-    let config = make_config(&mut rng, size, None);
-    let (svc, cli, store) = make_service(config);
-    svcs.push(svc);
-    clis.push(cli);
-    stores.push(store);
+    // TODO: Get the seed from QuickCheck
+    let mut cluster = ClusterBuilder::new(10, 123456u64);
+    for i in 0..cluster.size {
+        cluster.add_node(if i == 0 { None } else { Some(0) });
+    }
 }
 
 fn make_service(config: Config) -> (Service<TestStoreParams>, Client, TestBlockstore) {
