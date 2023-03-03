@@ -77,6 +77,8 @@ pub enum ConfigError {
 /// Our other option for peer discovery would be to rely on the Peer Exchange of Gossipsub.
 /// However, the required Signed Records feature is not available in the Rust version of the library, as of v0.50.
 pub struct Behaviour {
+    /// Local peer ID.
+    peer_id: PeerId,
     /// User-defined list of nodes and their addresses.
     /// Typically includes bootstrap nodes, or it can be used for a static network.
     static_addresses: Vec<(PeerId, Multiaddr)>,
@@ -111,6 +113,8 @@ impl Behaviour {
             }
         }
 
+        let mut outbox = VecDeque::new();
+
         let kademlia_opt = if dc.enable_kademlia {
             let mut kad_config = KademliaConfig::default();
             let protocol_name = format!("/ipc/{}/kad/1.0.0", nc.network_name);
@@ -137,18 +141,16 @@ impl Behaviour {
 
             Some(kademlia)
         } else {
+            // It would be nice to use `.group_by` here but it's unstable.
+            // Make sure static peers are reported as routable.
+            for (peer_id, addr) in static_addresses.iter() {
+                outbox.push_back(Event::Added(*peer_id, vec![addr.clone()]))
+            }
             None
         };
 
-        let mut outbox = VecDeque::new();
-
-        // It would be nice to use `.group_by` here but it's unstable.
-        // Make sure static peers are reported as routable.
-        for (peer_id, addr) in static_addresses.iter() {
-            outbox.push_back(Event::Added(*peer_id, vec![addr.clone()]))
-        }
-
         Ok(Self {
+            peer_id: nc.local_peer_id(),
             static_addresses,
             inner: kademlia_opt.into(),
             lookup_interval: tokio::time::interval(Duration::from_secs(1)),
@@ -259,9 +261,9 @@ impl NetworkBehaviour for Behaviour {
             match ev {
                 NetworkBehaviourAction::GenerateEvent(ev) => {
                     match ev {
-                        // Not expecting unroutable peers
-                        KademliaEvent::UnroutablePeer { .. } => {
-                            debug!("unexpected Kademlia event: {ev:?}")
+                        // We get this event for inbound connections, where the remote address may be ephemeral.
+                        KademliaEvent::UnroutablePeer { peer } => {
+                            debug!("{peer} unroutable from {}", self.peer_id);
                         }
                         KademliaEvent::InboundRequest {
                             request: InboundRequest::PutRecord { source, .. },
@@ -274,9 +276,14 @@ impl NetworkBehaviour for Behaviour {
                         // The config ensures peers are added to the table if there's room.
                         // We're not emitting these as known peers because the address will probably not be returned by `addresses_of_peer`,
                         // so the outside service would have to keep track, which is not what we want.
-                        KademliaEvent::PendingRoutablePeer { .. } => {}
                         KademliaEvent::RoutablePeer { .. } => {
                             warn!("Kademlia in manual mode");
+                        }
+                        // Unfortunately, looking at the Kademlia behaviour, it looks like when it goes from pending to active,
+                        // it won't emit another event, so we might as well tentatively emit an event here.
+                        KademliaEvent::PendingRoutablePeer { peer, address } => {
+                            debug!("{peer} pending to the routing table of {}", self.peer_id);
+                            self.outbox.push_back(Event::Added(peer, vec![address]))
                         }
                         // This event should ensure that we will be able to answer address lookups later.
                         KademliaEvent::RoutingUpdated {
@@ -285,7 +292,7 @@ impl NetworkBehaviour for Behaviour {
                             old_peer,
                             ..
                         } => {
-                            debug!("{peer} added to the routing table");
+                            debug!("{peer} added to the routing table of {}", self.peer_id);
                             // There are two events here; we can only return one, so let's defer them to the outbox.
                             if let Some(peer_id) = old_peer {
                                 if self.is_static(peer_id) {

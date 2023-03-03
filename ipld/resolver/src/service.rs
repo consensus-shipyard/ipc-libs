@@ -136,6 +136,7 @@ impl Client {
 
 /// The `Service` handles P2P communication to resolve IPLD content by wrapping and driving a number of `libp2p` behaviours.
 pub struct Service<P: StoreParams> {
+    peer_id: PeerId,
     listen_addr: Multiaddr,
     swarm: Swarm<Behaviour<P>>,
     queries: QueryMap,
@@ -186,6 +187,7 @@ impl<P: StoreParams> Service<P> {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 
         let service = Self {
+            peer_id,
             listen_addr: config.connection.listen_addr,
             swarm,
             queries: Default::default(),
@@ -279,11 +281,11 @@ impl<P: StoreParams> Service<P> {
     fn handle_discovery_event(&mut self, event: discovery::Event) {
         match event {
             discovery::Event::Added(peer_id, _) => {
-                debug!("peer routable: {peer_id}");
+                debug!("adding routable peer {peer_id} to {}", self.peer_id);
                 self.membership_mut().set_routable(peer_id)
             }
             discovery::Event::Removed(peer_id) => {
-                debug!("peer unroutable: {peer_id}");
+                debug!("removing unroutable peer {peer_id} from {}", self.peer_id);
                 self.membership_mut().set_unroutable(peer_id)
             }
             discovery::Event::Connected(_, _) => {}
@@ -354,17 +356,17 @@ impl<P: StoreParams> Service<P> {
         match request {
             Request::SetProvidedSubnets(ids) => {
                 if let Err(e) = self.membership_mut().set_provided_subnets(ids) {
-                    warn!("faled to publish set provided subnets: {e}")
+                    warn!("failed to publish set provided subnets: {e}")
                 }
             }
             Request::AddProvidedSubnet(id) => {
                 if let Err(e) = self.membership_mut().add_provided_subnet(id) {
-                    warn!("faled to publish added provided subnet: {e}")
+                    warn!("failed to publish added provided subnet: {e}")
                 }
             }
             Request::RemoveProvidedSubnet(id) => {
                 if let Err(e) = self.membership_mut().remove_provided_subnet(id) {
-                    warn!("faled to publish removed provided subnet: {e}")
+                    warn!("failed to publish removed provided subnet: {e}")
                 }
             }
             Request::PinSubnet(id) => self.membership_mut().pin_subnet(id),

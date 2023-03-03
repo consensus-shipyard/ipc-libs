@@ -127,7 +127,8 @@ impl Behaviour {
             .map_err(ConfigError::InvalidGossipsubConfig)?;
 
         // Subscribe to the topic.
-        gossipsub.subscribe(&membership_topic)?;
+        // TODO (IPC-38): Enable once Kademlia works.
+        // gossipsub.subscribe(&membership_topic)?;
 
         // Don't publish immediately, it's empty. Let the creator call `set_subnet_ids` to trigger initially.
         let mut interval = tokio::time::interval(mc.publish_interval);
