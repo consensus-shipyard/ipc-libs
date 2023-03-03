@@ -19,9 +19,14 @@
 
 use std::time::Duration;
 
+use anyhow::anyhow;
+use fvm_ipld_hamt::Hamt;
+use fvm_shared::{address::Address, ActorID};
 use ipc_ipld_resolver::{
     Client, Config, ConnectionConfig, DiscoveryConfig, MembershipConfig, NetworkConfig, Service,
 };
+use ipc_sdk::subnet_id::{SubnetID, ROOTNET_ID};
+use libipld::Cid;
 use libp2p::{
     core::{
         muxing::StreamMuxerBox,
@@ -95,21 +100,54 @@ impl ClusterBuilder {
     }
 }
 
-/// Start a cluster of 5 nodes from a single bootstrap node.
-/// Mark one of them as the provider of some subnet.
-/// Insert a CID of an array of CIDs into the store of the provider.
-/// Ask for the CID to be resolved from by another peer.
-/// Check that the CID is deposited into the store of the requestor.
+/// Start a cluster of agents from a single bootstrap node,
+/// make available some content on one agent and resolve it from another.
 #[tokio::test]
 async fn single_bootstrap_single_provider_resolve_one() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
     // TODO: Get the seed from QuickCheck
     let mut builder = ClusterBuilder::new(5, 123456u64);
 
+    // Build a cluster of nodes.
     for i in 0..builder.size {
         builder.add_node(if i == 0 { None } else { Some(0) });
     }
 
-    let _cluster = builder.run();
+    // Start the swarms.
+    let mut cluster = builder.run();
+
+    // Choose agents.
+    let provider_idx = 2;
+    let resolver_idx = 3;
+
+    // Mark one of them as the provider of some subnet.
+    let subnet_id = make_subnet_id(1001);
+
+    cluster.agents[provider_idx]
+        .client
+        .add_provided_subnet(subnet_id.clone())
+        .expect("failed to add provided subnet");
+
+    // Insert a CID of a complex recursive data structure.
+    let cid = insert_test_data(&mut cluster.agents[provider_idx]).expect("failed to insert data");
+
+    // Sanity check that we can read the data back.
+    check_test_data(&mut cluster.agents[provider_idx], &cid).expect("failed to read back the data");
+
+    // TODO: Poll some condition until connected and gossiped.
+    tokio::time::sleep(Duration::from_secs(5)).await;
+
+    // Ask for the CID to be resolved from by another peer.
+    cluster.agents[resolver_idx]
+        .client
+        .resolve(cid, subnet_id.clone())
+        .await
+        .expect("failed to send request")
+        .expect("failed to resolve content");
+
+    // Check that the CID is deposited into the store of the requestor.
+    check_test_data(&mut cluster.agents[resolver_idx], &cid).expect("failed to resolve from store");
 }
 
 fn make_service(config: Config) -> (Service<TestStoreParams>, Client, TestBlockstore) {
@@ -167,4 +205,38 @@ fn build_transport(local_key: Keypair) -> Boxed<(PeerId, StreamMuxerBox)> {
         .authenticate(auth_config)
         .multiplex(mplex_config)
         .boxed()
+}
+
+/// Make a subnet under a rootnet.
+fn make_subnet_id(actor_id: ActorID) -> SubnetID {
+    let act = Address::new_id(actor_id);
+    SubnetID::new_from_parent(&ROOTNET_ID, act)
+}
+
+/// Insert a HAMT into the block store of an agent.
+fn insert_test_data(agent: &mut Agent) -> anyhow::Result<Cid> {
+    let mut hamt: Hamt<_, String, u32> = Hamt::new(&agent.store);
+
+    // Insert enough data into the HAMT to make sure it grows from a single `Node`.
+    for i in 0..1000 {
+        hamt.set(i, format!("value {i}"))?;
+    }
+    let cid = hamt.flush()?;
+
+    Ok(cid)
+}
+
+fn check_test_data(agent: &mut Agent, cid: &Cid) -> anyhow::Result<()> {
+    let hamt: Hamt<_, String, u32> = Hamt::load(cid, &agent.store)?;
+
+    // Check all the data inserted by `insert_test_data`.
+    for i in 0..1000 {
+        match hamt.get(&i)? {
+            None => return Err(anyhow!("key {i} is missing")),
+            Some(v) if *v != format!("value {i}") => return Err(anyhow!("unexpected value: {v}")),
+            _ => {}
+        }
+    }
+
+    Ok(())
 }

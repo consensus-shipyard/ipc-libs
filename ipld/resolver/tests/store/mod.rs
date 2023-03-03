@@ -29,6 +29,21 @@ impl Blockstore for TestBlockstore {
     }
 }
 
+// impl Blockstore for &TestBlockstore {
+//     fn has(&self, k: &Cid) -> Result<bool> {
+//         Ok(self.blocks.read().unwrap().contains_key(k))
+//     }
+
+//     fn get(&self, k: &Cid) -> Result<Option<Vec<u8>>> {
+//         Ok(self.blocks.read().unwrap().get(k).cloned())
+//     }
+
+//     fn put_keyed(&self, k: &Cid, block: &[u8]) -> Result<()> {
+//         self.blocks.write().unwrap().insert(*k, block.into());
+//         Ok(())
+//     }
+// }
+
 pub type TestStoreParams = libipld::DefaultParams;
 
 impl BitswapStore for TestBlockstore {

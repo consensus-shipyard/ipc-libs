@@ -1448,7 +1448,7 @@ dependencies = [
  "fvm_ipld_amt",
  "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.3.3",
- "fvm_ipld_hamt",
+ "fvm_ipld_hamt 0.5.1",
  "fvm_sdk 3.0.0-alpha.22",
  "fvm_shared 3.0.0-alpha.17",
  "getrandom 0.2.8",
@@ -1764,6 +1764,26 @@ dependencies = [
  "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.2.3",
  "libipld-core 0.13.1",
+ "multihash 0.16.3",
+ "once_cell",
+ "serde",
+ "sha2 0.10.6",
+ "thiserror",
+]
+
+[[package]]
+name = "fvm_ipld_hamt"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c942494dde990aeac314311bde34c787be99cab7d0836397a75556cbaa2c3e7"
+dependencies = [
+ "anyhow",
+ "byteorder",
+ "cid",
+ "forest_hash_utils",
+ "fvm_ipld_blockstore",
+ "fvm_ipld_encoding 0.3.3",
+ "libipld-core 0.14.0",
  "multihash 0.16.3",
  "once_cell",
  "serde",
@@ -2324,7 +2344,7 @@ dependencies = [
  "frc42_dispatch",
  "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.3.3",
- "fvm_ipld_hamt",
+ "fvm_ipld_hamt 0.5.1",
  "fvm_shared 3.0.0-alpha.17",
  "indexmap",
  "integer-encoding",
@@ -2367,7 +2387,7 @@ dependencies = [
  "frc42_dispatch",
  "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.3.3",
- "fvm_ipld_hamt",
+ "fvm_ipld_hamt 0.5.1",
  "fvm_shared 3.0.0-alpha.17",
  "indexmap",
  "integer-encoding",
@@ -2431,8 +2451,10 @@ dependencies = [
  "anyhow",
  "blake2b_simd",
  "bloom",
+ "env_logger 0.10.0",
  "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.3.3",
+ "fvm_ipld_hamt 0.6.1",
  "fvm_shared 3.0.0-alpha.17",
  "ipc-sdk",
  "libipld",
@@ -2601,6 +2623,7 @@ dependencies = [
  "core2",
  "multibase",
  "multihash 0.16.3",
+ "serde",
  "thiserror",
 ]
 
@@ -4040,7 +4063,7 @@ dependencies = [
  "fil_actors_runtime",
  "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.3.3",
- "fvm_ipld_hamt",
+ "fvm_ipld_hamt 0.5.1",
  "fvm_shared 3.0.0-alpha.17",
  "indexmap",
  "integer-encoding",

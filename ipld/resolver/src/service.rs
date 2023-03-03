@@ -98,13 +98,13 @@ impl Client {
     }
 
     /// Add a subnet supported by this node.
-    pub fn add_provided_subnets(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
+    pub fn add_provided_subnet(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
         let req = Request::AddProvidedSubnet(subnet_id);
         self.send_request(req)
     }
 
     /// Remove a subnet no longer supported by this node.
-    pub fn remove_provided_subnets(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
+    pub fn remove_provided_subnet(&self, subnet_id: SubnetID) -> anyhow::Result<()> {
         let req = Request::RemoveProvidedSubnet(subnet_id);
         self.send_request(req)
     }
