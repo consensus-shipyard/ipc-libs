@@ -278,8 +278,14 @@ impl<P: StoreParams> Service<P> {
 
     fn handle_discovery_event(&mut self, event: discovery::Event) {
         match event {
-            discovery::Event::Added(peer_id, _) => self.membership_mut().set_routable(peer_id),
-            discovery::Event::Removed(peer_id) => self.membership_mut().set_unroutable(peer_id),
+            discovery::Event::Added(peer_id, _) => {
+                debug!("peer routable: {peer_id}");
+                self.membership_mut().set_routable(peer_id)
+            }
+            discovery::Event::Removed(peer_id) => {
+                debug!("peer unroutable: {peer_id}");
+                self.membership_mut().set_unroutable(peer_id)
+            }
             discovery::Event::Connected(_, _) => {}
             discovery::Event::Disconnected(_, _) => {}
         }
@@ -288,8 +294,10 @@ impl<P: StoreParams> Service<P> {
     fn handle_membership_event(&mut self, event: membership::Event) {
         match event {
             membership::Event::Skipped(peer_id) => {
+                debug!("skipped adding provider {peer_id}");
                 // Don't repeatedly look up peers we can't add to the routing table.
                 if self.background_lookup_filter.insert(&peer_id) {
+                    debug!("triggering background lookup for {peer_id}");
                     self.discovery_mut().background_lookup(peer_id)
                 }
             }
@@ -346,17 +354,17 @@ impl<P: StoreParams> Service<P> {
         match request {
             Request::SetProvidedSubnets(ids) => {
                 if let Err(e) = self.membership_mut().set_provided_subnets(ids) {
-                    error!("error setting provided subnets: {e}")
+                    warn!("faled to publish set provided subnets: {e}")
                 }
             }
             Request::AddProvidedSubnet(id) => {
                 if let Err(e) = self.membership_mut().add_provided_subnet(id) {
-                    error!("error adding provided subnet: {e}")
+                    warn!("faled to publish added provided subnet: {e}")
                 }
             }
             Request::RemoveProvidedSubnet(id) => {
                 if let Err(e) = self.membership_mut().remove_provided_subnet(id) {
-                    error!("error removing provided subnet: {e}")
+                    warn!("faled to publish removed provided subnet: {e}")
                 }
             }
             Request::PinSubnet(id) => self.membership_mut().pin_subnet(id),

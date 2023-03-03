@@ -239,6 +239,7 @@ impl NetworkBehaviour for Behaviour {
         if self.lookup_interval.poll_tick(cx).is_ready() {
             if self.num_connections < self.target_connections {
                 if let Some(k) = self.inner.as_mut() {
+                    debug!("looking up a random peer");
                     let random_peer_id = PeerId::random();
                     k.get_closest_peers(random_peer_id);
                 }
@@ -273,8 +274,10 @@ impl NetworkBehaviour for Behaviour {
                         // The config ensures peers are added to the table if there's room.
                         // We're not emitting these as known peers because the address will probably not be returned by `addresses_of_peer`,
                         // so the outside service would have to keep track, which is not what we want.
-                        KademliaEvent::PendingRoutablePeer { .. }
-                        | KademliaEvent::RoutablePeer { .. } => {}
+                        KademliaEvent::PendingRoutablePeer { .. } => {}
+                        KademliaEvent::RoutablePeer { .. } => {
+                            warn!("Kademlia in manual mode");
+                        }
                         // This event should ensure that we will be able to answer address lookups later.
                         KademliaEvent::RoutingUpdated {
                             peer,
@@ -282,6 +285,7 @@ impl NetworkBehaviour for Behaviour {
                             old_peer,
                             ..
                         } => {
+                            debug!("{peer} added to the routing table");
                             // There are two events here; we can only return one, so let's defer them to the outbox.
                             if let Some(peer_id) = old_peer {
                                 if self.is_static(peer_id) {

@@ -105,6 +105,7 @@ impl ClusterBuilder {
 #[tokio::test]
 async fn single_bootstrap_single_provider_resolve_one() {
     let _ = env_logger::builder().is_test(true).try_init();
+    //env_logger::init();
 
     // Choose agents.
     let cluster_size = 3;
@@ -123,7 +124,17 @@ async fn single_bootstrap_single_provider_resolve_one() {
     // Start the swarms.
     let mut cluster = builder.run();
 
-    // Mark one of them as the provider of some subnet.
+    // Insert a CID of a complex recursive data structure.
+    let cid = insert_test_data(&mut cluster.agents[provider_idx]).expect("failed to insert data");
+
+    // Sanity check that we can read the data back.
+    check_test_data(&mut cluster.agents[provider_idx], &cid).expect("failed to read back the data");
+
+    // Wait a little for the cluster to connect.
+    // TODO: Wait on some condition instead of sleep.
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    // Announce the support of some subnet.
     let subnet_id = make_subnet_id(1001);
 
     cluster.agents[provider_idx]
@@ -131,14 +142,9 @@ async fn single_bootstrap_single_provider_resolve_one() {
         .add_provided_subnet(subnet_id.clone())
         .expect("failed to add provided subnet");
 
-    // Insert a CID of a complex recursive data structure.
-    let cid = insert_test_data(&mut cluster.agents[provider_idx]).expect("failed to insert data");
-
-    // Sanity check that we can read the data back.
-    check_test_data(&mut cluster.agents[provider_idx], &cid).expect("failed to read back the data");
-
-    // TODO: Poll some condition until connected and gossiped.
-    tokio::time::sleep(Duration::from_secs(5)).await;
+    // Wait a little for the gossip to spread and peer lookups to happen.
+    // TODO: Wait on some condition instead of sleep.
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     // Ask for the CID to be resolved from by another peer.
     cluster.agents[resolver_idx]
@@ -172,12 +178,12 @@ fn make_config(rng: &mut StdRng, cluster_size: u32, bootstrap_addr: Option<Multi
         discovery: DiscoveryConfig {
             static_addresses: bootstrap_addr.iter().cloned().collect(),
             target_connections: cluster_size.try_into().unwrap(),
-            enable_kademlia: bootstrap_addr.is_some(),
+            enable_kademlia: true,
         },
         membership: MembershipConfig {
             static_subnets: vec![],
             max_subnets: 10,
-            publish_interval: Duration::from_secs(2),
+            publish_interval: Duration::from_secs(1),
             max_provider_age: Duration::from_secs(60),
         },
     };
