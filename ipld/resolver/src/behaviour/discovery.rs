@@ -112,7 +112,7 @@ impl Behaviour {
 
         let kademlia_opt = if dc.enable_kademlia {
             let mut kad_config = KademliaConfig::default();
-            let protocol_name = format!("/ipc/kad/{}/kad/1.0.0", nc.network_name);
+            let protocol_name = format!("/ipc/{}/kad/1.0.0", nc.network_name);
             kad_config.set_protocol_names(vec![Cow::Owned(protocol_name.as_bytes().to_vec())]);
 
             let store = MemoryStore::new(nc.local_peer_id());
