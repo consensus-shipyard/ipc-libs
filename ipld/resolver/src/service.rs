@@ -306,10 +306,13 @@ impl<P: StoreParams> Service<P> {
     fn handle_membership_event(&mut self, event: membership::Event) {
         match event {
             membership::Event::Skipped(peer_id) => {
-                debug!("skipped adding provider {peer_id}");
+                debug!("skipped adding provider {peer_id} to {}", self.peer_id);
                 // Don't repeatedly look up peers we can't add to the routing table.
                 if self.background_lookup_filter.insert(&peer_id) {
-                    debug!("triggering background lookup for {peer_id}");
+                    debug!(
+                        "triggering background lookup of {peer_id} on {}",
+                        self.peer_id
+                    );
                     self.discovery_mut().background_lookup(peer_id)
                 }
             }

@@ -137,13 +137,12 @@ async fn single_bootstrap_single_provider_resolve_one() {
     // Announce the support of some subnet.
     let subnet_id = make_subnet_id(1001);
 
-    // TODO (IPC-38): Enable once Kademlia works.
-    // cluster.agents[provider_idx]
-    //     .client
-    //     .add_provided_subnet(subnet_id.clone())
-    //     .expect("failed to add provided subnet");
+    cluster.agents[provider_idx]
+        .client
+        .add_provided_subnet(subnet_id.clone())
+        .expect("failed to add provided subnet");
 
-    // Wait a little for the gossip to spread and peer lookups to happen.
+    // Wait a little for the gossip to spread and peer lookups to happen, then another round of gossip.
     // TODO: Wait on some condition instead of sleep.
     tokio::time::sleep(Duration::from_secs(2)).await;
 
@@ -184,7 +183,7 @@ fn make_config(rng: &mut StdRng, cluster_size: u32, bootstrap_addr: Option<Multi
         membership: MembershipConfig {
             static_subnets: vec![],
             max_subnets: 10,
-            publish_interval: Duration::from_secs(5),
+            publish_interval: Duration::from_secs(1),
             max_provider_age: Duration::from_secs(60),
         },
     };
