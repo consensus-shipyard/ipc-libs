@@ -24,7 +24,7 @@ use libp2p::{
     },
     Multiaddr, PeerId,
 };
-use log::{debug, warn};
+use log::debug;
 use tokio::time::Interval;
 
 use super::NetworkConfig;
@@ -173,6 +173,17 @@ impl Behaviour {
     fn is_static(&self, peer_id: PeerId) -> bool {
         self.static_addresses.iter().any(|(id, _)| *id == peer_id)
     }
+
+    /// Add an address we learned from the `Identify` protocol to Kademlia.
+    ///
+    /// This seems to be the only way, because Kademlia rightfully treats
+    /// incoming connections as ephemeral addresses, but doesn't have an
+    /// alternative exchange mechanism.
+    pub fn add_address(&mut self, peer_id: &PeerId, address: Multiaddr) {
+        if let Some(kademlia) = self.inner.as_mut() {
+            kademlia.add_address(peer_id, address);
+        }
+    }
 }
 
 impl NetworkBehaviour for Behaviour {
@@ -276,8 +287,8 @@ impl NetworkBehaviour for Behaviour {
                         // The config ensures peers are added to the table if there's room.
                         // We're not emitting these as known peers because the address will probably not be returned by `addresses_of_peer`,
                         // so the outside service would have to keep track, which is not what we want.
-                        KademliaEvent::RoutablePeer { .. } => {
-                            warn!("Kademlia in manual mode");
+                        KademliaEvent::RoutablePeer { peer, .. } => {
+                            debug!("Kademlia in manual mode or bucket full, cannot add {peer}");
                         }
                         // Unfortunately, looking at the Kademlia behaviour, it looks like when it goes from pending to active,
                         // it won't emit another event, so we might as well tentatively emit an event here.

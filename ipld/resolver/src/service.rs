@@ -251,19 +251,23 @@ impl<P: StoreParams> Service<P> {
         match event.result {
             Ok(ping::Success::Ping { rtt }) => {
                 trace!(
-                    "PingSuccess::Ping rtt to {} is {} ms",
+                    "PingSuccess::Ping rtt to {} from {} is {} ms",
                     peer_id,
+                    self.peer_id,
                     rtt.as_millis()
                 );
             }
             Ok(ping::Success::Pong) => {
-                trace!("PingSuccess::Pong from {peer_id}");
+                trace!("PingSuccess::Pong from {peer_id} to {}", self.peer_id);
             }
             Err(ping::Failure::Timeout) => {
-                debug!("PingFailure::Timeout from {peer_id}");
+                debug!("PingFailure::Timeout from {peer_id} to {}", self.peer_id);
             }
             Err(ping::Failure::Other { error }) => {
-                warn!("PingFailure::Other from {peer_id}: {error}");
+                warn!(
+                    "PingFailure::Other from {peer_id} to {}: {error}",
+                    self.peer_id
+                );
             }
             Err(ping::Failure::Unsupported) => {
                 warn!("Banning peer {peer_id} due to protocol error");
@@ -275,6 +279,12 @@ impl<P: StoreParams> Service<P> {
     fn handle_identify_event(&mut self, event: identify::Event) {
         if let identify::Event::Error { peer_id, error } = event {
             warn!("Error identifying {peer_id}: {error}")
+        } else if let identify::Event::Received { peer_id, info } = event {
+            debug!("protocols supported by {peer_id}: {:?}", info.protocols);
+            debug!("adding identified address of {peer_id} to {}", self.peer_id);
+            for addr in info.listen_addrs {
+                self.discovery_mut().add_address(&peer_id, addr);
+            }
         }
     }
 
