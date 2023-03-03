@@ -307,7 +307,7 @@ impl LotusJsonRPCClient<JsonRpcClientImpl> {
     /// `LotusJsonRPCClient` makes requests to the URL defined in the `Subnet`.
     pub(crate) fn from_subnet(subnet: &Subnet) -> Self {
         let url = subnet.jsonrpc_api_http.clone();
-        let auth_token = subnet.auth_token.as_ref().map(|token| token.as_str());
+        let auth_token = subnet.auth_token.as_deref();
         let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token);
         LotusJsonRPCClient::new(jsonrpc_client)
     }
