@@ -38,13 +38,21 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 mod store;
 use store::*;
 
+struct Agent {
+    config: Config,
+    client: Client,
+    store: TestBlockstore,
+}
+
+struct Cluster {
+    agents: Vec<Agent>,
+}
+
 struct ClusterBuilder {
     size: u32,
     rng: StdRng,
-    configs: Vec<Config>,
     services: Vec<Service<TestStoreParams>>,
-    clients: Vec<Client>,
-    stores: Vec<TestBlockstore>,
+    agents: Vec<Agent>,
 }
 
 impl ClusterBuilder {
@@ -52,37 +60,56 @@ impl ClusterBuilder {
         Self {
             size,
             rng: rand::rngs::StdRng::seed_from_u64(seed),
-            configs: Default::default(),
             services: Default::default(),
-            clients: Default::default(),
-            stores: Default::default(),
+            agents: Default::default(),
         }
     }
 
     /// Add a node with randomized address, optionally bootstrapping from an existing node.
     fn add_node(&mut self, bootstrap: Option<usize>) {
         let bootstrap_addr = bootstrap.map(|i| {
-            let peer_id = self.configs[i].network.local_peer_id();
-            let mut addr = self.configs[i].connection.listen_addr.clone();
+            let config = &self.agents[i].config;
+            let peer_id = config.network.local_peer_id();
+            let mut addr = config.connection.listen_addr.clone();
             addr.push(Protocol::P2p(peer_id.into()));
             addr
         });
-        let cfg = make_config(&mut self.rng, self.size, bootstrap_addr);
-        let (svc, cli, store) = make_service(cfg.clone());
-        self.configs.push(cfg);
-        self.services.push(svc);
-        self.clients.push(cli);
-        self.stores.push(store);
+        let config = make_config(&mut self.rng, self.size, bootstrap_addr);
+        let (service, client, store) = make_service(config.clone());
+        self.services.push(service);
+        self.agents.push(Agent {
+            config,
+            client,
+            store,
+        });
+    }
+
+    /// Start running all services
+    fn run(self) -> Cluster {
+        for service in self.services {
+            tokio::task::spawn(async move { service.run().await.expect("error running service") });
+        }
+        Cluster {
+            agents: self.agents,
+        }
     }
 }
 
+/// Start a cluster of 5 nodes from a single bootstrap node.
+/// Mark one of them as the provider of some subnet.
+/// Insert a CID of an array of CIDs into the store of the provider.
+/// Ask for the CID to be resolved from by another peer.
+/// Check that the CID is deposited into the store of the requestor.
 #[tokio::test]
-async fn cluster_resolve() {
+async fn single_bootstrap_single_provider_resolve_one() {
     // TODO: Get the seed from QuickCheck
-    let mut cluster = ClusterBuilder::new(10, 123456u64);
-    for i in 0..cluster.size {
-        cluster.add_node(if i == 0 { None } else { Some(0) });
+    let mut builder = ClusterBuilder::new(5, 123456u64);
+
+    for i in 0..builder.size {
+        builder.add_node(if i == 0 { None } else { Some(0) });
     }
+
+    let _cluster = builder.run();
 }
 
 fn make_service(config: Config) -> (Service<TestStoreParams>, Client, TestBlockstore) {
