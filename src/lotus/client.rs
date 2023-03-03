@@ -305,6 +305,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 impl LotusJsonRPCClient<JsonRpcClientImpl> {
     /// A constructor that returns a `LotusJsonRPCClient` from a `Subnet`. The returned
     /// `LotusJsonRPCClient` makes requests to the URL defined in the `Subnet`.
+    #[allow(dead_code)]
     pub(crate) fn from_subnet(subnet: &Subnet) -> Self {
         let url = subnet.jsonrpc_api_http.clone();
         let auth_token = subnet.auth_token.as_deref();
