@@ -41,6 +41,7 @@ use store::*;
 struct ClusterBuilder {
     size: u32,
     rng: StdRng,
+    configs: Vec<Config>,
     services: Vec<Service<TestStoreParams>>,
     clients: Vec<Client>,
     stores: Vec<TestBlockstore>,
@@ -51,16 +52,24 @@ impl ClusterBuilder {
         Self {
             size,
             rng: rand::rngs::StdRng::seed_from_u64(seed),
+            configs: Default::default(),
             services: Default::default(),
             clients: Default::default(),
             stores: Default::default(),
         }
     }
 
+    /// Add a node with randomized address, optionally bootstrapping from an existing node.
     fn add_node(&mut self, bootstrap: Option<usize>) {
-        let bootstrap_addr = bootstrap.map(|i| self.services[i].listen_addr()).cloned();
-        let config = make_config(&mut self.rng, self.size, bootstrap_addr);
-        let (svc, cli, store) = make_service(config);
+        let bootstrap_addr = bootstrap.map(|i| {
+            let peer_id = self.configs[i].network.local_peer_id();
+            let mut addr = self.configs[i].connection.listen_addr.clone();
+            addr.push(Protocol::P2p(peer_id.into()));
+            addr
+        });
+        let cfg = make_config(&mut self.rng, self.size, bootstrap_addr);
+        let (svc, cli, store) = make_service(cfg.clone());
+        self.configs.push(cfg);
         self.services.push(svc);
         self.clients.push(cli);
         self.stores.push(store);
@@ -94,9 +103,9 @@ fn make_config(rng: &mut StdRng, cluster_size: u32, bootstrap_addr: Option<Multi
             network_name: "smoke-test".to_owned(),
         },
         discovery: DiscoveryConfig {
-            static_addresses: bootstrap_addr.into_iter().collect(),
+            static_addresses: bootstrap_addr.iter().cloned().collect(),
             target_connections: cluster_size.try_into().unwrap(),
-            enable_kademlia: true,
+            enable_kademlia: bootstrap_addr.is_some(),
         },
         membership: MembershipConfig {
             static_subnets: vec![],

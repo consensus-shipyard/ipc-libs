@@ -49,6 +49,7 @@ type QueryMap = HashMap<content::QueryId, Query>;
 #[error("No known peers for subnet {0}")]
 pub struct NoKnownPeers(SubnetID);
 
+#[derive(Debug, Clone)]
 pub struct ConnectionConfig {
     /// The address where we will listen to incoming connections.
     pub listen_addr: Multiaddr,
@@ -58,6 +59,7 @@ pub struct ConnectionConfig {
     pub expected_peer_count: u32,
 }
 
+#[derive(Debug, Clone)]
 pub struct Config {
     pub network: NetworkConfig,
     pub discovery: DiscoveryConfig,
@@ -197,11 +199,6 @@ impl<P: StoreParams> Service<P> {
         let client = Client { request_tx: tx };
 
         Ok((service, client))
-    }
-
-    /// Address where the service will be available, once started.
-    pub fn listen_addr(&self) -> &Multiaddr {
-        &self.listen_addr
     }
 
     /// Start the swarm listening for incoming connections and drive the events forward.
