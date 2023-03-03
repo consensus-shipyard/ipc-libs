@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::Result;
 use fvm_ipld_blockstore::Blockstore;
+use ipc_ipld_resolver::missing_blocks::missing_blocks;
 use libipld::Cid;
 use libp2p_bitswap::BitswapStore;
 
@@ -15,15 +16,16 @@ pub struct TestBlockstore {
 
 impl Blockstore for TestBlockstore {
     fn has(&self, k: &Cid) -> Result<bool> {
-        todo!()
+        Ok(self.blocks.read().unwrap().contains_key(k))
     }
 
     fn get(&self, k: &Cid) -> Result<Option<Vec<u8>>> {
-        todo!()
+        Ok(self.blocks.read().unwrap().get(k).cloned())
     }
 
     fn put_keyed(&self, k: &Cid, block: &[u8]) -> Result<()> {
-        todo!()
+        self.blocks.write().unwrap().insert(*k, block.into());
+        Ok(())
     }
 }
 
@@ -33,18 +35,18 @@ impl BitswapStore for TestBlockstore {
     type Params = TestStoreParams;
 
     fn contains(&mut self, cid: &Cid) -> Result<bool> {
-        todo!()
+        Blockstore::has(self, cid)
     }
 
     fn get(&mut self, cid: &Cid) -> Result<Option<Vec<u8>>> {
-        todo!()
+        Blockstore::get(self, cid)
     }
 
     fn insert(&mut self, block: &libipld::Block<Self::Params>) -> Result<()> {
-        todo!()
+        Blockstore::put_keyed(self, block.cid(), block.data())
     }
 
     fn missing_blocks(&mut self, cid: &Cid) -> Result<Vec<Cid>> {
-        todo!()
+        missing_blocks::<Self, Self::Params>(self, cid)
     }
 }
