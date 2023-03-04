@@ -280,11 +280,8 @@ impl<P: StoreParams> Service<P> {
         if let identify::Event::Error { peer_id, error } = event {
             warn!("Error identifying {peer_id}: {error}")
         } else if let identify::Event::Received { peer_id, info } = event {
-            debug!("protocols supported by {peer_id}: {:?}", info.protocols);
             debug!("adding identified address of {peer_id} to {}", self.peer_id);
-            for addr in info.listen_addrs {
-                self.discovery_mut().add_address(&peer_id, addr);
-            }
+            self.discovery_mut().add_identified(&peer_id, &info);
         }
     }
 

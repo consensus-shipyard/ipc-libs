@@ -11,6 +11,7 @@ use std::{
 
 use libp2p::{
     core::connection::ConnectionId,
+    identify::Info,
     kad::{
         handler::KademliaHandlerProto, store::MemoryStore, InboundRequest, Kademlia,
         KademliaConfig, KademliaEvent, KademliaStoreInserts, QueryId,
@@ -82,6 +83,8 @@ pub struct Behaviour {
     /// User-defined list of nodes and their addresses.
     /// Typically includes bootstrap nodes, or it can be used for a static network.
     static_addresses: Vec<(PeerId, Multiaddr)>,
+    /// Name of the peer discovery protocol.
+    protocol_name: String,
     /// Kademlia behaviour, if enabled.
     inner: Toggle<Kademlia<MemoryStore>>,
     /// Number of current connections.
@@ -114,10 +117,10 @@ impl Behaviour {
         }
 
         let mut outbox = VecDeque::new();
+        let protocol_name = format!("/ipc/{}/kad/1.0.0", nc.network_name);
 
         let kademlia_opt = if dc.enable_kademlia {
             let mut kad_config = KademliaConfig::default();
-            let protocol_name = format!("/ipc/{}/kad/1.0.0", nc.network_name);
             kad_config.set_protocol_names(vec![Cow::Owned(protocol_name.as_bytes().to_vec())]);
 
             // Disable inserting records into the memory store, so peers cannot send `PutRecord`
@@ -152,6 +155,7 @@ impl Behaviour {
         Ok(Self {
             peer_id: nc.local_peer_id(),
             static_addresses,
+            protocol_name,
             inner: kademlia_opt.into(),
             lookup_interval: tokio::time::interval(Duration::from_secs(1)),
             outbox,
@@ -174,11 +178,20 @@ impl Behaviour {
         self.static_addresses.iter().any(|(id, _)| *id == peer_id)
     }
 
-    /// Add an address we learned from the `Identify` protocol to Kademlia.
+    /// Add addresses we learned from the `Identify` protocol to Kademlia.
     ///
     /// This seems to be the only way, because Kademlia rightfully treats
     /// incoming connections as ephemeral addresses, but doesn't have an
     /// alternative exchange mechanism.
+    pub fn add_identified(&mut self, peer_id: &PeerId, info: &Info) {
+        if info.protocols.contains(&self.protocol_name) {
+            for addr in info.listen_addrs.iter().cloned() {
+                self.add_address(peer_id, addr);
+            }
+        }
+    }
+
+    /// Add a known address to Kademlia.
     pub fn add_address(&mut self, peer_id: &PeerId, address: Multiaddr) {
         if let Some(kademlia) = self.inner.as_mut() {
             kademlia.add_address(peer_id, address);
