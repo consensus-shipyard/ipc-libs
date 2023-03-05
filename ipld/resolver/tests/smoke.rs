@@ -105,6 +105,7 @@ impl ClusterBuilder {
 #[tokio::test]
 async fn single_bootstrap_single_provider_resolve_one() {
     let _ = env_logger::builder().is_test(true).try_init();
+    //env_logger::init();
 
     // Choose agents.
     let cluster_size = 3;

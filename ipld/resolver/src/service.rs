@@ -280,6 +280,7 @@ impl<P: StoreParams> Service<P> {
         if let identify::Event::Error { peer_id, error } = event {
             warn!("Error identifying {peer_id}: {error}")
         } else if let identify::Event::Received { peer_id, info } = event {
+            debug!("protocols supported by {peer_id}: {:?}", info.protocols);
             debug!("adding identified address of {peer_id} to {}", self.peer_id);
             self.discovery_mut().add_identified(&peer_id, &info);
         }
@@ -295,8 +296,6 @@ impl<P: StoreParams> Service<P> {
                 debug!("removing unroutable peer {peer_id} from {}", self.peer_id);
                 self.membership_mut().set_unroutable(peer_id)
             }
-            discovery::Event::Connected(_, _) => {}
-            discovery::Event::Disconnected(_, _) => {}
         }
     }
 
