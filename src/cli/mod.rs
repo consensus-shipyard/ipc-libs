@@ -43,7 +43,7 @@ impl GlobalArguments {
         self.config_path.clone().unwrap_or_else(|| {
             let home = match std::env::var("HOME") {
                 Ok(home) => home,
-                Err(_) => panic!("cannot get home, just use current dir"),
+                Err(_) => panic!("cannot get home"),
             };
             format!("{home:}/{:}", DEFAULT_CONFIG_PATH)
         })
