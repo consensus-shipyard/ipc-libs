@@ -1,13 +1,10 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! The module contains the handlers implementation for the json rpc server.
 
 pub mod create;
 mod subnet;
 
-use anyhow::{anyhow, Result};
-use std::collections::HashMap;
-use std::sync::Arc;
-use serde_json::Value;
-pub use create::{CreateSubnetResponse, CreateSubnetParams};
 use crate::config::Subnet;
 use crate::jsonrpc::JsonRpcClientImpl;
 use crate::lotus::client::LotusJsonRPCClient;
@@ -15,6 +12,11 @@ use crate::manager::LotusSubnetManager;
 use crate::server::create::CreateSubnetHandler;
 use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
+use anyhow::{anyhow, Result};
+pub use create::{CreateSubnetParams, CreateSubnetResponse};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 pub type Method = String;
 
@@ -31,14 +33,14 @@ pub struct Handlers {
 impl Handlers {
     pub fn new(subnets: HashMap<String, Subnet>) -> Self {
         let managers = Self::create_managers(&subnets);
-        let shared = Arc::new(
+        let pool = Arc::new(
             SubnetManagerPool::new(subnets, managers)
-                .expect("cannot init subnet managers, configuration error")
+                .expect("cannot init subnet managers, configuration error"),
         );
 
         let mut handlers = HashMap::new();
 
-        let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(shared));
+        let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(pool));
         handlers.insert(String::from("create_subnet"), create_subnet);
 
         Self { handlers }
@@ -64,7 +66,9 @@ impl Handlers {
     ///
     /// If the traffic received by the json rpc node increases or the number of subnets increases
     /// significantly, we can use Connection Pooling for manage the subnet managers.
-    fn create_managers(subnets: &HashMap<String, Subnet>) -> HashMap<String, LotusSubnetManager<JsonRpcClientImpl>> {
+    fn create_managers(
+        subnets: &HashMap<String, Subnet>,
+    ) -> HashMap<String, LotusSubnetManager<JsonRpcClientImpl>> {
         let mut managers = HashMap::new();
         subnets.iter().for_each(|(subnet, subnet_config)| {
             let json_rpc_client = JsonRpcClientImpl::new(
