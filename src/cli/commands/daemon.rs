@@ -6,8 +6,7 @@ use async_trait::async_trait;
 use clap::Args;
 use std::fmt::Debug;
 
-use crate::cli::CommandLineHandler;
-use crate::config::Config;
+use crate::cli::{CommandLineHandler, GlobalParams};
 use crate::server::jsonrpc::JsonRPCServer;
 
 /// The command to start the ipc agent json rpc server in the foreground.
@@ -17,10 +16,14 @@ pub(crate) struct LaunchDaemon;
 impl CommandLineHandler for LaunchDaemon {
     type Arguments = LaunchDaemonArgs;
 
-    async fn handle(arguments: &Self::Arguments) -> anyhow::Result<()> {
-        log::debug!("launching json rpc server with args: {:?}", arguments);
+    async fn handle(global: &GlobalParams, arguments: &Self::Arguments) -> anyhow::Result<()> {
+        log::debug!(
+            "launching json rpc server with args: {:?} and global params: {:?}",
+            arguments,
+            global
+        );
 
-        let config = Config::from_file(&arguments.config_file)?;
+        let config = global.config()?;
         let server = JsonRPCServer::new(config);
         server.run().await;
 
@@ -30,7 +33,4 @@ impl CommandLineHandler for LaunchDaemon {
 
 #[derive(Debug, Args)]
 #[command(about = "Launch the ipc agent daemon process")]
-pub(crate) struct LaunchDaemonArgs {
-    #[arg(help = "The config file path to start the json rpc server")]
-    config_file: String,
-}
+pub(crate) struct LaunchDaemonArgs {}

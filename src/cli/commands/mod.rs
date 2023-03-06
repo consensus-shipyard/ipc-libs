@@ -7,7 +7,7 @@ mod daemon;
 
 use crate::cli::commands::create::{CreateSubnet, CreateSubnetArgs};
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
-use crate::cli::CommandLineHandler;
+use crate::cli::{CommandLineHandler, GlobalParams};
 use clap::{Parser, Subcommand};
 use std::fmt::Debug;
 
@@ -29,6 +29,8 @@ enum Commands {
 #[command(name = "ipc", about = "The IPC agent command line tool")]
 #[command(propagate_version = true)]
 struct IPCAgentCliCommands {
+    #[clap(flatten)]
+    global_params: GlobalParams,
     #[command(subcommand)]
     command: Commands,
 }
@@ -65,9 +67,10 @@ pub async fn cli() {
     // parse the arguments
     let args = IPCAgentCliCommands::parse();
 
+    let global = &args.global_params;
     let r = match &args.command {
-        Commands::Daemon(args) => LaunchDaemon::handle(args).await,
-        Commands::CreateSubnet(args) => CreateSubnet::handle(args).await,
+        Commands::Daemon(args) => LaunchDaemon::handle(global, args).await,
+        Commands::CreateSubnet(args) => CreateSubnet::handle(global, args).await,
     };
 
     if let Err(e) = r {

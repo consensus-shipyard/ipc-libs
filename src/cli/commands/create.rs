@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: MIT
 //! Create subnet cli command handler.
 
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use clap::Args;
 use fvm_shared::clock::ChainEpoch;
 use std::fmt::Debug;
+use url::Url;
 
-use crate::cli::CommandLineHandler;
+use crate::cli::{CommandLineHandler, GlobalParams};
 use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::server::{CreateSubnetParams, CreateSubnetResponse};
@@ -19,8 +21,11 @@ pub(crate) struct CreateSubnet;
 impl CommandLineHandler for CreateSubnet {
     type Arguments = CreateSubnetArgs;
 
-    async fn handle(arguments: &Self::Arguments) -> anyhow::Result<()> {
+    async fn handle(global: &GlobalParams, arguments: &Self::Arguments) -> anyhow::Result<()> {
         log::debug!("launching json rpc server with args: {:?}", arguments);
+
+        let url = get_ipc_agent_url(&arguments.ipc_agent_url, global, &arguments.parent)?;
+        let json_rpc_client = JsonRpcClientImpl::new(url, None);
 
         let params = CreateSubnetParams {
             parent: arguments.parent.clone(),
@@ -30,9 +35,6 @@ impl CommandLineHandler for CreateSubnet {
             finality_threshold: arguments.finality_threshold,
             check_period: arguments.check_period,
         };
-
-        let url = arguments.ipc_agent_url.parse()?;
-        let json_rpc_client = JsonRpcClientImpl::new(url, None);
 
         let address = json_rpc_client
             .request::<CreateSubnetResponse>(
@@ -52,7 +54,7 @@ impl CommandLineHandler for CreateSubnet {
 #[command(about = "Create a new subnet actor")]
 pub(crate) struct CreateSubnetArgs {
     #[arg(help = "The JSON RPC server url for ipc agent")]
-    pub ipc_agent_url: String,
+    pub ipc_agent_url: Option<String>,
     #[arg(help = "The parent subnet to create the new actor in")]
     pub parent: String,
     #[arg(help = "The name of the subnet")]
@@ -65,4 +67,23 @@ pub(crate) struct CreateSubnetArgs {
     pub finality_threshold: ChainEpoch,
     #[arg(help = "The checkpoint period")]
     pub check_period: ChainEpoch,
+}
+
+fn get_ipc_agent_url(
+    ipc_agent_url: &Option<String>,
+    global: &GlobalParams,
+    subnet_str: &str,
+) -> Result<Url> {
+    let url = match ipc_agent_url {
+        Some(url) => url.parse()?,
+        None => {
+            let config = global.config()?;
+            let subnet = config
+                .subnets
+                .get(subnet_str)
+                .ok_or_else(|| anyhow!("subnet not found"))?;
+            subnet.jsonrpc_api_http.clone()
+        }
+    };
+    Ok(url)
 }
