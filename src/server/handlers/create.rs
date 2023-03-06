@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::IPC_GATEWAY_ADDR;
 use crate::jsonrpc::JsonRpcClient;
 use crate::manager::SubnetManager;
-use crate::server::handlers::subnet::SubnetManagerShared;
+use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 
 #[derive(Debug, Deserialize)]
@@ -33,11 +33,11 @@ pub struct CreateSubnetResponse {
 
 /// The create subnet json rpc method handler.
 pub(crate) struct CreateSubnetHandler<T: JsonRpcClient> {
-    shared: Arc<SubnetManagerShared<T>>,
+    shared: Arc<SubnetManagerPool<T>>,
 }
 
 impl <T: JsonRpcClient> CreateSubnetHandler<T> {
-    pub(crate) fn new(shared: Arc<SubnetManagerShared<T>>) -> Self {
+    pub(crate) fn new(shared: Arc<SubnetManagerPool<T>>) -> Self {
         Self { shared }
     }
 }

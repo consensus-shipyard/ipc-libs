@@ -13,7 +13,7 @@ use crate::jsonrpc::JsonRpcClientImpl;
 use crate::lotus::client::LotusJsonRPCClient;
 use crate::manager::LotusSubnetManager;
 use crate::server::create::CreateSubnetHandler;
-use crate::server::handlers::subnet::SubnetManagerShared;
+use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 
 pub type Method = String;
@@ -32,7 +32,7 @@ impl Handlers {
     pub fn new(subnets: HashMap<String, Subnet>) -> Self {
         let managers = Self::create_managers(&subnets);
         let shared = Arc::new(
-            SubnetManagerShared::new(subnets, managers)
+            SubnetManagerPool::new(subnets, managers)
                 .expect("cannot init subnet managers, configuration error")
         );
 
