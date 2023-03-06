@@ -7,7 +7,7 @@ mod daemon;
 
 use crate::cli::commands::create::{CreateSubnet, CreateSubnetArgs};
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
-use crate::cli::{CommandLineHandler, GlobalParams};
+use crate::cli::{CommandLineHandler, GlobalArguments};
 use clap::{Parser, Subcommand};
 use std::fmt::Debug;
 
@@ -34,7 +34,7 @@ enum Commands {
 #[command(propagate_version = true)]
 struct IPCAgentCliCommands {
     #[clap(flatten)]
-    global_params: GlobalParams,
+    global_params: GlobalArguments,
     #[command(subcommand)]
     command: Commands,
 }
