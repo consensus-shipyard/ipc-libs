@@ -3,7 +3,7 @@
 //! Create subnet handler and parameters
 
 use crate::config::DEFAULT_IPC_GATEWAY_ADDR;
-use crate::jsonrpc::JsonRpcClient;
+use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::manager::SubnetManager;
 use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
@@ -45,19 +45,17 @@ impl<T: JsonRpcClient> CreateSubnetHandler<T> {
 }
 
 #[async_trait]
-impl<T: JsonRpcClient + Send + Sync> JsonRPCRequestHandler for CreateSubnetHandler<T> {
+impl JsonRPCRequestHandler for CreateSubnetHandler<JsonRpcClientImpl> {
     type Request = CreateSubnetParams;
     type Response = CreateSubnetResponse;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
         let parent = &request.parent;
 
-        if !self.pool.contains_subnet(parent) {
-            return Err(anyhow!("target parent subnet not found"));
-        }
-
-        // this is safe to unwrap as we ensure this key exists.
-        let conn = self.pool.get(parent).unwrap();
+        let conn = match self.pool.get(parent).await {
+            None => return Err(anyhow!("target parent subnet not found")),
+            Some(conn) => conn,
+        };
 
         let constructor_params = ConstructParams {
             parent: SubnetID::from_str(parent)?,

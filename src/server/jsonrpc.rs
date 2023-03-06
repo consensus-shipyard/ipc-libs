@@ -5,6 +5,7 @@ use crate::config::{Config, JSON_RPC_VERSION};
 use crate::server::request::JSONRPCRequest;
 use crate::server::response::{JSONRPCError, JSONRPCErrorResponse, JSONRPCResultResponse};
 use crate::server::Handlers;
+use anyhow::Result;
 use bytes::Bytes;
 
 use fvm_shared::address::set_current_network;
@@ -28,22 +29,32 @@ type ArcHandlers = Arc<Handlers>;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let config = Config::from_file("PATH TO YOUR CONFIG FILE").unwrap();
-///     let n = JsonRPCServer::new(config);
+///     let path = "PATH TO YOUR CONFIG FILE";
+///     let n = JsonRPCServer::from_config_path(path).unwrap();
 ///     n.run().await;
 /// }
 /// ```
 pub struct JsonRPCServer {
     config: Config,
+    /// The default path to reload config from
+    default_config_path: String,
 }
 
 impl JsonRPCServer {
-    pub fn new(config: Config) -> Self {
-        Self { config }
+    pub fn new(config: Config, default_config_path: String) -> Self {
+        Self {
+            config,
+            default_config_path,
+        }
+    }
+
+    pub fn from_config_path(config_path_str: &str) -> Result<Self> {
+        let config = Config::from_file(config_path_str)?;
+        Ok(Self::new(config, String::from(config_path_str)))
     }
 
     /// Runs the node in the current thread
-    pub async fn run(&self) {
+    pub async fn run(&self) -> Result<()> {
         log::info!(
             "IPC agent rpc node listening at {:?}",
             self.config.server.json_rpc_address
@@ -52,10 +63,11 @@ impl JsonRPCServer {
         // need to set network, otherwise Address::from_str will throw error.
         set_current_network(self.config.server.network);
 
-        let handlers = Arc::new(Handlers::new(self.config.subnets.clone()));
+        let handlers = Arc::new(Handlers::new(self.default_config_path.clone())?);
         warp::serve(json_rpc_filter(handlers))
             .run(self.config.server.json_rpc_address)
             .await;
+        Ok(())
     }
 }
 
@@ -151,18 +163,17 @@ mod tests {
     use crate::server::jsonrpc::{json_rpc_filter, ArcHandlers, JSONRPCResultResponse};
     use crate::server::request::JSONRPCRequest;
     use crate::server::Handlers;
-    use std::collections::HashMap;
     use std::sync::Arc;
     use warp::http::StatusCode;
 
-    fn get_test_handlers() -> ArcHandlers {
-        Arc::new(Handlers::new(HashMap::new()))
+    fn get_empty_handlers() -> ArcHandlers {
+        Arc::new(Handlers::empty_handlers())
     }
 
     #[tokio::test]
     #[ignore]
     async fn test_json_rpc_filter_works() {
-        let filter = json_rpc_filter(get_test_handlers());
+        let filter = json_rpc_filter(get_empty_handlers());
 
         let foo = "foo".to_string();
         let jsonrpc = String::from(JSON_RPC_VERSION);
@@ -191,7 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_json_rpc_filter_cannot_parse_param() {
-        let filter = json_rpc_filter(get_test_handlers());
+        let filter = json_rpc_filter(get_empty_handlers());
 
         let value = warp::test::request()
             .method("POST")
@@ -205,7 +216,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_json_rpc_filter_not_found() {
-        let filter = json_rpc_filter(get_test_handlers());
+        let filter = json_rpc_filter(get_empty_handlers());
 
         let value = warp::test::request()
             .method("POST")

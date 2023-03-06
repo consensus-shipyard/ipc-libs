@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: MIT
 //! The module contains the handlers implementation for the json rpc server.
 
+mod config;
 pub mod create;
 mod subnet;
 
-use crate::config::Subnet;
+use crate::config::ReloadableConfig;
 use crate::jsonrpc::JsonRpcClientImpl;
-use crate::lotus::client::LotusJsonRPCClient;
-use crate::manager::LotusSubnetManager;
 use crate::server::create::CreateSubnetHandler;
+use crate::server::handlers::config::ReloadConfigHandler;
 use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::{anyhow, Result};
@@ -23,6 +23,7 @@ pub type Method = String;
 /// A util enum to avoid Box<dyn> mess in Handlers struct
 enum HandlerWrapper {
     CreateSubnet(CreateSubnetHandler<JsonRpcClientImpl>),
+    ReloadConfig(ReloadConfigHandler),
 }
 
 /// The collection of all json rpc handlers
@@ -31,19 +32,30 @@ pub struct Handlers {
 }
 
 impl Handlers {
-    pub fn new(subnets: HashMap<String, Subnet>) -> Self {
-        let managers = Self::create_managers(&subnets);
-        let pool = Arc::new(
-            SubnetManagerPool::new(subnets, managers)
-                .expect("cannot init subnet managers, configuration error"),
-        );
+    /// We test the handlers separately and individually instead of from the handlers.
+    /// Convenient method for json rpc to test routing.
+    #[cfg(test)]
+    pub fn empty_handlers() -> Self {
+        Self {
+            handlers: HashMap::new(),
+        }
+    }
 
+    pub fn new(config_path_string: String) -> Result<Self> {
         let mut handlers = HashMap::new();
 
+        let config = Arc::new(ReloadableConfig::new(config_path_string.clone())?);
+        let config_handler = HandlerWrapper::ReloadConfig(ReloadConfigHandler::new(
+            config.clone(),
+            config_path_string,
+        ));
+        handlers.insert(String::from("reload_config"), config_handler);
+
+        let pool = Arc::new(SubnetManagerPool::from_reload_config(config));
         let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(pool));
         handlers.insert(String::from("create_subnet"), create_subnet);
 
-        Self { handlers }
+        Ok(Self { handlers })
     }
 
     pub async fn handle(&self, method: Method, params: Value) -> Result<Value> {
@@ -53,31 +65,13 @@ impl Handlers {
                     let r = handler.handle(serde_json::from_value(params)?).await?;
                     Ok(serde_json::to_value(r)?)
                 }
+                HandlerWrapper::ReloadConfig(handler) => {
+                    handler.handle(serde_json::from_value(params)?).await?;
+                    Ok(serde_json::to_value(())?)
+                }
             }
         } else {
             Err(anyhow!("method not supported"))
         }
-    }
-
-    /// Create the needed subnet managers for each subnet.
-    ///
-    /// Since we don't have a large number of subnet for now, to keep things simple,
-    /// these managers are created upon initialization.
-    ///
-    /// If the traffic received by the json rpc node increases or the number of subnets increases
-    /// significantly, we can use Connection Pooling for manage the subnet managers.
-    fn create_managers(
-        subnets: &HashMap<String, Subnet>,
-    ) -> HashMap<String, LotusSubnetManager<JsonRpcClientImpl>> {
-        let mut managers = HashMap::new();
-        subnets.iter().for_each(|(subnet, subnet_config)| {
-            let json_rpc_client = JsonRpcClientImpl::new(
-                subnet_config.jsonrpc_api_http.clone(),
-                subnet_config.auth_token.clone().as_deref(),
-            );
-            let lotus_client = LotusJsonRPCClient::new(json_rpc_client);
-            managers.insert(subnet.clone(), LotusSubnetManager::new(lotus_client));
-        });
-        managers
     }
 }

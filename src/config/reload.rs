@@ -1,0 +1,57 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
+//! Reloadable config
+
+use crate::config::Config;
+use anyhow::Result;
+use std::ops::DerefMut;
+use std::path::Path;
+use std::sync::{Arc, RwLock};
+use tokio::sync::broadcast;
+
+/// Reloadable configuration.
+pub struct ReloadableConfig {
+    config: Arc<RwLock<Arc<Config>>>,
+    broadcast_tx: broadcast::Sender<()>,
+    #[allow(dead_code)]
+    broadcast_rx: broadcast::Receiver<()>,
+}
+
+impl ReloadableConfig {
+    pub fn new(path: impl AsRef<Path>) -> Result<Self> {
+        // we dont really need a big channel, the frequency should be very very low
+        let channel_size = 8;
+        let (broadcast_tx, broadcast_rx) = broadcast::channel(channel_size);
+
+        let config = Arc::new(RwLock::new(Arc::new(Config::from_file(path)?)));
+
+        Ok(Self {
+            config,
+            broadcast_tx,
+            broadcast_rx,
+        })
+    }
+
+    /// Read from the config file.
+    pub fn get_config(&self) -> Arc<Config> {
+        let config = self.config.read().unwrap();
+        config.clone()
+    }
+
+    /// Triggers a reload of the config from the target path
+    pub async fn reload(&self, path: String) -> Result<()> {
+        let new_config = Config::from_file_async(path).await?;
+
+        let mut config = self.config.write().unwrap();
+        let r = config.deref_mut();
+        *r = Arc::new(new_config);
+
+        self.broadcast_tx.send(()).unwrap_or_default();
+
+        Ok(())
+    }
+
+    pub fn new_subscriber(&self) -> broadcast::Receiver<()> {
+        self.broadcast_tx.subscribe()
+    }
+}
