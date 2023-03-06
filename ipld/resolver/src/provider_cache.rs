@@ -83,6 +83,11 @@ impl SubnetProviderCache {
         self.routable_peers.contains(peer_id)
     }
 
+    /// Check whether we have received recent updates from a peer.
+    pub fn has_timestamp(&self, peer_id: &PeerId) -> bool {
+        self.peer_timestamps.contains_key(peer_id)
+    }
+
     /// Try to add a provider to the cache.
     ///
     /// Returns `None` if the peer is not routable and nothing could be added.

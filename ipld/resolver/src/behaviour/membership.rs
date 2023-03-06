@@ -210,7 +210,7 @@ impl Behaviour {
     /// Call this method when the discovery service learns the address of a peer.
     pub fn set_routable(&mut self, peer_id: PeerId) {
         self.provider_cache.set_routable(peer_id);
-        self.publish_to_new_peer(peer_id);
+        self.publish_for_new_peer(peer_id);
     }
 
     /// Mark a peer as unroutable in the cache.
@@ -252,22 +252,30 @@ impl Behaviour {
     }
 
     /// Try to add a provider record to the cache.
+    ///
+    /// If this is the first time we receive a record from the peer,
+    /// reciprocate by publishing our own.
     fn handle_provider_record(&mut self, record: ProviderRecord) {
-        let event = match self.provider_cache.add_provider(&record) {
-            None => Some(Event::Skipped(record.peer_id)),
-            Some(d) if d.is_empty() => None,
-            Some(d) => Some(Event::Updated(record.peer_id, d)),
+        let is_new = !self.provider_cache.has_timestamp(&record.peer_id);
+        let (event, publish) = match self.provider_cache.add_provider(&record) {
+            None => (Some(Event::Skipped(record.peer_id)), false),
+            Some(d) if d.is_empty() => (None, false),
+            Some(d) => (Some(Event::Updated(record.peer_id, d)), is_new),
         };
 
         if let Some(event) = event {
             self.outbox.push_back(event);
+        }
+
+        if publish {
+            self.publish_for_new_peer(record.peer_id)
         }
     }
 
     /// Handle new subscribers to the membership topic.
     fn handle_subscriber(&mut self, peer_id: PeerId, topic: TopicHash) {
         if topic == self.membership_topic.hash() {
-            self.publish_to_new_peer(peer_id)
+            self.publish_for_new_peer(peer_id)
         } else {
             warn!(
                 "unknown gossipsub topic in subscription from {}: {}",
@@ -277,7 +285,7 @@ impl Behaviour {
     }
 
     /// Publish our provider record when we encounter a new peer, unless we have recently done so.
-    fn publish_to_new_peer(&mut self, peer_id: PeerId) {
+    fn publish_for_new_peer(&mut self, peer_id: PeerId) {
         let now = Timestamp::now();
         if self.last_publish_timestamp > now - self.min_time_between_publish {
             debug!("recently published, not publishing again for peer {peer_id}");
