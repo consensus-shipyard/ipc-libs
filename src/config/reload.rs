@@ -9,7 +9,10 @@ use std::path::Path;
 use std::sync::{Arc, RwLock};
 use tokio::sync::broadcast;
 
-/// Reloadable configuration.
+/// Reloadable configuration exposes the latest config through `get_config` method. Use this you
+/// will always the latest config. At the same time, it also exposes `new_subscriber`. If caller
+/// needs to be notified when config has updated, just make a new subscription. Once received a
+/// notification, read the config again to obtain the latest config.
 pub struct ReloadableConfig {
     config: RwLock<Arc<Config>>,
     broadcast_tx: broadcast::Sender<()>,

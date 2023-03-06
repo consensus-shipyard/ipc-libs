@@ -41,6 +41,11 @@ async fn reload_works() {
     let h = Arc::new(ReloadableConfig::new(path.clone()).unwrap());
     let original_config = h.get_config();
 
+    // A simple barrier implementation for testing.
+    // Refer to: https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/std/sync/struct.Condvar.html#examples
+    // Idea is after the main thread makes a new subscriber to make sure will receive broadcasted updates,
+    // then tokio spawned update config thread shall trigger the update. This way, we dont miss the
+    // update and stuck the main thread.
     let pair = Arc::new((Mutex::new(false), Condvar::new()));
     let pair2 = pair.clone();
     let h_cloned = h.clone();
@@ -51,7 +56,6 @@ async fn reload_works() {
             while !*started {
                 started = cvar.wait(started).unwrap();
             }
-            drop(started);
         };
 
         let config_str = config_str_diff_addr();
@@ -62,14 +66,13 @@ async fn reload_works() {
         h_cloned.reload(path).await.unwrap();
     });
 
+    let mut rx = h.new_subscriber();
     {
         let &(ref lock, ref cvar) = &*pair2;
         let mut started = lock.lock().unwrap();
         *started = true;
         cvar.notify_one();
     }
-
-    let mut rx = h.new_subscriber();
     rx.recv().await.unwrap();
 
     let updated_config = h.get_config();
