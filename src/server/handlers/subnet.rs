@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{RwLock, RwLockReadGuard};
 
+/// The subnet manager connection that holds the subnet config and the manager instance.
 pub(crate) struct Connection<T: JsonRpcClient> {
     subnet: Subnet,
     manager: LotusSubnetManager<T>,
@@ -54,6 +55,9 @@ impl SubnetManagerPool<JsonRpcClientImpl> {
         }
     }
 
+    /// Get the connection instance for the subnet. If the `subnet_str` is not found in the
+    /// pool, it will check in the latest config. If found in the config, it will create the new
+    /// connection and insert to the pool. If it's still not found in the config, it returns None.
     pub async fn get(
         &self,
         subnet_str: &str,
