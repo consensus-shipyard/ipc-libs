@@ -26,7 +26,11 @@ enum Commands {
 
 /// The overall command line struct to be used by `clap`.
 #[derive(Debug, Parser)]
-#[command(name = "ipc", about = "The IPC agent command line tool")]
+#[command(
+    name = "ipc",
+    about = "The IPC agent command line tool",
+    version = "v0.0.1"
+)]
 #[command(propagate_version = true)]
 struct IPCAgentCliCommands {
     #[clap(flatten)]
