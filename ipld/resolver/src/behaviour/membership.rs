@@ -286,6 +286,16 @@ impl Behaviour {
 
     /// Publish our provider record when we encounter a new peer, unless we have recently done so.
     fn publish_for_new_peer(&mut self, peer_id: PeerId) {
+        if self.subnet_ids.is_empty() {
+            // We have nothing, so there's no need for them to know this ASAP.
+            // The reason we shouldn't disable periodic publishing of empty
+            // records completely is because it would also remove one of
+            // triggers for non-connected peers to eagerly publish their
+            // subnets when they see our empty records. Plus they could
+            // be good to show on metrics, to have a single source of
+            // the cluster size available on any node.
+            return;
+        }
         let now = Timestamp::now();
         if self.last_publish_timestamp > now - self.min_time_between_publish {
             debug!("recently published, not publishing again for peer {peer_id}");
