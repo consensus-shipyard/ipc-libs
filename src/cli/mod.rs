@@ -26,23 +26,24 @@ pub trait CommandLineHandler {
     type Arguments: std::fmt::Debug + Args;
 
     /// Handles the request with the provided arguments. Dev should handle the content to print and how
-    async fn handle(global: &GlobalParams, arguments: &Self::Arguments) -> anyhow::Result<()>;
+    async fn handle(global: &GlobalArguments, arguments: &Self::Arguments) -> anyhow::Result<()>;
 }
 
+/// The global arguments that will be shared by all cli commands.
 #[derive(Debug, Args, Clone)]
-pub struct GlobalParams {
+pub struct GlobalArguments {
     #[arg(
         help = "The toml config file path for IPC Agent, default to ${HOME}/.ipc_agent/config.toml"
     )]
     config_path: Option<String>,
 }
 
-impl GlobalParams {
+impl GlobalArguments {
     pub fn config_path(&self) -> String {
         self.config_path.clone().unwrap_or_else(|| {
             let home = match std::env::var("HOME") {
                 Ok(home) => home,
-                Err(_) => String::from(""), // cannot get home, just use current dir
+                Err(_) => panic!("cannot get home, just use current dir"),
             };
             format!("{home:}/{:}", DEFAULT_CONFIG_PATH)
         })
