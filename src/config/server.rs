@@ -11,5 +11,5 @@ pub struct Server {
 }
 
 pub mod json_rpc_methods {
-    pub const CREATE_SUBNET: &str = "create_subnet";
+    pub const CREATE_SUBNET: &str = "ipc_createSubnet";
 }
