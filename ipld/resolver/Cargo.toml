@@ -11,6 +11,7 @@ license-file.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 blake2b_simd = { workspace = true }
+bloom = "0.3"
 thiserror = { workspace = true }
 tokio = { workspace = true }
 libp2p = { version = "0.50", default-features = false, features = [
@@ -39,6 +40,7 @@ quickcheck = { workspace = true, optional = true }
 ipc-sdk = { workspace = true }
 fvm_ipld_encoding = { workspace = true }
 fvm_shared = { workspace = true, optional = true }
+fvm_ipld_blockstore = { workspace = true, optional = true }
 
 [dev-dependencies]
 quickcheck = { workspace = true }
@@ -47,5 +49,6 @@ fvm_shared = { workspace = true, features = ["arb"] }
 
 
 [features]
-default = ["arb"]
+default = ["arb", "missing_blocks"]
 arb = ["quickcheck", "fvm_shared/arb"]
+missing_blocks = ["fvm_ipld_blockstore"]

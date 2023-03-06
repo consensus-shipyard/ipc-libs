@@ -6,8 +6,8 @@ mod config;
 pub mod create;
 mod subnet;
 
+use crate::config::json_rpc_methods;
 use crate::config::ReloadableConfig;
-use crate::jsonrpc::JsonRpcClientImpl;
 use crate::server::create::CreateSubnetHandler;
 use crate::server::handlers::config::ReloadConfigHandler;
 use crate::server::handlers::subnet::SubnetManagerPool;
@@ -22,7 +22,7 @@ pub type Method = String;
 
 /// A util enum to avoid Box<dyn> mess in Handlers struct
 enum HandlerWrapper {
-    CreateSubnet(CreateSubnetHandler<JsonRpcClientImpl>),
+    CreateSubnet(CreateSubnetHandler),
     ReloadConfig(ReloadConfigHandler),
 }
 
@@ -45,15 +45,19 @@ impl Handlers {
         let mut handlers = HashMap::new();
 
         let config = Arc::new(ReloadableConfig::new(config_path_string.clone())?);
-        let config_handler = HandlerWrapper::ReloadConfig(ReloadConfigHandler::new(
-            config.clone(),
-            config_path_string,
-        ));
-        handlers.insert(String::from("reload_config"), config_handler);
+        handlers.insert(
+            String::from(json_rpc_methods::RELOAD_CONFIG),
+            HandlerWrapper::ReloadConfig(ReloadConfigHandler::new(
+                config.clone(),
+                config_path_string,
+            )),
+        );
 
         let pool = Arc::new(SubnetManagerPool::from_reload_config(config));
-        let create_subnet = HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(pool));
-        handlers.insert(String::from("create_subnet"), create_subnet);
+        handlers.insert(
+            String::from(json_rpc_methods::CREATE_SUBNET),
+            HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(pool)),
+        );
 
         Ok(Self { handlers })
     }

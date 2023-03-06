@@ -13,3 +13,8 @@ pub struct Server {
     #[serde(deserialize_with = "deserialize_network")]
     pub network: Network,
 }
+
+pub mod json_rpc_methods {
+    pub const CREATE_SUBNET: &str = "ipc_createSubnet";
+    pub const RELOAD_CONFIG: &str = "ipc_reloadConfig";
+}

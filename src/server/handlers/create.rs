@@ -3,7 +3,6 @@
 //! Create subnet handler and parameters
 
 use crate::config::DEFAULT_IPC_GATEWAY_ADDR;
-use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::manager::SubnetManager;
 use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
@@ -17,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateSubnetParams {
     pub parent: String,
     pub name: String,
@@ -27,32 +26,32 @@ pub struct CreateSubnetParams {
     pub check_period: ChainEpoch,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateSubnetResponse {
     /// The address of the created subnet
     pub address: String,
 }
 
 /// The create subnet json rpc method handler.
-pub(crate) struct CreateSubnetHandler<T: JsonRpcClient> {
-    pool: Arc<SubnetManagerPool<T>>,
+pub(crate) struct CreateSubnetHandler {
+    pool: Arc<SubnetManagerPool>,
 }
 
-impl<T: JsonRpcClient> CreateSubnetHandler<T> {
-    pub(crate) fn new(pool: Arc<SubnetManagerPool<T>>) -> Self {
+impl CreateSubnetHandler {
+    pub(crate) fn new(pool: Arc<SubnetManagerPool>) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl JsonRPCRequestHandler for CreateSubnetHandler<JsonRpcClientImpl> {
+impl JsonRPCRequestHandler for CreateSubnetHandler {
     type Request = CreateSubnetParams;
     type Response = CreateSubnetResponse;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
         let parent = &request.parent;
 
-        let conn = match self.pool.get(parent).await {
+        let conn = match self.pool.get(parent) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
