@@ -11,8 +11,9 @@ use tokio::sync::broadcast;
 
 /// Reloadable configuration.
 pub struct ReloadableConfig {
-    config: Arc<RwLock<Arc<Config>>>,
+    config: RwLock<Arc<Config>>,
     broadcast_tx: broadcast::Sender<()>,
+    /// We keep at least one channel active, so that we dont encounter a `SendError`. We might need to use it later.
     #[allow(dead_code)]
     broadcast_rx: broadcast::Receiver<()>,
 }
@@ -20,10 +21,9 @@ pub struct ReloadableConfig {
 impl ReloadableConfig {
     pub fn new(path: impl AsRef<Path>) -> Result<Self> {
         // we dont really need a big channel, the frequency should be very very low
-        let channel_size = 8;
-        let (broadcast_tx, broadcast_rx) = broadcast::channel(channel_size);
+        let (broadcast_tx, broadcast_rx) = broadcast::channel(8);
 
-        let config = Arc::new(RwLock::new(Arc::new(Config::from_file(path)?)));
+        let config = RwLock::new(Arc::new(Config::from_file(path)?));
 
         Ok(Self {
             config,
