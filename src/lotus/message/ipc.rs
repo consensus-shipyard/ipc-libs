@@ -13,12 +13,16 @@ pub struct IPCGetPrevCheckpointForChildResponse {
     pub cid: CIDMap,
 }
 
+/// The state of a gateway actor. The struct omits all fields that are not relevant for the
+/// execution of the IPC agent.
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadGatewayStateResponse {
     pub check_period: ChainEpoch,
 }
 
+/// The state of a subnet actor. The struct omits all fields that are not relevant for the
+/// execution of the IPC agent.
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadSubnetActorStateResponse {
