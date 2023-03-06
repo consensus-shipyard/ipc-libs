@@ -23,9 +23,8 @@ impl CommandLineHandler for LaunchDaemon {
             global
         );
 
-        let config = global.config()?;
-        let server = JsonRPCServer::new(config);
-        server.run().await;
+        let server = JsonRPCServer::from_config_path(&global.config_path())?;
+        server.run().await?;
 
         Ok(())
     }
