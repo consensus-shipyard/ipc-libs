@@ -77,9 +77,12 @@ impl SubnetManagerPool<JsonRpcClientImpl> {
             };
 
             // we need a write lock to update the new connection
-            let mut connections = self.connections.write().await;
-            connections.insert(String::from(subnet_str), connection);
+            self.connections
+                .write()
+                .await
+                .insert(String::from(subnet_str), connection);
 
+            // obtain the read lock to align with the return type
             self.connections.read().await
         } else {
             connections
