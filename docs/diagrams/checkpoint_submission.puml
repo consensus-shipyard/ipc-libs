@@ -1,0 +1,70 @@
+@startuml Submit Checkpoint
+box "Parent Subnet Validator" #EEFBF5
+participant "Parent Lotus (Validator/Miner)" as parent_lotus
+control     "IPC Agent" as parent_agent
+end box
+
+box "Child Subnet Validator" #FEEFEC
+control     "IPC Agent" as child_agent
+participant "Parent Lotus (Full)" as full_lotus
+participant "Child Lotus (Validator)" as child_lotus
+actor "Validator" as validator
+end box
+
+== Initialize ==
+
+parent_agent --> parent_lotus: subscribe
+
+validator --> child_lotus: start
+validator --> full_lotus: start
+validator --> child_agent: start
+
+child_agent --> full_lotus: subscribe
+child_agent --> child_lotus: subscribe
+
+validator -> parent_lotus: join subnet
+parent_lotus --> full_lotus: broadcast
+
+== During Epoch ==
+
+loop
+  full_lotus --> child_agent: observe finalized top-down message
+  child_agent -> child_lotus: submit finalized top-down message
+
+  alt if has power to create block
+    child_lotus -> child_lotus: create block
+  else
+    child_lotus -> child_lotus: receive block
+  end
+end
+
+== End of Epoch ==
+
+child_lotus -> child_lotus: create checkpoint
+child_lotus --> child_agent: observe checkpoint
+
+alt if validator in epoch
+  child_agent -> child_lotus: submit signature over checkpoint
+end
+
+loop
+  child_lotus -> child_lotus: create block
+  ... wait for quorum of signatures ...
+end
+
+child_lotus --> child_agent: observe quorum certificate
+child_agent -> parent_lotus: submit checkpoint with quorum certificate
+
+parent_lotus -> parent_agent ++: resolve checkpoint CID
+parent_agent -> child_agent ++: resolve checkpoint CID
+note right
+This is where the IPLD Resolver
+comes into play.
+end note
+child_agent -> child_lotus: fetch checkpoint contents
+return checkpoint contents
+return checkpoint contents
+
+parent_lotus -> parent_lotus: create block and execute checkpoint
+
+@enduml
