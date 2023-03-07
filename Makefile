@@ -1,4 +1,4 @@
-.PHONY: all build test lint license check-fmt check-clippy
+.PHONY: all build test lint license check-fmt check-clippy diagrams
 
 all: test build
 
@@ -24,3 +24,6 @@ check-fmt:
 
 check-clippy:
 	cargo clippy --all --tests -- -D clippy::all
+
+diagrams:
+	$(MAKE) -C docs/diagrams
