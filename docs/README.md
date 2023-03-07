@@ -65,3 +65,25 @@ Internally the protocols are wrapped into behaviours that interpret their events
 The following diagram shows a typical sequence of events within the IPLD Resolver. For brevity, only one peer is shown in detail; it's counterpart is represented as a single boundary.
 
 ![IPLD Resolver](diagrams/ipld_resolver.png)
+
+# Automation
+
+The diagrams in can be rendered with `make diagrams`.
+
+Adding the following script to `.git/hooks/pre-commit` automatically renders and checks in the images when we commit changes to the them.
+
+```bash
+#!/usr/bin/env bash
+
+# If any command fails, exit immediately with that command's exit status
+set -eo pipefail
+
+# Redirect output to stderr.
+exec 1>&2
+
+if git diff --cached --name-only | grep .puml
+then
+  make diagrams
+  git add docs/diagrams/*.png
+fi
+```
