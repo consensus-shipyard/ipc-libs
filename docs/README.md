@@ -15,7 +15,17 @@ The most typical use case would be the propagation of checkpoints from child sub
 
 ### Checkpoint Schema
 
-TODO: Checkpointing Entity Relations
+One possible conceptual model of checkpointing is depicted by the following Entity Relationship diagram:
+
+![Checkpoint Schema](diagrams/checkpoint_schema.png)
+
+It shows that the Subnet Actor in the parent subnet governs the power of validators in the child subnet, which is fixed a certain number of blocks, called an epoch.
+
+At the end of an epoch, the validators in the child subnet produce a checkpoint over some contents, notably the bottom-up or cross-messages they want to propagate towards the parent subnet. Through the cross-messages, the checkpoint indirectly points to individual messages that users or actors wanted to send.
+
+Once enough signatures are collected to form a Quorum Certificate over the checkpoint (the specific rules are in the jurisdiction of the Subnet Actor), the checkpoint is submitted to the parent ledger.
+
+However, the submitted checkpoint does not contain the raw messages (indicated by the dashed line). The content needs to be resolved using the IPC Resolver.
 
 ### Checkpoint Workflow
 

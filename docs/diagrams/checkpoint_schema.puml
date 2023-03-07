@@ -1,0 +1,85 @@
+
+@startuml Checkpointing Schema
+
+package "Subnet Actor in parent subnet" #79ADDC {
+  entity "Validator" as validator {
+    * public_key
+    --
+    * power: delegated staking power
+  }
+
+  entity "Epoch" as epoch {
+    * epoch_number
+    --
+    * start_block_height <<FK>>
+    * epoch_length
+  }
+
+  entity "Validator Snapshot" as validator_snapshot {
+    * epoch_number <<FK>>
+    * public_key <<FK>>
+    --
+    * power
+  }
+  note left
+    At beginning of epoch
+  end note
+
+  entity "Submitted Checkpoint" as submit_ckpt {
+    * checkpoint <<FK>>
+  }
+  note left
+    Such that the signatures
+    for a Quorum in the epoch.
+  end note
+}
+
+package "checkpointing" #FFEE93 {
+  entity "Checkpoint" as ckpt {
+    * epoch_number <<FK>>
+    --
+    * cross_messages <<FK>>: CID
+  }
+
+  entity "Signature" as sig {
+    * public_key <<FK>>: validator public key
+    * checkpoint <<FK>>
+    --
+    * signature
+  }
+}
+
+
+package "child subnet" #FFC09F {
+  entity "Cross Messages" as cross_msgs {
+    * messages: <<PK>> CID
+    --
+  }
+  note right
+    An AMT containing CIDs
+  end note
+
+  entity "Messsage" as msg {
+    * id: CID <<PK>>
+    --
+    * from: address <<FK>>
+    * to: address <<FK>>
+    * nonce
+    * payload
+    ...
+  }
+}
+
+validator_snapshot }|--|| epoch
+validator_snapshot }o--|| validator
+
+ckpt |o--|| epoch
+submit_ckpt |o--|| ckpt
+
+sig }o--|| validator
+sig }o--|| ckpt
+
+cross_msgs |o--o{ msg
+cross_msgs ||..o| ckpt : can be resolved
+
+@enduml
