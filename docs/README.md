@@ -55,7 +55,7 @@ See the libp2p [specs](https://github.com/libp2p/specs) and [docs](https://docs.
 
 The Resolver is completely agnostic over what content it can resolve, as long as it's based on CIDs; it's not aware of the checkpointing use case above.
 
-The interface with the host system is through a host-provided implementation of the [BitswapStore](https://github.com/ipfs-rust/libp2p-bitswap/blob/7dd9cececda3e4a8f6e14c200a4b457159d8db33/src/behaviour.rs#L55) which the library uses to retrieve and store content.
+The interface with the host system is through a host-provided implementation of the [BitswapStore](https://github.com/ipfs-rust/libp2p-bitswap/blob/7dd9cececda3e4a8f6e14c200a4b457159d8db33/src/behaviour.rs#L55) which the library uses to retrieve and store content. Implementors can make use of the [missing_blocks](https://github.com/consensus-shipyard/ipc-agent/blob/main/ipld/resolver/src/missing_blocks.rs) helper method which recursively collects all CIDs from an IPLD `Blockstore`, starting from the root CID we are looking for.
 
 Internally the protocols are wrapped into behaviours that interpret their events and manage their associated state:
 * `Discovery` wraps `Kademlia`
