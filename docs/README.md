@@ -44,4 +44,24 @@ This is just a high level view of what happens during message resolution. In the
 
 ## IPLD Resolver Sub-components
 
-TODO
+The IPLD Resolver uses libp2p to form a Peer-to-Peer network, using the following protocols:
+* [Ping](https://github.com/libp2p/rust-libp2p/tree/v0.50.1/protocols/ping)
+* [Identify](https://github.com/libp2p/rust-libp2p/tree/v0.50.1/protocols/ping) is used to learn the listening address of the remote peers
+* [Kademlia](https://github.com/libp2p/rust-libp2p/tree/v0.50.1/protocols/kad) is used for peer discovery
+* [Gossipsub](https://github.com/libp2p/rust-libp2p/tree/v0.50.1/protocols/gossipsub) is used to announce information about subnets the peers provide data for
+* [Bitswap](https://github.com/ipfs-rust/libp2p-bitswap) is used to resolve CIDs to content
+
+See the libp2p [specs](https://github.com/libp2p/specs) and [docs](https://docs.libp2p.io/concepts/fundamentals/protocols/) for details on each protocol, and look [here](https://docs.ipfs.tech/concepts/bitswap/) for Bitswap.
+
+The Resolver is completely agnostic over what content it can resolve, as long as it's based on CIDs; it's not aware of the checkpointing use case above.
+
+The interface with the host system is through a host-provided implementation of the [BitswapStore](https://github.com/ipfs-rust/libp2p-bitswap/blob/7dd9cececda3e4a8f6e14c200a4b457159d8db33/src/behaviour.rs#L55) which the library uses to retrieve and store content.
+
+Internally the protocols are wrapped into behaviours that interpret their events and manage their associated state:
+* `Discovery` wraps `Kademlia`
+* `Membership` wraps `Gossipsub`
+* `Content` wraps `Bitswap`
+
+The following diagram shows a typical sequence of events within the IPLD Resolver. For brevity, only one peer is shown in detail; it's counterpart is represented as a single boundary.
+
+![IPLD Resolver](diagrams/ipld_resolver.png)
