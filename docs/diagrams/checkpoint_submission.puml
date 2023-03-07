@@ -22,7 +22,8 @@ validator --> child_agent: start
 child_agent --> full_lotus: subscribe
 child_agent --> child_lotus: subscribe
 
-validator -> parent_lotus: join subnet
+validator -> child_agent ++: join subnet
+child_agent -> parent_lotus --: join subnet
 parent_lotus --> full_lotus: broadcast
 
 == During Epoch ==

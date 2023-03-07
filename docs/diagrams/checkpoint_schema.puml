@@ -30,7 +30,7 @@ package "Subnet Actor in parent subnet" #79ADDC {
   }
   note left
     Such that the signatures
-    for a Quorum in the epoch.
+    form a Quorum in the epoch.
   end note
 }
 
