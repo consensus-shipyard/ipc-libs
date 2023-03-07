@@ -119,12 +119,18 @@ struct JsonRpcResponse<T> {
     error: Option<Value>,
 }
 
-impl<T> From<JsonRpcResponse<T>> for Result<T> {
+impl<T: DeserializeOwned> From<JsonRpcResponse<T>> for Result<T> {
     fn from(j: JsonRpcResponse<T>) -> Self {
         if j.error.is_some() {
-            Err(anyhow!("json_rpc error: {:}", j.error.unwrap()))
-        } else {
+            return Err(anyhow!("json_rpc error: {:}", j.error.unwrap()));
+        }
+        if j.result.is_some() {
             Ok(j.result.unwrap())
+        } else {
+            // the result is not found, but it is possible T could (),  means the
+            // caller does not expect any response. Need to rely on serde to perform
+            // a conversion.
+            Ok(serde_json::from_value(serde_json::Value::Null)?)
         }
     }
 }

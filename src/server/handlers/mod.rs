@@ -13,6 +13,7 @@ use crate::server::handlers::config::ReloadConfigHandler;
 use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::{anyhow, Result};
+pub use config::ReloadConfigParams;
 pub use create::{CreateSubnetParams, CreateSubnetResponse};
 use serde_json::Value;
 use std::collections::HashMap;
