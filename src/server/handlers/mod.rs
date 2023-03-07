@@ -29,7 +29,7 @@ use std::sync::Arc;
 /// different enum types to get the inner handler instance. Every time a new handler is added,
 /// a new match statement must be copy-pasted. With this macro, we can reduce a lot of repetitive
 /// copy paste.
-macro_rules! create_handlers {
+macro_rules! route_handlers {
     (enum HandlerWrapper { $($name:tt($handler:tt),)* }) => {
         /// A util enum to avoid Box<dyn> mess in Handlers struct
         enum HandlerWrapper {
@@ -68,7 +68,7 @@ pub struct Handlers {
 }
 
 // Create the handler wrapper
-create_handlers!(
+route_handlers!(
     enum HandlerWrapper {
         CreateSubnet(CreateSubnetHandler),
         JoinSubnet(JoinSubnetHandler),
@@ -107,11 +107,11 @@ impl Handlers {
             HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(pool.clone())),
         );
         handlers.insert(
-            String::from(json_rpc_methods::CREATE_SUBNET),
+            String::from(json_rpc_methods::LEAVE_SUBNET),
             HandlerWrapper::LeaveSubnet(LeaveSubnetHandler::new(pool.clone())),
         );
         handlers.insert(
-            String::from(json_rpc_methods::CREATE_SUBNET),
+            String::from(json_rpc_methods::KILL_SUBNET),
             HandlerWrapper::KillSubnet(KillSubnetHandler::new(pool.clone())),
         );
         handlers.insert(
