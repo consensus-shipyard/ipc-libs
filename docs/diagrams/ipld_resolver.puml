@@ -66,7 +66,7 @@ Service -> Membership: get providers of subnet
 Service -> Service: prioritize peers, connected first
 loop
   Service -> Content ++: resolve CID from first N peers
-  Content -> BitswapStore: get missing blocks
+  Content -> BitswapStore: get missing blocks of root CID
   loop while has missing CID
     loop for each peer
       Content -> Remote: want-have CID
@@ -80,7 +80,7 @@ loop
       alt sends block
         Remote -> Content: block
         Content -> BitswapStore: insert block
-        Content -> BitswapStore: get missing blocks under new block
+        Content -> BitswapStore: get missing blocks of retrieved CID
       end
     end
   end
@@ -94,7 +94,7 @@ end
 Client -> Host --: resolution result
 
 alt if succeeded
-  Host -> BitswapStore: retrieve content
+  Host -> BitswapStore: retrieve content by CID
 end
 
 @enduml
