@@ -25,7 +25,7 @@ package "Subnet Actor in parent subnet" #79ADDC {
   }
   note bottom of submit_ckpt
     Such that the signatures
-    form a Quorum in the epoch.
+    form a Quorum in the config.
   end note
 }
 
@@ -38,8 +38,8 @@ package "checkpointing" #FFEE93 {
     ...
   }
   note bottom of ckpt
-  Next config indicates who will
-  sign the next checkpoint.
+    Next config indicates who will
+    sign the next checkpoint.
   end note
 
   entity "Signature" as sig {
