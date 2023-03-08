@@ -19,13 +19,13 @@ One possible conceptual model of checkpointing is depicted by the following Enti
 
 ![Checkpoint Schema](diagrams/checkpoint_schema.png)
 
-It shows that the Subnet Actor in the parent subnet governs the power of validators in the child subnet, which is fixed a certain number of blocks, called an epoch.
+It shows that the Subnet Actor in the parent subnet governs the power of validators in the child subnet by proposing _Configurations_, which the child subnet is free to adopt in its _Epochs_ when the time is right, communicating back the next adopted config via _Checkpoints_.
 
-At the end of an epoch, the validators in the child subnet produce a checkpoint over some contents, notably the bottom-up or cross-messages they want to propagate towards the parent subnet. Through the cross-messages, the checkpoint indirectly points to individual messages that users or actors wanted to send.
+At the end of an epoch, the validators in the child subnet produce a checkpoint over some contents, notably the cross-messages they want to propagate towards the parent subnet. Through the cross-messages, the checkpoint indirectly points to individual messages that users or actors wanted to send.
 
 Once enough signatures are collected to form a Quorum Certificate over the checkpoint (the specific rules are in the jurisdiction of the Subnet Actor), the checkpoint is submitted to the parent ledger.
 
-However, the submitted checkpoint does not contain the raw messages (indicated by the dashed line). The content needs to be resolved using the IPC Resolver.
+However, the submitted checkpoint does not contain the raw messages, only the meta-data. The content needs to be resolved using the IPC Resolver, as indicated by the dotted line.
 
 ### Checkpoint Submission and Resolution
 
