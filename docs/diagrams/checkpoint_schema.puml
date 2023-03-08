@@ -23,7 +23,7 @@ package "Subnet Actor in parent subnet" #79ADDC {
   entity "Submitted Checkpoint" as submit_ckpt {
     * checkpoint <<FK>>
   }
-  note left
+  note bottom of submit_ckpt
     Such that the signatures
     form a Quorum in the epoch.
   end note
@@ -37,7 +37,7 @@ package "checkpointing" #FFEE93 {
     * cross_messages <<FK>>: CID
     ...
   }
-  note right
+  note bottom of ckpt
   Next config indicates who will
   sign the next checkpoint.
   end note
@@ -65,7 +65,7 @@ package "child subnet" #FFC09F {
     --
     * messages <<FK>>: CID
   }
-  note right
+  note bottom of cross_msgs
     An AMT containing CIDs
   end note
 
