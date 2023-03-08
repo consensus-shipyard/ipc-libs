@@ -34,7 +34,7 @@ package "checkpointing" #FFEE93 {
     * epoch_number <<FK>>
     --
     * next_config_number <<FK>>
-    * cross_messages <<FK>>: CID
+    * state_hash: CID
     ...
   }
   note bottom of ckpt
@@ -97,11 +97,14 @@ epoch |o--|| block
 epoch ||--|| cross_msgs
 epoch ||--o| ckpt
 
+sig |o--|| ckpt
+sig }o--|| validator
+
 ckpt }o--|| config
 ckpt ||--o| submit_ckpt
 
+
 cross_msgs |o--o{ msg
-cross_msgs ||--o| ckpt
 
 submit_ckpt .. cross_msgs : can be resolved with the IPLD Resolver
 
