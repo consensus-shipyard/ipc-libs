@@ -31,7 +31,7 @@ However, the submitted checkpoint does not contain the raw messages, only the me
 
 The following sequence diagram shows one possible way how checkpoints can be submitted from the child to the parent subnet.
 
-It depicts two validators: one only participating on the parent subnet, and the other on the child subnet; the latter has to also run at least a full node on the parent subnet. Both validators run one IPC AGent each.
+It depicts two validators: one only participating on the parent subnet, and the other on the child subnet; the latter has to also run at least a full node on the parent subnet. Both validators run one IPC Agent each.
 
 The diagram shows that at the end of the epoch the child subnet validators produce a Quorum Certificate over the checkpoint, which some of their agents submit to the parent subnet.
 
