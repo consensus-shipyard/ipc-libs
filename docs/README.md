@@ -35,7 +35,7 @@ It depicts two validators: one only participating on the parent subnet, and the 
 
 The diagram shows that at the end of the epoch the child subnet validators produce a Quorum Certificate over the checkpoint, which some of their agents submit to the parent subnet.
 
-After that, the parent subnet nodes reach out to their associated IPC Agent to resolve the checkpoint, which the Agent does by communicating with some of its child-subnet peers.
+After that, the parent subnet nodes reach out to their associated IPC Agent to resolve the messages referenced by the checkpoint, which the Agent does by communicating with some of its child-subnet peers.
 
 ![Checkpoint Submission](diagrams/checkpoint_submission.png)
 
