@@ -4,9 +4,9 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
+use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fmt::Debug;
-use serde::de::DeserializeOwned;
 
 mod handlers;
 pub mod jsonrpc;

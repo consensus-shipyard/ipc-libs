@@ -3,27 +3,25 @@
 //! The module contains the handlers implementation for the json rpc server.
 
 mod config;
-pub mod create;
-mod join;
-mod kill;
-mod leave;
-mod subnet;
+mod manager;
+mod validator;
 
 use crate::config::json_rpc_methods;
 use crate::config::ReloadableConfig;
-use crate::server::create::CreateSubnetHandler;
 use crate::server::handlers::config::ReloadConfigHandler;
-use crate::server::handlers::subnet::SubnetManagerPool;
+use crate::server::handlers::validator::QueryValidatorSetHandler;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::{anyhow, Result};
-pub use create::{CreateSubnetParams, CreateSubnetResponse};
+use async_trait::async_trait;
+use manager::create::CreateSubnetHandler;
+pub use manager::create::{CreateSubnetParams, CreateSubnetResponse};
+use manager::join::JoinSubnetHandler;
+use manager::kill::KillSubnetHandler;
+use manager::leave::LeaveSubnetHandler;
+use manager::subnet::SubnetManagerPool;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use async_trait::async_trait;
-use crate::server::handlers::join::JoinSubnetHandler;
-use crate::server::handlers::kill::KillSubnetHandler;
-use crate::server::handlers::leave::LeaveSubnetHandler;
 
 pub type Method = String;
 
@@ -39,7 +37,7 @@ trait HandlerWrapper: Send + Sync {
 }
 
 #[async_trait]
-impl <H: JsonRPCRequestHandler + Send + Sync> HandlerWrapper for H {
+impl<H: JsonRPCRequestHandler + Send + Sync> HandlerWrapper for H {
     async fn handle(&self, params: Value) -> Result<Value> {
         let p = serde_json::from_value(params)?;
         let r = self.handle(p).await?;
@@ -61,14 +59,12 @@ impl Handlers {
         let mut handlers = HashMap::new();
 
         let config = Arc::new(ReloadableConfig::new(config_path_string.clone())?);
-        let h: Box<dyn HandlerWrapper> = Box::new(ReloadConfigHandler::new(
-            config.clone(),
-            config_path_string,
-        ));
-        handlers.insert(String::from(json_rpc_methods::RELOAD_CONFIG),h);
+        let h: Box<dyn HandlerWrapper> =
+            Box::new(ReloadConfigHandler::new(config.clone(), config_path_string));
+        handlers.insert(String::from(json_rpc_methods::RELOAD_CONFIG), h);
 
         // subnet manager methods
-        let pool = Arc::new(SubnetManagerPool::from_reload_config(config));
+        let pool = Arc::new(SubnetManagerPool::from_reload_config(config.clone()));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::CREATE_SUBNET), h);
 
@@ -78,8 +74,12 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(KillSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::KILL_SUBNET), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(JoinSubnetHandler::new(pool.clone()));
+        let h: Box<dyn HandlerWrapper> = Box::new(JoinSubnetHandler::new(pool));
         handlers.insert(String::from(json_rpc_methods::JOIN_SUBNET), h);
+
+        // query validator
+        let h: Box<dyn HandlerWrapper> = Box::new(QueryValidatorSetHandler::new(config));
+        handlers.insert(String::from(json_rpc_methods::QUERY_VALIDATOR_SET), h);
 
         Ok(Self { handlers })
     }

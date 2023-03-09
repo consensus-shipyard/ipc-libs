@@ -3,36 +3,40 @@
 //! Create subnet handler and parameters
 
 use crate::manager::SubnetManager;
-use crate::server::handlers::subnet::SubnetManagerPool;
+use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use fvm_shared::address::Address;
+use fvm_shared::econ::TokenAmount;
 use ipc_sdk::subnet_id::SubnetID;
+use ipc_subnet_actor::JoinParams;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LeaveSubnetParams {
+pub struct JoinSubnetParams {
     pub subnet: String,
     pub from: Option<String>,
+    pub collateral: u64,
+    pub validator_net_addr: String,
 }
 
 /// The create subnet json rpc method handler.
-pub(crate) struct LeaveSubnetHandler {
+pub(crate) struct JoinSubnetHandler {
     pool: Arc<SubnetManagerPool>,
 }
 
-impl LeaveSubnetHandler {
+impl JoinSubnetHandler {
     pub(crate) fn new(pool: Arc<SubnetManagerPool>) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl JsonRPCRequestHandler for LeaveSubnetHandler {
-    type Request = LeaveSubnetParams;
+impl JsonRPCRequestHandler for JoinSubnetHandler {
+    type Request = JoinSubnetParams;
     type Response = ();
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
@@ -41,17 +45,22 @@ impl JsonRPCRequestHandler for LeaveSubnetHandler {
             .parent()
             .ok_or_else(|| anyhow!("no parent found"))?
             .to_string();
-
         let conn = match self.pool.get(&parent) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
 
+        let join_params = JoinParams {
+            validator_net_addr: request.validator_net_addr,
+        };
+        let collateral = TokenAmount::from_atto(request.collateral);
         let from = match request.from {
             Some(addr) => Address::from_str(&addr)?,
             None => conn.subnet().accounts[0],
         };
 
-        conn.manager().leave_subnet(subnet, from).await
+        conn.manager()
+            .join_subnet(subnet, from, collateral, join_params)
+            .await
     }
 }
