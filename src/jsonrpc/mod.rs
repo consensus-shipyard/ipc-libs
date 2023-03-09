@@ -127,9 +127,9 @@ impl<T: DeserializeOwned> From<JsonRpcResponse<T>> for Result<T> {
         if j.result.is_some() {
             Ok(j.result.unwrap())
         } else {
-            // the result is not found, but it is possible T could (),  means the
-            // caller does not expect any response. Need to rely on serde to perform
-            // a conversion.
+            // the result is not found, but it is possible T could the rust unit type: (), i.e. the
+            // caller is expecting Result<()>.
+            // To do this, we need to rely on serde to perform a conversion from NULL.
             Ok(serde_json::from_value(serde_json::Value::Null)?)
         }
     }
