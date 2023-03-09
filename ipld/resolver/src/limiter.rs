@@ -39,10 +39,7 @@ where
 
     /// Same as [`RateLimiter::add`] but allows passing in the time, for testing.
     pub fn add_at(&mut self, limit: &RateLimit, key: K, cost: u32, at: Instant) -> bool {
-        let state = self
-            .cache
-            .entry(key)
-            .or_insert_with(|| GcraState::default());
+        let state = self.cache.entry(key).or_insert_with(GcraState::default);
 
         state.check_and_modify_at(limit, at, cost).is_ok()
     }
@@ -61,21 +58,18 @@ mod tests {
         let rate_limit = RateLimit::new(10 * 1024 * 1024, one_hour);
         let mut rate_limiter = RateLimiter::<&'static str>::new(one_hour);
 
-        assert_eq!(true, rate_limiter.add(&rate_limit, "foo", 1024));
-        assert_eq!(true, rate_limiter.add(&rate_limit, "foo", 5 * 1024 * 1024));
-        assert_eq!(
-            false,
-            rate_limiter.add(&rate_limit, "foo", 5 * 1024 * 1024),
+        assert!(rate_limiter.add(&rate_limit, "foo", 1024));
+        assert!(rate_limiter.add(&rate_limit, "foo", 5 * 1024 * 1024));
+        assert!(
+            !rate_limiter.add(&rate_limit, "foo", 5 * 1024 * 1024),
             "can't over consume"
         );
-        assert_eq!(
-            true,
+        assert!(
             rate_limiter.add(&rate_limit, "bar", 5 * 1024 * 1024),
             "others can consume"
         );
 
-        assert_eq!(
-            true,
+        assert!(
             rate_limiter.add_at(
                 &rate_limit,
                 "foo",
@@ -86,8 +80,7 @@ mod tests {
         );
 
         let rate_limit = RateLimit::new(50 * 1024 * 1024, one_hour);
-        assert_eq!(
-            true,
+        assert!(
             rate_limiter.add(&rate_limit, "bar", 15 * 1024 * 1024),
             "can raise quota"
         );
