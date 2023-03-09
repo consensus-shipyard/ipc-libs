@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     task::{Context, Poll},
     time::Duration,
 };
@@ -10,6 +10,7 @@ use std::{
 use libipld::{store::StoreParams, Cid};
 use libp2p::{
     core::ConnectedPoint,
+    futures::channel::oneshot,
     request_response::handler::RequestResponseHandlerEvent,
     swarm::{
         derive_prelude::{ConnectionId, FromSwarm},
@@ -18,7 +19,7 @@ use libp2p::{
     },
     Multiaddr, PeerId,
 };
-use libp2p_bitswap::{Bitswap, BitswapConfig, BitswapEvent, BitswapStore};
+use libp2p_bitswap::{Bitswap, BitswapConfig, BitswapEvent, BitswapResponse, BitswapStore};
 use log::warn;
 use prometheus::Registry;
 
@@ -47,6 +48,19 @@ pub enum Event {
     /// caller can use the [`missing_blocks`] function to check
     /// whether a retry is necessary.
     Complete(QueryId, anyhow::Result<()>),
+
+    /// Event raised when we want to execute some logic with the `BitswapResponse`.
+    /// This is only raised if we are tracking rate limits. The service has to
+    /// do the forwarding between the two oneshot channels, and call this module
+    /// back between doing so.
+    BitswapForward {
+        peer_id: PeerId,
+        /// Receive response from the [`Bitswap`] behaviour.
+        /// Normally this goes straight to the handler.
+        response_rx: oneshot::Receiver<BitswapResponse>,
+        /// Forward the response to the handler.
+        response_tx: oneshot::Sender<BitswapResponse>,
+    },
 }
 
 /// Configuration for [`content::Behaviour`].
@@ -71,6 +85,7 @@ pub struct Behaviour<P: StoreParams> {
     /// Limit the amount of data served by remote address.
     rate_limiter: RateLimiter<Multiaddr>,
     rate_limit: RateLimit,
+    outbox: VecDeque<Event>,
 }
 
 impl<P: StoreParams> Behaviour<P> {
@@ -84,6 +99,7 @@ impl<P: StoreParams> Behaviour<P> {
             peer_addresses: Default::default(),
             rate_limiter: RateLimiter::new(config.rate_limit_period),
             rate_limit: RateLimit::new(config.rate_limit_bytes, config.rate_limit_period),
+            outbox: Default::default(),
         }
     }
 
@@ -137,6 +153,16 @@ impl<P: StoreParams> Behaviour<P> {
         }
         true
     }
+
+    /// Callback by the service after [`Event::BitswapForward`].
+    pub fn rate_limit_used(&mut self, peer_id: PeerId, bytes: usize) {
+        if self.has_rate_limits() {
+            if let Some(addr) = self.peer_addresses.get(&peer_id).cloned() {
+                let bytes = bytes.try_into().unwrap_or(u32::MAX);
+                let _ = self.rate_limiter.add(&self.rate_limit, addr, bytes);
+            }
+        }
+    }
 }
 
 impl<P: StoreParams> NetworkBehaviour for Behaviour<P> {
@@ -186,16 +212,39 @@ impl<P: StoreParams> NetworkBehaviour for Behaviour<P> {
         connection_id: ConnectionId,
         event: <<Self::ConnectionHandler as IntoConnectionHandler>::Handler as ConnectionHandler>::OutEvent,
     ) {
-        if let RequestResponseHandlerEvent::Request { request, .. } = &event {
-            if !self.check_rate_limit(&peer_id, &request.cid) {
-                warn!("rate limiting {peer_id}");
-                stats::CONTENT_RATE_LIMITED.inc();
-                return;
-            }
-        }
+        match event {
+            RequestResponseHandlerEvent::Request {
+                request_id,
+                request,
+                sender,
+            } if self.has_rate_limits() => {
+                if !self.check_rate_limit(&peer_id, &request.cid) {
+                    warn!("rate limiting {peer_id}");
+                    stats::CONTENT_RATE_LIMITED.inc();
+                    return;
+                }
+                // We need to hijack the response channel to record the size, otherwise it goes straight to the handler.
+                let (tx, rx) = libp2p::futures::channel::oneshot::channel();
+                let event = RequestResponseHandlerEvent::Request {
+                    request_id,
+                    request,
+                    sender: tx,
+                };
 
-        self.inner
-            .on_connection_handler_event(peer_id, connection_id, event)
+                self.inner
+                    .on_connection_handler_event(peer_id, connection_id, event);
+
+                let forward = Event::BitswapForward {
+                    peer_id,
+                    response_rx: rx,
+                    response_tx: sender,
+                };
+                self.outbox.push_back(forward);
+            }
+            _ => self
+                .inner
+                .on_connection_handler_event(peer_id, connection_id, event),
+        }
     }
 
     fn poll(
@@ -203,6 +252,11 @@ impl<P: StoreParams> NetworkBehaviour for Behaviour<P> {
         cx: &mut Context<'_>,
         params: &mut impl PollParameters,
     ) -> Poll<NetworkBehaviourAction<Self::OutEvent, Self::ConnectionHandler>> {
+        // Emit own events first.
+        if let Some(ev) = self.outbox.pop_front() {
+            return Poll::Ready(NetworkBehaviourAction::GenerateEvent(ev));
+        }
+        // Poll Bitswap.
         while let Poll::Ready(ev) = self.inner.poll(cx, params) {
             match ev {
                 NetworkBehaviourAction::GenerateEvent(ev) => match ev {
