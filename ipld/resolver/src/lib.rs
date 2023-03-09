@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 mod behaviour;
 mod hash;
+mod limiter;
 mod provider_cache;
 mod provider_record;
 mod service;

@@ -12,8 +12,7 @@ license-file.workspace = true
 anyhow = { workspace = true }
 blake2b_simd = { workspace = true }
 bloom = "0.3"
-thiserror = { workspace = true }
-tokio = { workspace = true }
+gcra = "0.3"
 lazy_static = { workspace = true }
 libp2p = { version = "0.50", default-features = false, features = [
   "gossipsub",
@@ -37,9 +36,11 @@ libp2p-bitswap = "0.25"
 libipld = { workspace = true }
 log = { workspace = true }
 prometheus = { workspace = true }
+quickcheck = { workspace = true, optional = true }
 rand = { workspace = true }
 serde = { workspace = true }
-quickcheck = { workspace = true, optional = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
 
 ipc-sdk = { workspace = true }
 fvm_ipld_encoding = { workspace = true }
