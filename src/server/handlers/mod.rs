@@ -13,9 +13,6 @@ use crate::config::json_rpc_methods;
 use crate::config::ReloadableConfig;
 use crate::server::create::CreateSubnetHandler;
 use crate::server::handlers::config::ReloadConfigHandler;
-use crate::server::handlers::join::JoinSubnetHandler;
-use crate::server::handlers::kill::KillSubnetHandler;
-use crate::server::handlers::leave::LeaveSubnetHandler;
 use crate::server::handlers::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::{anyhow, Result};
@@ -23,60 +20,32 @@ pub use create::{CreateSubnetParams, CreateSubnetResponse};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-/// A util macro to create the handlers and do the method routing.
-/// This macro generates the `handle` method. In the method, it just matches the handler with
-/// different enum types to get the inner handler instance. Every time a new handler is added,
-/// a new match statement must be copy-pasted. With this macro, we can reduce a lot of repetitive
-/// copy paste.
-macro_rules! route_handlers {
-    (enum HandlerWrapper { $($name:tt($handler:tt),)* }) => {
-        /// A util enum to avoid Box<dyn> mess in Handlers struct
-        enum HandlerWrapper {
-            $(
-            $name($handler)
-            ),*
-        }
-
-        impl Handlers {
-            pub async fn handle(&self, method: Method, params: Value) -> Result<Value> {
-                if let Some(wrapper) = self.handlers.get(&method) {
-                    match wrapper {
-                        $(
-                            HandlerWrapper::$name(handler) => {
-                                let r = handler.handle(serde_json::from_value(params)?).await?;
-                                Ok(serde_json::to_value(r)?)
-                            }
-                        ),*
-                    }
-                } else {
-                    Err(anyhow!("method not supported"))
-                }
-            }
-        }
-    };
-    (enum HandlerWrapper { $($name:tt($handler:tt)),* }) => {
-        create_handlers!(enum HandlerWrapper { $($name($handler),)* });
-    }
-}
+use async_trait::async_trait;
+use crate::server::handlers::join::JoinSubnetHandler;
+use crate::server::handlers::kill::KillSubnetHandler;
+use crate::server::handlers::leave::LeaveSubnetHandler;
 
 pub type Method = String;
 
 /// The collection of all json rpc handlers
 pub struct Handlers {
-    handlers: HashMap<Method, HandlerWrapper>,
+    handlers: HashMap<Method, Box<dyn HandlerWrapper>>,
 }
 
-// Create the handler wrapper
-route_handlers!(
-    enum HandlerWrapper {
-        CreateSubnet(CreateSubnetHandler),
-        JoinSubnet(JoinSubnetHandler),
-        LeaveSubnet(LeaveSubnetHandler),
-        KillSubnet(KillSubnetHandler),
-        ReloadConfig(ReloadConfigHandler),
+/// A util trait to avoid Box<dyn> and associated type mess in Handlers struct
+#[async_trait]
+trait HandlerWrapper: Send + Sync {
+    async fn handle(&self, params: Value) -> Result<Value>;
+}
+
+#[async_trait]
+impl <H: JsonRPCRequestHandler + Send + Sync> HandlerWrapper for H {
+    async fn handle(&self, params: Value) -> Result<Value> {
+        let p = serde_json::from_value(params)?;
+        let r = self.handle(p).await?;
+        Ok(serde_json::to_value(r)?)
     }
-);
+}
 
 impl Handlers {
     /// We test the handlers separately and individually instead of from the handlers.
@@ -92,33 +61,34 @@ impl Handlers {
         let mut handlers = HashMap::new();
 
         let config = Arc::new(ReloadableConfig::new(config_path_string.clone())?);
-        handlers.insert(
-            String::from(json_rpc_methods::RELOAD_CONFIG),
-            HandlerWrapper::ReloadConfig(ReloadConfigHandler::new(
-                config.clone(),
-                config_path_string,
-            )),
-        );
+        let h: Box<dyn HandlerWrapper> = Box::new(ReloadConfigHandler::new(
+            config.clone(),
+            config_path_string,
+        ));
+        handlers.insert(String::from(json_rpc_methods::RELOAD_CONFIG),h);
 
         // subnet manager methods
         let pool = Arc::new(SubnetManagerPool::from_reload_config(config));
-        handlers.insert(
-            String::from(json_rpc_methods::CREATE_SUBNET),
-            HandlerWrapper::CreateSubnet(CreateSubnetHandler::new(pool.clone())),
-        );
-        handlers.insert(
-            String::from(json_rpc_methods::LEAVE_SUBNET),
-            HandlerWrapper::LeaveSubnet(LeaveSubnetHandler::new(pool.clone())),
-        );
-        handlers.insert(
-            String::from(json_rpc_methods::KILL_SUBNET),
-            HandlerWrapper::KillSubnet(KillSubnetHandler::new(pool.clone())),
-        );
-        handlers.insert(
-            String::from(json_rpc_methods::JOIN_SUBNET),
-            HandlerWrapper::JoinSubnet(JoinSubnetHandler::new(pool)),
-        );
+        let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::CREATE_SUBNET), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(LeaveSubnetHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::LEAVE_SUBNET), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(KillSubnetHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::KILL_SUBNET), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(JoinSubnetHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::JOIN_SUBNET), h);
 
         Ok(Self { handlers })
+    }
+
+    pub async fn handle(&self, method: Method, params: Value) -> Result<Value> {
+        if let Some(wrapper) = self.handlers.get(&method) {
+            wrapper.handle(params).await
+        } else {
+            Err(anyhow!("method not supported"))
+        }
     }
 }

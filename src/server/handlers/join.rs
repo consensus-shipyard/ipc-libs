@@ -40,7 +40,12 @@ impl JsonRPCRequestHandler for JoinSubnetHandler {
     type Response = ();
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let conn = match self.pool.get(&request.subnet) {
+        let subnet = SubnetID::from_str(&request.subnet)?;
+        let parent = subnet
+            .parent()
+            .ok_or_else(|| anyhow!("no parent found"))?
+            .to_string();
+        let conn = match self.pool.get(&parent) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
@@ -48,7 +53,6 @@ impl JsonRPCRequestHandler for JoinSubnetHandler {
         let join_params = JoinParams {
             validator_net_addr: request.validator_net_addr,
         };
-        let subnet = SubnetID::from_str(&request.subnet)?;
         let collateral = TokenAmount::from_atto(request.collateral);
         let from = match request.from {
             Some(addr) => Address::from_str(&addr)?,

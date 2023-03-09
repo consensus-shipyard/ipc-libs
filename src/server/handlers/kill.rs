@@ -36,12 +36,17 @@ impl JsonRPCRequestHandler for KillSubnetHandler {
     type Response = ();
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let conn = match self.pool.get(&request.subnet) {
+        let subnet = SubnetID::from_str(&request.subnet)?;
+        let parent = subnet
+            .parent()
+            .ok_or_else(|| anyhow!("no parent found"))?
+            .to_string();
+
+        let conn = match self.pool.get(&parent) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
 
-        let subnet = SubnetID::from_str(&request.subnet)?;
         let from = match request.from {
             Some(addr) => Address::from_str(&addr)?,
             None => conn.subnet().accounts[0],
