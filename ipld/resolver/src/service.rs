@@ -85,6 +85,7 @@ enum Request {
     UnpinSubnet(SubnetID),
     Resolve(Cid, SubnetID, oneshot::Sender<ResolveResult>),
     RateLimitUsed(PeerId, usize),
+    UpdateRateLimit(u32),
 }
 
 /// A facade to the [`Service`] to provide a nicer interface than message passing would allow on its own.
@@ -141,6 +142,16 @@ impl Client {
         self.send_request(req)?;
         let res = rx.await?;
         Ok(res)
+    }
+
+    /// Update the rate limit based on new projections for the same timeframe
+    /// the `content::Behaviour` was originally configured with. This can be
+    /// used if we can't come up with a good estimate for the amount of data
+    /// we have to serve from the subnets we participate in, but we can adjust
+    /// them on the fly based on what we observe on chain.
+    pub fn update_rate_limit(&self, bytes: u32) -> anyhow::Result<()> {
+        let req = Request::UpdateRateLimit(bytes);
+        self.send_request(req)
     }
 }
 
@@ -408,6 +419,7 @@ impl<P: StoreParams> Service<P> {
             Request::RateLimitUsed(peer_id, bytes) => {
                 self.content_mut().rate_limit_used(peer_id, bytes)
             }
+            Request::UpdateRateLimit(bytes) => self.content_mut().update_rate_limit(bytes),
         }
     }
 

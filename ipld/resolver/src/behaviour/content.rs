@@ -163,6 +163,11 @@ impl<P: StoreParams> Behaviour<P> {
             }
         }
     }
+
+    /// Update the rate limit to a new value, keeping the period as-is.
+    pub fn update_rate_limit(&mut self, bytes: u32) {
+        self.rate_limit = RateLimit::new(bytes, self.rate_limit.period)
+    }
 }
 
 impl<P: StoreParams> NetworkBehaviour for Behaviour<P> {
