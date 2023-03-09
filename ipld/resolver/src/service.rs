@@ -26,8 +26,8 @@ use tokio::select;
 use tokio::sync::oneshot::{self, Sender};
 
 use crate::behaviour::{
-    self, content, discovery, membership, Behaviour, BehaviourEvent, ConfigError, DiscoveryConfig,
-    MembershipConfig, NetworkConfig,
+    self, content, discovery, membership, Behaviour, BehaviourEvent, ConfigError, ContentConfig,
+    DiscoveryConfig, MembershipConfig, NetworkConfig,
 };
 use crate::stats;
 
@@ -73,6 +73,7 @@ pub struct Config {
     pub discovery: DiscoveryConfig,
     pub membership: MembershipConfig,
     pub connection: ConnectionConfig,
+    pub content: ContentConfig,
 }
 
 /// Internal requests to enqueue to the [`Service`]
@@ -176,7 +177,13 @@ impl<P: StoreParams> Service<P> {
     {
         let peer_id = config.network.local_peer_id();
         let transport = transport(config.network.local_key.clone());
-        let behaviour = Behaviour::new(config.network, config.discovery, config.membership, store)?;
+        let behaviour = Behaviour::new(
+            config.network,
+            config.discovery,
+            config.membership,
+            config.content,
+            store,
+        )?;
 
         // NOTE: Hardcoded values from Forest. Will leave them as is until we know we need to change.
 
