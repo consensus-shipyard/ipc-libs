@@ -6,9 +6,9 @@ use std::collections::HashMap;
 use anyhow::Result;
 use async_trait::async_trait;
 use fvm_shared::{address::Address, econ::TokenAmount};
-use ipc_gateway::Checkpoint;
+use ipc_gateway::{Checkpoint, Status};
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{ConstructParams, JoinParams, Status};
+use ipc_subnet_actor::{ConstructParams, JoinParams};
 use serde::{Deserialize, Serialize};
 
 /// Trait to interact with a subnet and handle its lifecycle.
@@ -54,8 +54,8 @@ pub trait SubnetManager {
 /// relevant information about the state of a subnet
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubnetInfo {
-    /// Name of the subnet.
-    pub name: String,
+    /// Id of the subnet.
+    pub id: SubnetID,
     /// Collateral staked in the subnet.
     pub collateral: TokenAmount,
     /// Circulating supply available in the subnet.

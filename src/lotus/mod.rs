@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_gateway::Checkpoint;
+use ipc_gateway::{Checkpoint, Subnet};
 use ipc_sdk::subnet_id::SubnetID;
 use serde::de::DeserializeOwned;
 
@@ -92,4 +92,7 @@ pub trait LotusClient {
         &self,
         tip_set: Cid,
     ) -> Result<IPCReadSubnetActorStateResponse>;
+
+    /// Returns the list of subnets in a gateway.
+    async fn ipc_list_child_subnets(&self, gateway_addr: Address) -> Result<Vec<Subnet>>;
 }
