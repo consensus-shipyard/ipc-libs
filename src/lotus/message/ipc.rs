@@ -30,15 +30,13 @@ pub struct IPCReadSubnetActorStateResponse {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "PascalCase")]
 pub struct ValidatorSet {
     validators: Vec<Validator>,
     // sequence number that uniquely identifies a validator set
-    config_number: u64,
+    configuration_number: u64,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "PascalCase")]
 pub struct Validator {
     pub addr: String,
     pub net_addr: String,
