@@ -90,6 +90,7 @@ pub trait LotusClient {
     /// Returns the state of the subnet actor at `tip_set`.
     async fn ipc_read_subnet_actor_state(
         &self,
+        subnet_id: &SubnetID,
         tip_set: Cid,
     ) -> Result<IPCReadSubnetActorStateResponse>;
 }

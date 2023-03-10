@@ -288,9 +288,21 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
     async fn ipc_read_subnet_actor_state(
         &self,
+        subnet_id: &SubnetID,
         tip_set: Cid,
     ) -> Result<IPCReadSubnetActorStateResponse> {
-        let params = json!([GATEWAY_ACTOR_ADDRESS, [CIDMap::from(tip_set)]]);
+        let parent = subnet_id
+            .parent()
+            .ok_or_else(|| anyhow!("no parent found"))?
+            .to_string();
+        let actor = subnet_id.subnet_actor().to_string();
+        let params = json!([
+            {
+                "Parent": parent,
+                "Actor": actor
+            },
+            [CIDMap::from(tip_set)]]
+        );
         let r = self
             .client
             .request::<IPCReadSubnetActorStateResponse>(
