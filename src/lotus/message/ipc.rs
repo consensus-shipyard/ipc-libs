@@ -1,8 +1,7 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use fvm_shared::clock::ChainEpoch;
-use ipc_subnet_actor::ValidatorSet;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::lotus::message::CIDMap;
 
@@ -28,4 +27,20 @@ pub struct IPCReadGatewayStateResponse {
 pub struct IPCReadSubnetActorStateResponse {
     pub check_period: ChainEpoch,
     pub validator_set: ValidatorSet,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct ValidatorSet {
+    validators: Vec<Validator>,
+    // sequence number that uniquely identifies a validator set
+    config_number: u64,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct Validator {
+    pub addr: String,
+    pub net_addr: String,
+    pub weight: u64,
 }

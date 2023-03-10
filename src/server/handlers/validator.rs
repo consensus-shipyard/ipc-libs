@@ -4,13 +4,13 @@
 
 use crate::config::ReloadableConfig;
 use crate::lotus::client::LotusJsonRPCClient;
+use crate::lotus::message::ipc::ValidatorSet;
 use crate::lotus::LotusClient;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use cid::Cid;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::ValidatorSet;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
