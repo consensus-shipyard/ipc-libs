@@ -31,7 +31,7 @@ pub struct IPCReadSubnetActorStateResponse {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ValidatorSet {
-    validators: Vec<Validator>,
+    validators: Option<Vec<Validator>>,
     // sequence number that uniquely identifies a validator set
     configuration_number: u64,
 }
