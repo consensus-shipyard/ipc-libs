@@ -303,6 +303,8 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             },
             [CIDMap::from(tip_set)]]
         );
+        log::debug!("sending {params:?}");
+
         let r = self
             .client
             .request::<IPCReadSubnetActorStateResponse>(
