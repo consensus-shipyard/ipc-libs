@@ -51,6 +51,12 @@ mod methods {
 
 /// The default gateway actor address
 const GATEWAY_ACTOR_ADDRESS: &str = "f064";
+/// The default state wait confidence value
+const STATE_WAIT_CONFIDENCE: u8 = 5;
+/// We dont set a limit on the look back epoch, i.e. check against latest block
+const STATE_WAIT_LOOK_BACK_NO_LIMIT: i8 = -1;
+/// We are not replacing any previous messages
+const STATE_WAIT_ALLOW_REPLACE: bool = false;
 
 /// The struct implementation for Lotus Client API. It allows for multiple different trait
 /// extension.
@@ -129,9 +135,14 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r.message)
     }
 
-    async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse> {
+    async fn state_wait_msg(&self, cid: Cid) -> Result<StateWaitMsgResponse> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
-        let params = json!([CIDMap::from(cid), nonce]);
+        let params = json!([
+            CIDMap::from(cid),
+            STATE_WAIT_CONFIDENCE,
+            STATE_WAIT_LOOK_BACK_NO_LIMIT,
+            STATE_WAIT_ALLOW_REPLACE,
+        ]);
 
         let r = self
             .client
