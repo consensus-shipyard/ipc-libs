@@ -56,7 +56,7 @@ const STATE_WAIT_CONFIDENCE: u8 = 5;
 /// We dont set a limit on the look back epoch, i.e. check against latest block
 const STATE_WAIT_LOOK_BACK_NO_LIMIT: i8 = -1;
 /// We are not replacing any previous messages
-const STATE_WAIT_ALLOW_REPLACE: bool = false;
+const STATE_WAIT_ALLOW_REPLACE: bool = true;
 
 /// The struct implementation for Lotus Client API. It allows for multiple different trait
 /// extension.
