@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
+use fvm_shared::econ::TokenAmount;
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::de::DeserializeOwned;
@@ -34,7 +35,7 @@ pub type NetworkVersion = u32;
 
 /// The Lotus client api to interact with the Lotus node.
 #[async_trait]
-pub trait LotusClient {
+pub trait LotusClient: LotusIPCClient {
     /// Push the message to memory pool, see: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
     async fn mpool_push_message(
         &self,
@@ -75,21 +76,47 @@ pub trait LotusClient {
     /// Returns the current head of the chain.
     /// See: https://lotus.filecoin.io/reference/lotus/chain/#chainhead
     async fn chain_head(&self) -> Result<ChainHeadResponse>;
+}
 
-    async fn ipc_get_prev_checkpoint_for_child(
+/// Lotus IPC client related rpc calls
+#[async_trait]
+pub trait LotusIPCClient {
+    async fn get_prev_checkpoint_for_child(
         &self,
         child_subnet_id: SubnetID,
     ) -> Result<IPCGetPrevCheckpointForChildResponse>;
 
     /// Returns the checkpoint template at `epoch`.
-    async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint>;
+    async fn get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint>;
 
     /// Returns the state of the gateway actor at `tip_set`.
-    async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse>;
+    async fn read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse>;
 
     /// Returns the state of the subnet actor at `tip_set`.
-    async fn ipc_read_subnet_actor_state(
+    async fn read_subnet_actor_state(
         &self,
         tip_set: Cid,
     ) -> Result<IPCReadSubnetActorStateResponse>;
+
+    /// Fund injects new funds from an account of the parent chain to a subnet
+    async fn fund(&self, subnet: SubnetID, from: Address, amount: TokenAmount) -> Result<()>;
+
+    /// Release creates a new check message to release funds in parent chain
+    async fn release(&self, subnet: SubnetID, from: Address) -> Result<()>;
+
+    /// Propagate a cross-net message forward
+    async fn propagate(
+        &self,
+        subnet: SubnetID,
+        from: Address,
+        postbox_cid: Cid,
+    ) -> anyhow::Result<()>;
+
+    /// Whitelist a series of addresses as propagator of a cross net message
+    async fn whitelist_propagator(
+        &self,
+        subnet: SubnetID,
+        from: Address,
+        postbox_cid: Cid,
+    ) -> anyhow::Result<()>;
 }
