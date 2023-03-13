@@ -55,7 +55,9 @@ const GATEWAY_ACTOR_ADDRESS: &str = "f064";
 const STATE_WAIT_CONFIDENCE: u8 = 5;
 /// We dont set a limit on the look back epoch, i.e. check against latest block
 const STATE_WAIT_LOOK_BACK_NO_LIMIT: i8 = -1;
-/// We are not replacing any previous messages
+/// We are not replacing any previous messages.
+/// TODO: when set to false, lotus raises `found message with equal nonce as the one we are looking`
+/// TODO: error. Should check this again.
 const STATE_WAIT_ALLOW_REPLACE: bool = true;
 
 /// The struct implementation for Lotus Client API. It allows for multiple different trait
