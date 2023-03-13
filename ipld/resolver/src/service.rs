@@ -23,6 +23,8 @@ use log::{debug, error, trace, warn};
 use prometheus::Registry;
 use rand::seq::SliceRandom;
 use tokio::select;
+use tokio::sync::broadcast;
+use tokio::sync::mpsc;
 use tokio::sync::oneshot::{self, Sender};
 
 use crate::behaviour::{
@@ -66,6 +68,9 @@ pub struct ConnectionConfig {
     pub expected_peer_count: u32,
     /// Maximum number of peers to send Bitswap requests to in a single attempt.
     pub max_peers_per_query: u32,
+    /// Maximum number of events in the push-based broadcast channel before a slow
+    /// consumer gets an error because it's falling behind.
+    pub event_queue_capacity: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -89,15 +94,27 @@ pub(crate) enum Request {
     UpdateRateLimit(u32),
 }
 
+/// Events that arise from the subnets, pushed to the clients,
+/// not part of a request-response action.
+#[derive(Clone)]
+pub enum Event {}
+
 /// The `Service` handles P2P communication to resolve IPLD content by wrapping and driving a number of `libp2p` behaviours.
 pub struct Service<P: StoreParams> {
     peer_id: PeerId,
     listen_addr: Multiaddr,
     swarm: Swarm<Behaviour<P>>,
+    /// To match finished queries to response channels.
     queries: QueryMap,
-    request_rx: tokio::sync::mpsc::UnboundedReceiver<Request>,
-    request_tx: tokio::sync::mpsc::UnboundedSender<Request>,
+    /// For receiving requests from the clients and self.
+    request_rx: mpsc::UnboundedReceiver<Request>,
+    /// For creating new clients and sending messages to self.
+    request_tx: mpsc::UnboundedSender<Request>,
+    /// For broadcasting events to all clients.
+    event_tx: broadcast::Sender<Event>,
+    /// To avoid looking up the same peer over and over.
     background_lookup_filter: BloomFilter,
+    /// To limit the number of peers contacted in a Bitswap resolution attempt.
     max_peers_per_query: usize,
 }
 
@@ -147,32 +164,66 @@ impl<P: StoreParams> Service<P> {
             .connection_event_buffer_size(64)
             .build();
 
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let (request_tx, request_rx) = mpsc::unbounded_channel();
+        let (event_tx, _) = broadcast::channel(config.connection.event_queue_capacity as usize);
 
         let service = Self {
             peer_id,
             listen_addr: config.connection.listen_addr,
             swarm,
             queries: Default::default(),
-            request_rx: rx,
-            request_tx: tx,
+            request_rx,
+            request_tx,
+            event_tx,
             background_lookup_filter: BloomFilter::with_rate(
                 0.1,
                 config.connection.expected_peer_count,
             ),
-            max_peers_per_query: config
-                .connection
-                .max_peers_per_query
-                .try_into()
-                .expect("u32 should be usize"),
+            max_peers_per_query: config.connection.max_peers_per_query as usize,
         };
 
         Ok(service)
     }
 
     /// Create a new [`Client`] instance bound to this `Service`.
+    ///
+    /// The [`Client`] is geared towards request-response interactions,
+    /// while the `Receiver` returned by `subscribe` is used for events
+    /// which weren't initiated by the `Client`.
     pub fn client(&self) -> Client {
         Client::new(self.request_tx.clone())
+    }
+
+    /// Create a new [`broadcast::Receiver`] instance bound to this `Service`,
+    /// which will be notified upon each event coming from any of the subnets
+    /// the `Service` is subscribed to.
+    ///
+    /// The consumers are expected to process events quick enough to be within
+    /// the configured capacity of the broadcast channel, or otherwise be able
+    /// to deal with message loss if they fall behind.
+    ///
+    /// # Notes
+    ///
+    /// This is not part of the [`Client`] because `Receiver::recv` takes
+    /// a mutable reference and it would prevent the [`Client`] being used
+    /// for anything else.
+    ///
+    /// One alternative design would be to accept an interface similar to
+    /// [`BitswapStore`] that we can pass events to. In that case we would
+    /// have to create an internal event queue to stand in front of it,
+    /// and because these events arrive from the outside, it would still
+    /// have to have limited capacity.
+    ///
+    /// Because the channel has limited capacity, we have to take care not
+    /// to use it for signaling critical events that we want to await upon.
+    /// For example if we used this to signal the readiness of bootstrapping,
+    /// we should make sure we have not yet subscribed to external events
+    /// which could drown it out.
+    ///
+    /// One way to achieve this is for the consumer of the events to redistribute
+    /// them into priorities event queues, some bounded, some unbounded.
+    pub fn subscribe(&self) -> broadcast::Receiver<Event> {
+        self.event_tx.subscribe()
     }
 
     /// Register Prometheus metrics.
