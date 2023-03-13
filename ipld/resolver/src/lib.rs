@@ -8,6 +8,7 @@ mod provider_cache;
 mod provider_record;
 mod service;
 mod stats;
+mod vote;
 
 #[cfg(any(test, feature = "arb"))]
 mod arb;

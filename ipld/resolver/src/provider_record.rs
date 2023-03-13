@@ -145,9 +145,6 @@ pub enum FromEnvelopeError {
     /// Failed to decode the provided bytes as a [`ProviderRecord`].
     #[error("Failed to decode bytes as ProviderRecord")]
     InvalidProviderRecord(#[from] fvm_ipld_encoding::Error),
-    /// Failed to decode the peer ID.
-    #[error("Failed to decode bytes as PeerId")]
-    InvalidPeerId(#[from] multihash::Error),
     /// The signer of the envelope is different than the peer id in the record.
     #[error("The signer of the envelope is different than the peer id in the record")]
     MismatchedSignature,
