@@ -198,7 +198,7 @@ impl Behaviour {
 
     /// Send a message through Gossipsub to let everyone know about the current configuration.
     fn publish_membership(&mut self) -> anyhow::Result<()> {
-        let record = SignedProviderRecord::new(&self.local_key, self.subnet_ids.clone())?;
+        let record = ProviderRecord::signed(&self.local_key, self.subnet_ids.clone())?;
         let data = record.into_envelope().into_protobuf_encoding();
         match self.inner.publish(self.membership_topic.clone(), data) {
             Err(e) => {

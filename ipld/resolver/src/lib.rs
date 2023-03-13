@@ -7,6 +7,7 @@ mod limiter;
 mod provider_cache;
 mod provider_record;
 mod service;
+mod signed_record;
 mod stats;
 mod vote;
 

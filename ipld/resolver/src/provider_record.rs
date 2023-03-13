@@ -5,13 +5,10 @@ use std::time::{Duration, SystemTime};
 
 use fvm_ipld_encoding::serde::{Deserialize, Serialize};
 use ipc_sdk::subnet_id::SubnetID;
-use libipld::multihash;
-use libp2p::core::{signed_envelope, SignedEnvelope};
 use libp2p::identity::Keypair;
 use libp2p::PeerId;
 
-const DOMAIN_SEP: &str = "ipc-membership";
-const PAYLOAD_TYPE: &str = "/ipc/provider-record";
+use crate::signed_record::{Record, SignedRecord};
 
 /// Unix timestamp in seconds since epoch, which we can use to select the
 /// more recent message during gossiping.
@@ -76,21 +73,29 @@ pub struct ProviderRecord {
     pub timestamp: Timestamp,
 }
 
-/// A [`ProviderRecord`] with a [`SignedEnvelope`] proving that the
-/// peer indeed is ready to provide the data for the listed subnets.
-#[derive(Debug, Clone)]
-pub struct SignedProviderRecord {
-    /// The deserialized and validated [`ProviderRecord`].
-    record: ProviderRecord,
-    /// The [`SignedEnvelope`] from which the record was deserialized from.
-    envelope: SignedEnvelope,
+impl Record for ProviderRecord {
+    fn domain_sep() -> &'static str {
+        "ipc-membership"
+    }
+
+    fn payload_type() -> &'static str {
+        "/ipc/provider-record"
+    }
+
+    fn check_signing_key(&self, key: &libp2p::identity::PublicKey) -> bool {
+        self.peer_id == key.to_peer_id()
+    }
 }
 
-// Based on `libp2p_core::peer_record::PeerRecord`
-impl SignedProviderRecord {
+pub type SignedProviderRecord = SignedRecord<ProviderRecord>;
+
+impl ProviderRecord {
     /// Create a new [`SignedProviderRecord`] with the current timestamp
     /// and a signed envelope which can be shared with others.
-    pub fn new(key: &Keypair, subnet_ids: Vec<SubnetID>) -> anyhow::Result<Self> {
+    pub fn signed(
+        key: &Keypair,
+        subnet_ids: Vec<SubnetID>,
+    ) -> anyhow::Result<SignedProviderRecord> {
         let timestamp = Timestamp::now();
         let peer_id = key.public().to_peer_id();
         let record = ProviderRecord {
@@ -98,56 +103,9 @@ impl SignedProviderRecord {
             subnet_ids,
             timestamp,
         };
-        let payload = fvm_ipld_encoding::to_vec(&record)?;
-        let envelope = SignedEnvelope::new(
-            key,
-            DOMAIN_SEP.to_owned(),
-            PAYLOAD_TYPE.as_bytes().to_vec(),
-            payload,
-        )?;
-        Ok(Self { record, envelope })
+        let signed = SignedRecord::new(key, record)?;
+        Ok(signed)
     }
-
-    pub fn from_signed_envelope(envelope: SignedEnvelope) -> Result<Self, FromEnvelopeError> {
-        let (payload, signing_key) =
-            envelope.payload_and_signing_key(DOMAIN_SEP.to_owned(), PAYLOAD_TYPE.as_bytes())?;
-
-        let record = fvm_ipld_encoding::from_slice::<ProviderRecord>(payload)?;
-
-        if record.peer_id != signing_key.to_peer_id() {
-            return Err(FromEnvelopeError::MismatchedSignature);
-        }
-
-        Ok(Self { record, envelope })
-    }
-
-    /// Deserialize then check the domain tags and the signature.
-    pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<Self> {
-        let envelope = SignedEnvelope::from_protobuf_encoding(bytes)?;
-        let signed_record = Self::from_signed_envelope(envelope)?;
-        Ok(signed_record)
-    }
-
-    pub fn into_record(self) -> ProviderRecord {
-        self.record
-    }
-
-    pub fn into_envelope(self) -> SignedEnvelope {
-        self.envelope
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum FromEnvelopeError {
-    /// Failed to extract the payload from the envelope.
-    #[error("Failed to extract payload from envelope")]
-    BadPayload(#[from] signed_envelope::ReadPayloadError),
-    /// Failed to decode the provided bytes as a [`ProviderRecord`].
-    #[error("Failed to decode bytes as ProviderRecord")]
-    InvalidProviderRecord(#[from] fvm_ipld_encoding::Error),
-    /// The signer of the envelope is different than the peer id in the record.
-    #[error("The signer of the envelope is different than the peer id in the record")]
-    MismatchedSignature,
 }
 
 #[cfg(any(test, feature = "arb"))]
@@ -157,7 +115,7 @@ mod arb {
 
     use crate::arb::ArbSubnetID;
 
-    use super::{SignedProviderRecord, Timestamp};
+    use super::{ProviderRecord, SignedProviderRecord, Timestamp};
 
     impl Arbitrary for Timestamp {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
@@ -181,7 +139,7 @@ mod arb {
                 subnet_ids.push(subnet_id.0)
             }
 
-            Self::new(&key, subnet_ids).expect("error creating signed envelope")
+            ProviderRecord::signed(&key, subnet_ids).expect("error creating signed envelope")
         }
     }
 }
