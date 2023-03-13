@@ -64,14 +64,14 @@ pub trait SubnetManager {
         &self,
         subnet: SubnetID,
         from: Address,
-        postbox_cid: Cid,
+        postbox_msg_cid: Cid,
     ) -> anyhow::Result<()>;
 
     /// Whitelist a series of addresses as propagator of a cross net message
     async fn whitelist_propagator(
         &self,
         subnet: SubnetID,
-        postbox_cid: Cid,
+        postbox_msg_cid: Cid,
         from: Address,
         to_add: Vec<Address>,
     ) -> anyhow::Result<()>;

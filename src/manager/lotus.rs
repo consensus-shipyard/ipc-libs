@@ -161,7 +161,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     async fn whitelist_propagator(
         &self,
         _subnet: SubnetID,
-        _postbox_cid: Cid,
+        _postbox_msg_cid: Cid,
         _from: Address,
         _to_add: Vec<Address>,
     ) -> Result<()> {
