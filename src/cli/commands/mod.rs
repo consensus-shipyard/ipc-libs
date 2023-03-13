@@ -10,6 +10,7 @@ mod list_subnets;
 use crate::cli::commands::config::{ReloadConfig, ReloadConfigArgs};
 use crate::cli::commands::create::{CreateSubnet, CreateSubnetArgs};
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
+use crate::cli::commands::list_subnets::{ListSubnets, ListSubnetsArgs};
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -28,6 +29,7 @@ enum Commands {
     Daemon(LaunchDaemonArgs),
     CreateSubnet(CreateSubnetArgs),
     ReloadConfig(ReloadConfigArgs),
+    ListSubnets(ListSubnetsArgs),
 }
 
 /// The overall command line struct to be used by `clap`.
@@ -82,6 +84,7 @@ pub async fn cli() {
         Commands::Daemon(args) => LaunchDaemon::handle(global, args).await,
         Commands::CreateSubnet(args) => CreateSubnet::handle(global, args).await,
         Commands::ReloadConfig(args) => ReloadConfig::handle(global, args).await,
+        Commands::ListSubnets(args) => ListSubnets::handle(global, args).await,
     };
 
     if let Err(e) = r {
