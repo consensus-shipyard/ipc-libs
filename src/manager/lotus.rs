@@ -154,7 +154,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         todo!()
     }
 
-    async fn propagate(&self, _subnet: SubnetID, _from: Address, _postbox_cid: Cid) -> Result<()> {
+    async fn propagate(&self, _subnet: SubnetID, _from: Address, _postbox_msg_cid: Cid) -> Result<()> {
         todo!()
     }
 
