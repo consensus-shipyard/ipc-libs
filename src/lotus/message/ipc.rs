@@ -38,8 +38,7 @@ pub struct SubnetInfo {
     /// Id of the subnet.
     pub id: SubnetID,
     /// Collateral staked in the subnet.
-    #[serde(rename = "stake")]
-    pub collateral: TokenAmount,
+    pub stake: TokenAmount,
     /// Circulating supply available in the subnet.
     pub circ_supply: TokenAmount,
     /// State of the Subnet (Initialized, Active, Killed)
