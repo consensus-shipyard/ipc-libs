@@ -46,8 +46,11 @@ pub trait SubnetManager {
         ch: Checkpoint,
     ) -> Result<()>;
 
-    /// Lists all the registered children for a subnet.
-    async fn list_child_subnets(&self, subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>>;
+    /// Lists all the registered children in a gateway.
+    async fn list_child_subnets(
+        &self,
+        gateway_addr: Address,
+    ) -> Result<HashMap<SubnetID, SubnetInfo>>;
 }
 
 /// SubnetInfo is an auxiliary struct that collects

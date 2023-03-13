@@ -7,6 +7,7 @@ use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
+use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,7 +16,7 @@ use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListSubnetsParams {
-    pub subnet: String,
+    pub gateway_address: String,
 }
 
 /// The create subnet json rpc method handler.
@@ -35,12 +36,12 @@ impl JsonRPCRequestHandler for ListSubnetsHandler {
     type Response = HashMap<SubnetID, SubnetInfo>;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let conn = match self.pool.get(&request.subnet) {
+        let conn = match self.pool.get(&request.gateway_address) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
 
-        let subnet = SubnetID::from_str(&request.subnet)?;
-        conn.manager().list_child_subnets(subnet).await
+        let gateway_addr = Address::from_str(&request.gateway_address)?;
+        conn.manager().list_child_subnets(gateway_addr).await
     }
 }

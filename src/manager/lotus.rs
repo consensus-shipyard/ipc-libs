@@ -129,9 +129,14 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         panic!("not implemented")
     }
 
-    async fn list_child_subnets(&self, subnet: SubnetID) -> Result<HashMap<SubnetID, SubnetInfo>> {
-        let parent = subnet.subnet_actor();
-        let subnets = self.lotus_client.ipc_list_child_subnets(parent).await?;
+    async fn list_child_subnets(
+        &self,
+        gateway_addr: Address,
+    ) -> Result<HashMap<SubnetID, SubnetInfo>> {
+        let subnets = self
+            .lotus_client
+            .ipc_list_child_subnets(gateway_addr)
+            .await?;
 
         let mut map = HashMap::new();
         for s in subnets {

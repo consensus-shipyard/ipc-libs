@@ -9,7 +9,7 @@ mod validator;
 use crate::config::json_rpc_methods;
 use crate::config::ReloadableConfig;
 use crate::server::handlers::config::ReloadConfigHandler;
-use crate::server::handlers::manager::list::ListSubnetsHandler;
+use crate::server::handlers::manager::list_subnets::ListSubnetsHandler;
 use crate::server::handlers::validator::QueryValidatorSetHandler;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::{anyhow, Result};
