@@ -222,7 +222,7 @@ impl Behaviour {
         if self.subnet_ids.contains(&subnet_id) {
             return Ok(());
         }
-        self.inner.subscribe(&self.voting_topic(&subnet_id))?;
+        self.voting_subscribe(&subnet_id)?;
         self.subnet_ids.push(subnet_id);
         self.publish_membership()
     }
@@ -232,7 +232,7 @@ impl Behaviour {
         if !self.subnet_ids.contains(&subnet_id) {
             return Ok(());
         }
-        self.inner.unsubscribe(&self.voting_topic(&subnet_id))?;
+        self.voting_unsubscribe(&subnet_id)?;
         self.subnet_ids.retain(|id| id != &subnet_id);
         self.publish_membership()
     }
@@ -384,12 +384,6 @@ impl Behaviour {
     fn handle_subscriber(&mut self, peer_id: PeerId, topic: TopicHash) {
         if topic == self.membership_topic.hash() {
             self.publish_for_new_peer(peer_id)
-        } else {
-            stats::MEMBERSHIP_UNKNOWN_TOPIC.inc();
-            warn!(
-                "unknown gossipsub topic in subscription from {}: {}",
-                peer_id, topic
-            )
         }
     }
 

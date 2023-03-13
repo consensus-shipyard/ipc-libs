@@ -18,6 +18,7 @@ async fn main() {
           expected_peer_count: 1000,
           max_incoming: 25,
           max_peers_per_query: 10,
+          event_buffer_capacity: 100,
       },
       network: NetworkConfig {
           local_key: Keypair::generate_secp256k1(),

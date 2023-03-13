@@ -19,7 +19,7 @@ use libp2p::{
 };
 use libp2p::{identify, ping};
 use libp2p_bitswap::{BitswapResponse, BitswapStore};
-use log::{debug, error, trace, warn};
+use log::{debug, error, info, trace, warn};
 use prometheus::Registry;
 use rand::seq::SliceRandom;
 use tokio::select;
@@ -71,7 +71,7 @@ pub struct ConnectionConfig {
     pub max_peers_per_query: u32,
     /// Maximum number of events in the push-based broadcast channel before a slow
     /// consumer gets an error because it's falling behind.
-    pub event_queue_capacity: u32,
+    pub event_buffer_capacity: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +98,7 @@ pub(crate) enum Request {
 
 /// Events that arise from the subnets, pushed to the clients,
 /// not part of a request-response action.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Event {
     /// Received a vote about in a subnet about a CID.
     ReceivedVote(Box<VoteRecord>),
@@ -170,7 +170,7 @@ impl<P: StoreParams> Service<P> {
             .build();
 
         let (request_tx, request_rx) = mpsc::unbounded_channel();
-        let (event_tx, _) = broadcast::channel(config.connection.event_queue_capacity as usize);
+        let (event_tx, _) = broadcast::channel(config.connection.event_buffer_capacity as usize);
 
         let service = Self {
             peer_id,
@@ -241,6 +241,7 @@ impl<P: StoreParams> Service<P> {
     /// Start the swarm listening for incoming connections and drive the events forward.
     pub async fn run(mut self) -> anyhow::Result<()> {
         // Start the swarm.
+        info!("running service on {}", self.listen_addr);
         Swarm::listen_on(&mut self.swarm, self.listen_addr.clone())?;
 
         loop {

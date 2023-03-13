@@ -21,5 +21,6 @@ pub mod missing_blocks;
 
 pub use behaviour::{ContentConfig, DiscoveryConfig, MembershipConfig, NetworkConfig};
 pub use client::Client;
-pub use service::{Config, ConnectionConfig, NoKnownPeers, Service};
+pub use service::{Config, ConnectionConfig, Event, NoKnownPeers, Service};
 pub use timestamp::Timestamp;
+pub use vote_record::VoteRecord;
