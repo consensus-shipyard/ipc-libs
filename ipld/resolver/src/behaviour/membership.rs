@@ -224,11 +224,12 @@ impl Behaviour {
 
     /// Publish the vote of the validator running the agent about a CID to a subnet.
     pub fn publish_vote(&mut self, vote: SignedVoteRecord) -> anyhow::Result<()> {
+        // Replacing "/" to "_" to avoid clashes from prefix/suffix overlap.
         let topic: IdentTopic = Topic::new(format!(
             "{}/{}/{}",
             PUBSUB_VOTES,
-            self.network_name.replace("/", "_"),
-            vote.record().subnet_id.to_string().replace("/", "_")
+            self.network_name.replace('/', "_"),
+            vote.record().subnet_id.to_string().replace('/', "_")
         ));
         let data = vote.into_envelope().into_protobuf_encoding();
         match self.inner.publish(topic, data) {

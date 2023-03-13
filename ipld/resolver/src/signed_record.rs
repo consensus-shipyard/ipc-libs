@@ -7,7 +7,7 @@ use libp2p::{core::SignedEnvelope, identity::Keypair};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-const DOMAIN_SEP: &'static str = "/ipc/ipld/resolver";
+const DOMAIN_SEP: &str = "/ipc/ipld/resolver";
 
 pub trait Record {
     /// Payload type for the [`SignedEnvelope`].

@@ -88,7 +88,7 @@ pub(crate) enum Request {
     SetProvidedSubnets(Vec<SubnetID>),
     AddProvidedSubnet(SubnetID),
     RemoveProvidedSubnet(SubnetID),
-    PublishVote(SignedVoteRecord),
+    PublishVote(Box<SignedVoteRecord>),
     PinSubnet(SubnetID),
     UnpinSubnet(SubnetID),
     Resolve(Cid, SubnetID, ResponseChannel),
@@ -401,7 +401,7 @@ impl<P: StoreParams> Service<P> {
                 }
             }
             Request::PublishVote(vote) => {
-                if let Err(e) = self.membership_mut().publish_vote(vote) {
+                if let Err(e) = self.membership_mut().publish_vote(*vote) {
                     warn!("failed to publish vote: {e}")
                 }
             }

@@ -82,7 +82,7 @@ impl Client {
     }
 
     pub fn publish_vote(&self, vote: SignedVoteRecord) -> anyhow::Result<()> {
-        let req = Request::PublishVote(vote);
+        let req = Request::PublishVote(Box::new(vote));
         self.send_request(req)
     }
 }
