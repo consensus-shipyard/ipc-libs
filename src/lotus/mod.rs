@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_gateway::{Checkpoint, Subnet};
+use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::de::DeserializeOwned;
 
@@ -22,6 +22,7 @@ use crate::lotus::message::ipc::{
     IPCGetPrevCheckpointForChildResponse, IPCReadGatewayStateResponse,
     IPCReadSubnetActorStateResponse,
 };
+use crate::manager::SubnetInfo;
 
 pub mod client;
 pub mod message;
@@ -94,5 +95,5 @@ pub trait LotusClient {
     ) -> Result<IPCReadSubnetActorStateResponse>;
 
     /// Returns the list of subnets in a gateway.
-    async fn ipc_list_child_subnets(&self, gateway_addr: Address) -> Result<Vec<Subnet>>;
+    async fn ipc_list_child_subnets(&self, gateway_addr: Address) -> Result<Vec<SubnetInfo>>;
 }

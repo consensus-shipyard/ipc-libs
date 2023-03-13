@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: MIT
 use std::collections::HashMap;
 
+use crate::lotus::message::ipc::SubnetInfo;
 ///! IPC node-specific traits.
 use anyhow::Result;
 use async_trait::async_trait;
 use fvm_shared::{address::Address, econ::TokenAmount};
-use ipc_gateway::{Checkpoint, Status};
+use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
-use serde::{Deserialize, Serialize};
 
 /// Trait to interact with a subnet and handle its lifecycle.
 #[async_trait]
@@ -51,18 +51,4 @@ pub trait SubnetManager {
         &self,
         gateway_addr: Address,
     ) -> Result<HashMap<SubnetID, SubnetInfo>>;
-}
-
-/// SubnetInfo is an auxiliary struct that collects
-/// relevant information about the state of a subnet
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SubnetInfo {
-    /// Id of the subnet.
-    pub id: SubnetID,
-    /// Collateral staked in the subnet.
-    pub collateral: TokenAmount,
-    /// Circulating supply available in the subnet.
-    pub circ_supply: TokenAmount,
-    /// State of the Subnet (Initialized, Active, Killed)
-    pub status: Status,
 }

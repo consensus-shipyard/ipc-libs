@@ -10,7 +10,7 @@ use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::{Checkpoint, Subnet};
+use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
@@ -29,6 +29,7 @@ use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
 use crate::lotus::{LotusClient, NetworkVersion};
+use crate::manager::SubnetInfo;
 
 // RPC methods
 mod methods {
@@ -301,11 +302,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
-    async fn ipc_list_child_subnets(&self, gateway_addr: Address) -> Result<Vec<Subnet>> {
+    async fn ipc_list_child_subnets(&self, gateway_addr: Address) -> Result<Vec<SubnetInfo>> {
         let params = json!([gateway_addr]);
         let r = self
             .client
-            .request::<Vec<Subnet>>(methods::IPC_LIST_CHILD_SUBNETS, params)
+            .request(methods::IPC_LIST_CHILD_SUBNETS, params)
             .await?;
         Ok(r)
     }

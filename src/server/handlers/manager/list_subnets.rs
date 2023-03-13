@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT
 //! List subnets in gateway actor
 
-use crate::manager::{SubnetInfo, SubnetManager};
+use crate::lotus::message::ipc::SubnetInfo;
+use crate::manager::SubnetManager;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;

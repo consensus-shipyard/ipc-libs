@@ -15,11 +15,12 @@ use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
 
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::lotus::client::LotusJsonRPCClient;
+use crate::lotus::message::ipc::SubnetInfo;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::message::state::StateWaitMsgResponse;
 use crate::lotus::LotusClient;
 
-use super::subnet::{SubnetInfo, SubnetManager};
+use super::subnet::SubnetManager;
 
 pub struct LotusSubnetManager<T: JsonRpcClient> {
     lotus_client: LotusJsonRPCClient<T>,
@@ -140,13 +141,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
 
         let mut map = HashMap::new();
         for s in subnets {
-            let info = SubnetInfo {
-                id: s.id.clone(),
-                collateral: s.stake,
-                circ_supply: s.circ_supply,
-                status: s.status,
-            };
-            map.insert(s.id, info);
+            map.insert(s.id.clone(), s);
         }
         Ok(map)
     }
