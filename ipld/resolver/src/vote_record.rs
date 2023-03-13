@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use ipc_sdk::subnet_id::SubnetID;
 use libipld::Cid;
 use libp2p::identity::{Keypair, PublicKey};

@@ -6,7 +6,10 @@ use libipld::Cid;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::oneshot;
 
-use crate::service::{Request, ResolveResult};
+use crate::{
+    service::{Request, ResolveResult},
+    vote_record::SignedVoteRecord,
+};
 
 /// A facade to the [`Service`] to provide a nicer interface than message passing would allow on its own.
 #[derive(Clone)]
@@ -75,6 +78,11 @@ impl Client {
     /// them on the fly based on what we observe on chain.
     pub fn update_rate_limit(&self, bytes: u32) -> anyhow::Result<()> {
         let req = Request::UpdateRateLimit(bytes);
+        self.send_request(req)
+    }
+
+    pub fn publish_vote(&self, vote: SignedVoteRecord) -> anyhow::Result<()> {
+        let req = Request::PublishVote(vote);
         self.send_request(req)
     }
 }

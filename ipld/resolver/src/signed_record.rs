@@ -65,18 +65,20 @@ where
         Ok(signed_record)
     }
 
+    pub fn record(&self) -> &R {
+        &self.record
+    }
+
+    pub fn envelope(&self) -> &SignedEnvelope {
+        &self.envelope
+    }
+
     pub fn into_record(self) -> R {
         self.record
     }
 
     pub fn into_envelope(self) -> SignedEnvelope {
         self.envelope
-    }
-}
-
-impl<R> Into<(R, SignedEnvelope)> for SignedRecord<R> {
-    fn into(self) -> (R, SignedEnvelope) {
-        (self.record, self.envelope)
     }
 }
 
@@ -105,8 +107,7 @@ pub mod tests {
     where
         R: Serialize + DeserializeOwned + Record + PartialEq,
     {
-        let (record, envelope) = signed_record.into();
-        let envelope_bytes = envelope.into_protobuf_encoding();
+        let envelope_bytes = signed_record.envelope().clone().into_protobuf_encoding();
 
         let envelope =
             SignedEnvelope::from_protobuf_encoding(&envelope_bytes).expect("envelope roundtrip");
@@ -114,6 +115,6 @@ pub mod tests {
         let signed_record2 =
             SignedRecord::<R>::from_signed_envelope(envelope).expect("record roundtrip");
 
-        signed_record2.into_record() == record
+        signed_record2.into_record() == *signed_record.record()
     }
 }

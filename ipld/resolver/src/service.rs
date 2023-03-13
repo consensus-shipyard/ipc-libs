@@ -33,6 +33,7 @@ use crate::behaviour::{
 };
 use crate::client::Client;
 use crate::stats;
+use crate::vote_record::SignedVoteRecord;
 
 /// Result of attempting to resolve a CID.
 pub type ResolveResult = anyhow::Result<()>;
@@ -87,6 +88,7 @@ pub(crate) enum Request {
     SetProvidedSubnets(Vec<SubnetID>),
     AddProvidedSubnet(SubnetID),
     RemoveProvidedSubnet(SubnetID),
+    PublishVote(SignedVoteRecord),
     PinSubnet(SubnetID),
     UnpinSubnet(SubnetID),
     Resolve(Cid, SubnetID, ResponseChannel),
@@ -396,6 +398,11 @@ impl<P: StoreParams> Service<P> {
             Request::RemoveProvidedSubnet(id) => {
                 if let Err(e) = self.membership_mut().remove_provided_subnet(id) {
                     warn!("failed to publish removed provided subnet: {e}")
+                }
+            }
+            Request::PublishVote(vote) => {
+                if let Err(e) = self.membership_mut().publish_vote(vote) {
+                    warn!("failed to publish vote: {e}")
                 }
             }
             Request::PinSubnet(id) => self.membership_mut().pin_subnet(id),

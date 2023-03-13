@@ -27,12 +27,15 @@ use tokio::time::{Instant, Interval};
 use crate::hash::blake2b_256;
 use crate::provider_cache::{ProviderDelta, SubnetProviderCache};
 use crate::provider_record::{ProviderRecord, SignedProviderRecord};
+use crate::vote_record::SignedVoteRecord;
 use crate::{stats, Timestamp};
 
 use super::NetworkConfig;
 
-/// `Gossipsub` subnet membership topic identifier.
+/// `Gossipsub` topic identifier for subnet membership.
 const PUBSUB_MEMBERSHIP: &str = "/ipc/membership";
+/// `Gossipsub` topic identifier for voting about content.
+const PUBSUB_VOTES: &str = "/ipc/ipld/votes";
 
 /// Events emitted by the [`membership::Behaviour`] behaviour.
 #[derive(Debug)]
@@ -83,6 +86,8 @@ pub struct Behaviour {
     outbox: VecDeque<Event>,
     /// [`Keypair`] used to sign [`SignedProviderRecord`] instances.
     local_key: Keypair,
+    /// Name of the P2P network, used to separate `Gossipsub` topics.
+    network_name: String,
     /// Name of the [`Gossipsub`] topic where subnet memberships are published.
     membership_topic: IdentTopic,
     /// List of subnet IDs this agent is providing data for.
@@ -147,6 +152,7 @@ impl Behaviour {
             inner: gossipsub,
             outbox: Default::default(),
             local_key: nc.local_key,
+            network_name: nc.network_name,
             membership_topic,
             subnet_ids: Default::default(),
             provider_cache: SubnetProviderCache::new(mc.max_subnets, mc.static_subnets),
@@ -216,6 +222,27 @@ impl Behaviour {
         }
     }
 
+    /// Publish the vote of the validator running the agent about a CID to a subnet.
+    pub fn publish_vote(&mut self, vote: SignedVoteRecord) -> anyhow::Result<()> {
+        let topic: IdentTopic = Topic::new(format!(
+            "{}/{}/{}",
+            PUBSUB_VOTES,
+            self.network_name.replace("/", "_"),
+            vote.record().subnet_id.to_string().replace("/", "_")
+        ));
+        let data = vote.into_envelope().into_protobuf_encoding();
+        match self.inner.publish(topic, data) {
+            Err(e) => {
+                stats::MEMBERSHIP_PUBLISH_FAILURE.inc();
+                Err(anyhow!(e))
+            }
+            Ok(_msg_id) => {
+                stats::MEMBERSHIP_PUBLISH_SUCCESS.inc();
+                Ok(())
+            }
+        }
+    }
+
     /// Mark a peer as routable in the cache.
     ///
     /// Call this method when the discovery service learns the address of a peer.
@@ -252,8 +279,8 @@ impl Behaviour {
                 Err(e) => {
                     stats::MEMBERSHIP_INVALID_MESSAGE.inc();
                     warn!(
-                        "Gossip message from peer {:?} could not be deserialized: {e}",
-                        msg.source
+                        "Gossip message from peer {:?} to {} could not be deserialized: {e}",
+                        msg.source, self.membership_topic
                     );
                 }
             }
