@@ -111,7 +111,8 @@ mod tests {
 
     #[quickcheck]
     fn prop_roundtrip(signed_record: SignedProviderRecord) -> bool {
-        let envelope_bytes = signed_record.envelope.into_protobuf_encoding();
+        let (record, envelope) = signed_record.into();
+        let envelope_bytes = envelope.into_protobuf_encoding();
 
         let envelope =
             SignedEnvelope::from_protobuf_encoding(&envelope_bytes).expect("envelope roundtrip");
@@ -119,12 +120,12 @@ mod tests {
         let signed_record2 =
             SignedProviderRecord::from_signed_envelope(envelope).expect("record roundtrip");
 
-        signed_record2.record == signed_record.record
+        signed_record2.into_record() == record
     }
 
     #[quickcheck]
     fn prop_tamper_proof(signed_record: SignedProviderRecord, idx: usize) -> bool {
-        let mut envelope_bytes = signed_record.envelope.into_protobuf_encoding();
+        let mut envelope_bytes = signed_record.into_envelope().into_protobuf_encoding();
         // Do some kind of mutation to a random byte in the envelope; after that it should not validate.
         let idx = idx % envelope_bytes.len();
         envelope_bytes[idx] = u8::MAX - envelope_bytes[idx];

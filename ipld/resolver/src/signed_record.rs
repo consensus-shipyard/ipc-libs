@@ -22,9 +22,9 @@ pub trait Record {
 #[derive(Debug, Clone)]
 pub struct SignedRecord<R> {
     /// The deserialized and validated record.
-    pub(crate) record: R,
+    record: R,
     /// The [`SignedEnvelope`] from which the record was deserialized from.
-    pub(crate) envelope: SignedEnvelope,
+    envelope: SignedEnvelope,
 }
 
 // Based on `libp2p_core::peer_record::PeerRecord`
@@ -71,6 +71,12 @@ where
 
     pub fn into_envelope(self) -> SignedEnvelope {
         self.envelope
+    }
+}
+
+impl<R> Into<(R, SignedEnvelope)> for SignedRecord<R> {
+    fn into(self) -> (R, SignedEnvelope) {
+        (self.record, self.envelope)
     }
 }
 
