@@ -7,9 +7,9 @@ use libp2p::{core::SignedEnvelope, identity::Keypair};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+const DOMAIN_SEP: &'static str = "/ipc/ipld/resolver";
+
 pub trait Record {
-    /// Domain separation string for the [`SignedEnvelope`].
-    fn domain_sep() -> &'static str;
     /// Payload type for the [`SignedEnvelope`].
     fn payload_type() -> &'static str;
     /// Check that the [`PublicKey`] recovered from the [`SignedEnvelope`]
@@ -38,7 +38,7 @@ where
         let payload = fvm_ipld_encoding::to_vec(&record)?;
         let envelope = SignedEnvelope::new(
             key,
-            R::domain_sep().to_owned(),
+            DOMAIN_SEP.to_owned(),
             R::payload_type().as_bytes().to_vec(),
             payload,
         )?;
@@ -47,7 +47,7 @@ where
 
     pub fn from_signed_envelope(envelope: SignedEnvelope) -> Result<Self, FromEnvelopeError> {
         let (payload, signing_key) = envelope
-            .payload_and_signing_key(R::domain_sep().to_owned(), R::payload_type().as_bytes())?;
+            .payload_and_signing_key(DOMAIN_SEP.to_owned(), R::payload_type().as_bytes())?;
 
         let record = fvm_ipld_encoding::from_slice::<R>(payload)?;
 
@@ -91,4 +91,29 @@ pub enum FromEnvelopeError {
     /// The signer of the envelope is different than the peer id in the record.
     #[error("The signer of the envelope is different than the peer id in the record")]
     MismatchedSignature,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use fvm_ipld_encoding::de::DeserializeOwned;
+    use libp2p::core::SignedEnvelope;
+    use serde::Serialize;
+
+    use super::{Record, SignedRecord};
+
+    pub fn prop_roundtrip<R>(signed_record: SignedRecord<R>) -> bool
+    where
+        R: Serialize + DeserializeOwned + Record + PartialEq,
+    {
+        let (record, envelope) = signed_record.into();
+        let envelope_bytes = envelope.into_protobuf_encoding();
+
+        let envelope =
+            SignedEnvelope::from_protobuf_encoding(&envelope_bytes).expect("envelope roundtrip");
+
+        let signed_record2 =
+            SignedRecord::<R>::from_signed_envelope(envelope).expect("record roundtrip");
+
+        signed_record2.into_record() == record
+    }
 }

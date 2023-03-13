@@ -4,13 +4,14 @@ mod behaviour;
 mod client;
 mod hash;
 mod limiter;
-mod provider_cache;
-mod provider_record;
 mod service;
-mod signed_record;
 mod stats;
 mod timestamp;
-mod vote;
+
+mod provider_cache;
+mod provider_record;
+mod signed_record;
+mod vote_record;
 
 #[cfg(any(test, feature = "arb"))]
 mod arb;

@@ -38,10 +38,6 @@ pub struct ProviderRecord {
 }
 
 impl Record for ProviderRecord {
-    fn domain_sep() -> &'static str {
-        "ipc-membership"
-    }
-
     fn payload_type() -> &'static str {
         "/ipc/provider-record"
     }
@@ -111,16 +107,7 @@ mod tests {
 
     #[quickcheck]
     fn prop_roundtrip(signed_record: SignedProviderRecord) -> bool {
-        let (record, envelope) = signed_record.into();
-        let envelope_bytes = envelope.into_protobuf_encoding();
-
-        let envelope =
-            SignedEnvelope::from_protobuf_encoding(&envelope_bytes).expect("envelope roundtrip");
-
-        let signed_record2 =
-            SignedProviderRecord::from_signed_envelope(envelope).expect("record roundtrip");
-
-        signed_record2.into_record() == record
+        crate::signed_record::tests::prop_roundtrip(signed_record)
     }
 
     #[quickcheck]
