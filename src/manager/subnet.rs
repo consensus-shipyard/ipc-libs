@@ -71,6 +71,7 @@ pub trait SubnetManager {
     async fn whitelist_propagator(
         &self,
         subnet: SubnetID,
+        postbox_cid: Cid,
         from: Address,
         to_add: Vec<Address>,
     ) -> anyhow::Result<()>;
