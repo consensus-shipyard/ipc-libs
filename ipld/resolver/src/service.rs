@@ -33,7 +33,7 @@ use crate::behaviour::{
 };
 use crate::client::Client;
 use crate::stats;
-use crate::vote_record::SignedVoteRecord;
+use crate::vote_record::{SignedVoteRecord, VoteRecord};
 
 /// Result of attempting to resolve a CID.
 pub type ResolveResult = anyhow::Result<()>;
@@ -99,7 +99,10 @@ pub(crate) enum Request {
 /// Events that arise from the subnets, pushed to the clients,
 /// not part of a request-response action.
 #[derive(Clone)]
-pub enum Event {}
+pub enum Event {
+    /// Received a vote about in a subnet about a CID.
+    ReceivedVote(Box<VoteRecord>),
+}
 
 /// The `Service` handles P2P communication to resolve IPLD content by wrapping and driving a number of `libp2p` behaviours.
 pub struct Service<P: StoreParams> {
@@ -350,6 +353,12 @@ impl<P: StoreParams> Service<P> {
             }
             membership::Event::Updated(_, _) => {}
             membership::Event::Removed(_) => {}
+            membership::Event::ReceivedVote(vote) => {
+                let event = Event::ReceivedVote(vote);
+                if self.event_tx.send(event).is_err() {
+                    debug!("dropped received vote because there are no subscribers")
+                }
+            }
         }
     }
 
