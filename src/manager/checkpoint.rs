@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -125,7 +127,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
     // Extract the checkpoint period from the state of the subnet actor in the parent.
     let state = parent_client
-        .ipc_read_subnet_actor_state(parent_tip_set)
+        .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
         .await?;
     let period = state.check_period;
 
@@ -152,15 +154,18 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
             let parent_tip_set = Cid::try_from(cid_map)?;
 
             let subnet_actor_state = parent_client
-                .ipc_read_subnet_actor_state(parent_tip_set)
+                .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
                 .await?;
-            let validator_set: HashSet<Address, RandomState> = HashSet::from_iter(
-                subnet_actor_state
-                    .validator_set
-                    .validators()
-                    .iter()
-                    .map(|v| v.addr),
-            );
+
+            let mut validator_set: HashSet<Address, RandomState> = HashSet::new();
+            match subnet_actor_state.validator_set.validators {
+                None => {}
+                Some(validators) => {
+                    for v in validators {
+                        validator_set.insert(Address::from_str(v.addr.deref())?);
+                    }
+                }
+            };
 
             // Now, for each account defined in the `child` subnet that is in the validator set, we
             // submit a checkpoint on its behalf.
