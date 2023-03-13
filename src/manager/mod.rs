@@ -3,6 +3,8 @@
 pub use lotus::LotusSubnetManager;
 pub use subnet::SubnetManager;
 
+pub use crate::lotus::message::ipc::SubnetInfo;
+
 pub(crate) mod checkpoint;
 mod lotus;
 mod subnet;

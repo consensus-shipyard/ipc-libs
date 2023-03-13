@@ -16,7 +16,6 @@ use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
-use crate::config::Subnet;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::message::chain::ChainHeadResponse;
 use crate::lotus::message::ipc::{
@@ -30,6 +29,7 @@ use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
 use crate::lotus::{LotusClient, NetworkVersion};
+use crate::manager::SubnetInfo;
 
 // RPC methods
 mod methods {
@@ -47,10 +47,19 @@ mod methods {
     pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplate";
     pub const IPC_READ_GATEWAY_STATE: &str = "Filecoin.IPCReadGatewayState";
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
+    pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
 }
 
 /// The default gateway actor address
 const GATEWAY_ACTOR_ADDRESS: &str = "f064";
+/// The default state wait confidence value
+const STATE_WAIT_CONFIDENCE: u8 = 5;
+/// We dont set a limit on the look back epoch, i.e. check against latest block
+const STATE_WAIT_LOOK_BACK_NO_LIMIT: i8 = -1;
+/// We are not replacing any previous messages.
+/// TODO: when set to false, lotus raises `found message with equal nonce as the one we are looking`
+/// TODO: error. Should check this again.
+const STATE_WAIT_ALLOW_REPLACE: bool = true;
 
 /// The struct implementation for Lotus Client API. It allows for multiple different trait
 /// extension.
@@ -129,9 +138,14 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r.message)
     }
 
-    async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> Result<StateWaitMsgResponse> {
+    async fn state_wait_msg(&self, cid: Cid) -> Result<StateWaitMsgResponse> {
         // refer to: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
-        let params = json!([CIDMap::from(cid), nonce]);
+        let params = json!([
+            CIDMap::from(cid),
+            STATE_WAIT_CONFIDENCE,
+            STATE_WAIT_LOOK_BACK_NO_LIMIT,
+            STATE_WAIT_ALLOW_REPLACE,
+        ]);
 
         let r = self
             .client
@@ -288,9 +302,23 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
     async fn ipc_read_subnet_actor_state(
         &self,
+        subnet_id: &SubnetID,
         tip_set: Cid,
     ) -> Result<IPCReadSubnetActorStateResponse> {
-        let params = json!([GATEWAY_ACTOR_ADDRESS, [CIDMap::from(tip_set)]]);
+        let parent = subnet_id
+            .parent()
+            .ok_or_else(|| anyhow!("no parent found"))?
+            .to_string();
+        let actor = subnet_id.subnet_actor().to_string();
+        let params = json!([
+            {
+                "Parent": parent,
+                "Actor": actor
+            },
+            [CIDMap::from(tip_set)]]
+        );
+        log::debug!("sending {params:?}");
+
         let r = self
             .client
             .request::<IPCReadSubnetActorStateResponse>(
@@ -300,12 +328,21 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .await?;
         Ok(r)
     }
+
+    async fn ipc_list_child_subnets(&self, gateway_addr: Address) -> Result<Vec<SubnetInfo>> {
+        let params = json!([gateway_addr]);
+        let r = self
+            .client
+            .request(methods::IPC_LIST_CHILD_SUBNETS, params)
+            .await?;
+        Ok(r)
+    }
 }
 
 impl LotusJsonRPCClient<JsonRpcClientImpl> {
     /// A constructor that returns a `LotusJsonRPCClient` from a `Subnet`. The returned
     /// `LotusJsonRPCClient` makes requests to the URL defined in the `Subnet`.
-    pub fn from_subnet(subnet: &Subnet) -> Self {
+    pub fn from_subnet(subnet: &crate::config::Subnet) -> Self {
         let url = subnet.jsonrpc_api_http.clone();
         let auth_token = subnet.auth_token.as_deref();
         let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token);
