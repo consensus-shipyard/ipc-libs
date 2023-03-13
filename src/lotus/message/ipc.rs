@@ -29,6 +29,10 @@ pub struct IPCReadSubnetActorStateResponse {
     pub validator_set: ValidatorSet,
 }
 
+/// We need to redefine the struct here due to:
+/// In the actor, it is `Deserialize_tuple`, but when returned from json rpc endpoints, it's
+/// actually `json` struct. The deserialization is not working because the agent is interpreting
+/// the tuple as json.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ValidatorSet {
     validators: Option<Vec<Validator>>,
@@ -36,6 +40,7 @@ pub struct ValidatorSet {
     configuration_number: u64,
 }
 
+/// The validator struct. See `ValidatorSet` comment on why we need this duplicated definition.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Validator {
     pub addr: String,
