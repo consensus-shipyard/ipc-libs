@@ -5,6 +5,7 @@
 mod config;
 mod create;
 mod daemon;
+mod list_subnets;
 
 use crate::cli::commands::config::{ReloadConfig, ReloadConfigArgs};
 use crate::cli::commands::create::{CreateSubnet, CreateSubnetArgs};

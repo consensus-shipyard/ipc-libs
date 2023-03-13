@@ -20,6 +20,7 @@ pub use manager::create::{CreateSubnetParams, CreateSubnetResponse};
 use manager::join::JoinSubnetHandler;
 use manager::kill::KillSubnetHandler;
 use manager::leave::LeaveSubnetHandler;
+pub use manager::list_subnets::ListSubnetsParams;
 use manager::subnet::SubnetManagerPool;
 use serde_json::Value;
 use std::collections::HashMap;

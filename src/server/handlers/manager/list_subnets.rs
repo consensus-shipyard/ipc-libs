@@ -18,6 +18,7 @@ use std::sync::Arc;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListSubnetsParams {
     pub gateway_address: String,
+    pub subnet_id: String,
 }
 
 /// The create subnet json rpc method handler.
@@ -37,7 +38,7 @@ impl JsonRPCRequestHandler for ListSubnetsHandler {
     type Response = HashMap<SubnetID, SubnetInfo>;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let conn = match self.pool.get(&request.gateway_address) {
+        let conn = match self.pool.get(&request.subnet_id) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };

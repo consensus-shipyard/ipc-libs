@@ -4,7 +4,6 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use ipc_gateway::Status;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::ValidatorSet;
 use serde::{Deserialize, Serialize};
 
 use crate::lotus::message::CIDMap;
@@ -45,4 +44,23 @@ pub struct SubnetInfo {
     pub circ_supply: TokenAmount,
     /// State of the Subnet (Initialized, Active, Killed)
     pub status: Status,
+}
+
+/// We need to redefine the struct here due to:
+/// In the actor, it is `Deserialize_tuple`, but when returned from json rpc endpoints, it's
+/// actually `json` struct. The deserialization is not working because the agent is interpreting
+/// the tuple as json.
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ValidatorSet {
+    validators: Option<Vec<Validator>>,
+    // sequence number that uniquely identifies a validator set
+    configuration_number: u64,
+}
+
+/// The validator struct. See `ValidatorSet` comment on why we need this duplicated definition.
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Validator {
+    pub addr: String,
+    pub net_addr: String,
+    pub weight: u64,
 }
