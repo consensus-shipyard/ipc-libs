@@ -161,7 +161,8 @@ async fn single_bootstrap_single_provider_resolve_one() {
 
 fn make_service(config: Config) -> (Service<TestStoreParams>, Client, TestBlockstore) {
     let store = TestBlockstore::default();
-    let (svc, cli) = Service::new_with_transport(config, store.clone(), build_transport).unwrap();
+    let svc = Service::new_with_transport(config, store.clone(), build_transport).unwrap();
+    let cli = svc.client();
     (svc, cli, store)
 }
 

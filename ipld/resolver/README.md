@@ -39,7 +39,8 @@ async fn main() {
 
   let store = todo!("implement BitswapStore and a Blockstore");
 
-  let (service, client) = Service::new(config, store.clone());
+  let service = Service::new(config, store.clone());
+  let client = service.client();
 
   tokio::task::spawn(async move { service.run().await });
 

@@ -103,7 +103,7 @@ pub struct Service<P: StoreParams> {
 
 impl<P: StoreParams> Service<P> {
     /// Build a [`Service`] and a [`Client`] with the default `tokio` transport.
-    pub fn new<S>(config: Config, store: S) -> Result<(Self, Client), ConfigError>
+    pub fn new<S>(config: Config, store: S) -> Result<Self, ConfigError>
     where
         S: BitswapStore<Params = P>,
     {
@@ -117,7 +117,7 @@ impl<P: StoreParams> Service<P> {
         config: Config,
         store: S,
         transport: F,
-    ) -> Result<(Self, Client), ConfigError>
+    ) -> Result<Self, ConfigError>
     where
         S: BitswapStore<Params = P>,
         F: FnOnce(Keypair) -> Boxed<(PeerId, StreamMuxerBox)>,
@@ -155,7 +155,7 @@ impl<P: StoreParams> Service<P> {
             swarm,
             queries: Default::default(),
             request_rx: rx,
-            request_tx: tx.clone(),
+            request_tx: tx,
             background_lookup_filter: BloomFilter::with_rate(
                 0.1,
                 config.connection.expected_peer_count,
@@ -167,9 +167,12 @@ impl<P: StoreParams> Service<P> {
                 .expect("u32 should be usize"),
         };
 
-        let client = Client::new(tx);
+        Ok(service)
+    }
 
-        Ok((service, client))
+    /// Create a new [`Client`] instance bound to this `Service`.
+    pub fn client(&self) -> Client {
+        Client::new(self.request_tx.clone())
     }
 
     /// Register Prometheus metrics.
