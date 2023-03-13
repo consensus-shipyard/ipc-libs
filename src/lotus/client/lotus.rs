@@ -1,7 +1,11 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::jsonrpc::{JsonRpcClient, NO_PARAMS};
 use crate::lotus::client::{methods, LotusJsonRPCClient};
 use crate::lotus::message::chain::ChainHeadResponse;
-use crate::lotus::message::mpool::{MpoolPushMessage, MpoolPushMessageResponseInner};
+use crate::lotus::message::mpool::{
+    MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
+};
 use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
@@ -9,6 +13,8 @@ use crate::lotus::{LotusClient, NetworkVersion};
 use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
+use fvm_shared::econ::TokenAmount;
+use num_traits::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 use std::collections::HashMap;
@@ -21,11 +27,61 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         &self,
         msg: MpoolPushMessage,
     ) -> anyhow::Result<MpoolPushMessageResponseInner> {
-        self.mpool_push_message_inner(msg).await
+        let nonce = msg
+            .nonce
+            .map(|n| serde_json::Value::Number(n.into()))
+            .unwrap_or(serde_json::Value::Null);
+
+        let to_value = |t: Option<TokenAmount>| {
+            t.map(|n| serde_json::Value::Number(n.atto().to_u64().unwrap().into()))
+                .unwrap_or(serde_json::Value::Null)
+        };
+        let gas_limit = to_value(msg.gas_limit);
+        let gas_premium = to_value(msg.gas_premium);
+        let gas_fee_cap = to_value(msg.gas_fee_cap);
+        let max_fee = to_value(msg.max_fee);
+
+        // refer to: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
+        let params = json!([
+            {
+                "to": msg.to.to_string(),
+                "from": msg.from.to_string(),
+                "value": msg.value.atto().to_string(),
+                "method": msg.method,
+                "params": msg.params,
+
+                // THESE ALL WILL AUTO POPULATE if null
+                "nonce": nonce,
+                "gas_limit": gas_limit,
+                "gas_fee_cap": gas_fee_cap,
+                "gas_premium": gas_premium,
+                "cid": CIDMap::from(msg.cid),
+                "version": serde_json::Value::Null,
+            },
+            {
+                "max_fee": max_fee
+            }
+        ]);
+
+        let r = self
+            .client
+            .request::<MpoolPushMessageResponse>(methods::MPOOL_PUSH_MESSAGE, params)
+            .await?;
+        log::debug!("received mpool_push_message response: {r:?}");
+
+        Ok(r.message)
     }
 
     async fn state_wait_msg(&self, cid: Cid, nonce: u64) -> anyhow::Result<StateWaitMsgResponse> {
-        self.state_wait_msg_inner(cid, nonce).await
+        // refer to: https://lotus.filecoin.io/reference/lotus/state/#statewaitmsg
+        let params = json!([CIDMap::from(cid), nonce]);
+
+        let r = self
+            .client
+            .request::<StateWaitMsgResponse>(methods::STATE_WAIT_MSG, params)
+            .await?;
+        log::debug!("received state_wait_msg response: {r:?}");
+        Ok(r)
     }
 
     async fn state_network_name(&self) -> anyhow::Result<String> {

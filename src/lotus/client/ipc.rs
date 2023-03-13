@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::jsonrpc::JsonRpcClient;
 use crate::lotus::client::GATEWAY_ACTOR_ADDRESS;
 use crate::lotus::client::{methods, LotusJsonRPCClient};
