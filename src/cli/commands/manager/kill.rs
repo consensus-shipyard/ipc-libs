@@ -20,7 +20,7 @@ impl CommandLineHandler for KillSubnet {
     type Arguments = KillSubnetArgs;
 
     async fn handle(global: &GlobalArguments, arguments: &Self::Arguments) -> anyhow::Result<()> {
-        log::debug!("create subnet with args: {:?}", arguments);
+        log::debug!("kill subnet with args: {:?}", arguments);
 
         let url = get_ipc_agent_url(&arguments.ipc_agent_url, global)?;
         let json_rpc_client = JsonRpcClientImpl::new(url, None);
