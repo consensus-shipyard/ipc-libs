@@ -1,51 +1,15 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use std::ops::{Add, Sub};
-use std::time::{Duration, SystemTime};
 
-use fvm_ipld_encoding::serde::{Deserialize, Serialize};
 use ipc_sdk::subnet_id::SubnetID;
 use libp2p::identity::Keypair;
 use libp2p::PeerId;
+use serde::{Deserialize, Serialize};
 
-use crate::signed_record::{Record, SignedRecord};
-
-/// Unix timestamp in seconds since epoch, which we can use to select the
-/// more recent message during gossiping.
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Debug, Serialize, Deserialize, Default)]
-pub struct Timestamp(u64);
-
-impl Timestamp {
-    /// Current timestamp.
-    pub fn now() -> Self {
-        let secs = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("now() is never before UNIX_EPOCH")
-            .as_secs();
-        Self(secs)
-    }
-
-    /// Seconds elapsed since Unix epoch.
-    pub fn as_secs(&self) -> u64 {
-        self.0
-    }
-}
-
-impl Sub<Duration> for Timestamp {
-    type Output = Self;
-
-    fn sub(self, rhs: Duration) -> Self {
-        Self(self.as_secs().saturating_sub(rhs.as_secs()))
-    }
-}
-
-impl Add<Duration> for Timestamp {
-    type Output = Self;
-
-    fn add(self, rhs: Duration) -> Self {
-        Self(self.as_secs().saturating_add(rhs.as_secs()))
-    }
-}
+use crate::{
+    signed_record::{Record, SignedRecord},
+    Timestamp,
+};
 
 /// Record of the ability to provide data from a list of subnets.
 ///
@@ -115,13 +79,7 @@ mod arb {
 
     use crate::arb::ArbSubnetID;
 
-    use super::{ProviderRecord, SignedProviderRecord, Timestamp};
-
-    impl Arbitrary for Timestamp {
-        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            Self(u64::arbitrary(g).saturating_add(1))
-        }
-    }
+    use super::{ProviderRecord, SignedProviderRecord};
 
     /// Create a valid [`SignedProviderRecord`] with a random key.
     impl Arbitrary for SignedProviderRecord {

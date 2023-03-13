@@ -2,7 +2,7 @@ use ipc_sdk::subnet_id::SubnetID;
 use libipld::Cid;
 use libp2p::{core::SignedEnvelope, identity::PublicKey};
 
-use crate::provider_record::Timestamp;
+use crate::Timestamp;
 
 /// Vote by a validator about the validity/availability/finality
 /// of a CID in a given subnet.
