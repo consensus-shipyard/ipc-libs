@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::jsonrpc::{JsonRpcClient, NO_PARAMS};
 use crate::lotus::client::{methods, LotusJsonRPCClient};
 use crate::lotus::message::chain::ChainHeadResponse;
