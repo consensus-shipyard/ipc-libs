@@ -45,7 +45,7 @@ impl CommandLineHandler for Release {
 pub(crate) struct ReleaseArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
-    #[arg(long, short, help = "The address that leaves the subnet")]
+    #[arg(long, short, help = "The address that releases funds")]
     pub from: Option<String>,
     #[arg(long, short, help = "The subnet to release funds from")]
     pub subnet: String,
