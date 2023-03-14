@@ -45,7 +45,7 @@ impl CommandLineHandler for Fund {
 pub(crate) struct FundArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
-    #[arg(long, short, help = "The address that leaves the subnet")]
+    #[arg(long, short, help = "The address to send funds from and to")]
     pub from: Option<String>,
     #[arg(long, short, help = "The subnet to fund")]
     pub subnet: String,
