@@ -12,7 +12,7 @@ use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::server::release::ReleaseParams;
 
-/// The command to leave a new subnet.
+/// The command to release funds from a child to a parent
 pub(crate) struct Release;
 
 #[async_trait]
