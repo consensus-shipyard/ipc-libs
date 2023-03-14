@@ -13,7 +13,7 @@ use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::server::whitelist::WhitelistPropagatorParams;
 
-/// The command to leave a new subnet.
+/// The command to whitelist a propagator for a message in a postbox
 pub(crate) struct WhitelistPropagator;
 
 #[async_trait]
