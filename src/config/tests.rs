@@ -62,7 +62,8 @@ async fn reload_works() {
         let mut file = file.reopen().unwrap();
         file.write_all(config_str.as_bytes()).unwrap();
 
-        h_cloned.reload(path).await.unwrap();
+        h_cloned.set_path(path);
+        h_cloned.reload().await.unwrap();
     });
 
     let mut rx = h.new_subscriber();

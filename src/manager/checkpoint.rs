@@ -33,7 +33,7 @@ use crate::lotus::LotusClient;
 const CHAIN_HEAD_REQUEST_PERIOD: Duration = Duration::from_secs(10);
 
 /// The `CheckpointSubsystem`. When run, it actively monitors subnets and submits checkpoints.
-struct CheckpointSubsystem {
+pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
     /// management are those in the latest version of the config.
     config: ReloadableConfig,
@@ -41,8 +41,7 @@ struct CheckpointSubsystem {
 
 impl CheckpointSubsystem {
     /// Creates a new `CheckpointSubsystem` with a configuration `config`.
-    #[allow(dead_code)]
-    fn new(config: ReloadableConfig) -> Self {
+    pub fn new(config: ReloadableConfig) -> Self {
         Self { config }
     }
 
