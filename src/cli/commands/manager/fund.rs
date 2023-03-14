@@ -49,6 +49,6 @@ pub(crate) struct FundArgs {
     pub from: Option<String>,
     #[arg(long, short, help = "The subnet to fund")]
     pub subnet: String,
-    #[arg(help = "The amount to fund")]
+    #[arg(help = "The amount to fund in FIL")]
     pub amount: u64,
 }
