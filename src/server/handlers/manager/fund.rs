@@ -4,10 +4,9 @@
 
 use crate::manager::SubnetManager;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
-use crate::server::JsonRPCRequestHandler;
+use crate::server::{check_subnet, parse_from, JsonRPCRequestHandler};
 use anyhow::anyhow;
 use async_trait::async_trait;
-use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
@@ -48,11 +47,11 @@ impl JsonRPCRequestHandler for FundHandler {
             Some(conn) => conn,
         };
 
+        let subnet_config = conn.subnet();
+        check_subnet(subnet_config)?;
+
+        let from = parse_from(subnet_config, request.from)?;
         let amount = TokenAmount::from_whole(request.amount);
-        let from = match request.from {
-            Some(addr) => Address::from_str(&addr)?,
-            None => conn.subnet().accounts[0],
-        };
 
         conn.manager().fund(subnet, from, amount).await
     }

@@ -4,11 +4,10 @@
 
 use crate::manager::SubnetManager;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
-use crate::server::JsonRPCRequestHandler;
+use crate::server::{check_subnet, parse_from, JsonRPCRequestHandler};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use cid::Cid;
-use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -43,11 +42,11 @@ impl JsonRPCRequestHandler for PropagateHandler {
             Some(conn) => conn,
         };
 
+        let subnet_config = conn.subnet();
+        check_subnet(subnet_config)?;
+
+        let from = parse_from(subnet_config, request.from)?;
         let subnet = SubnetID::from_str(&request.subnet)?;
-        let from = match request.from {
-            Some(addr) => Address::from_str(&addr)?,
-            None => conn.subnet().accounts[0],
-        };
 
         conn.manager()
             .propagate(subnet, from, request.postbox_msg_cid)

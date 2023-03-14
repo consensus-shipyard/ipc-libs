@@ -4,7 +4,7 @@
 
 use crate::manager::SubnetManager;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
-use crate::server::JsonRPCRequestHandler;
+use crate::server::{check_subnet, parse_from, JsonRPCRequestHandler};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use cid::Cid;
@@ -44,16 +44,16 @@ impl JsonRPCRequestHandler for WhitelistPropagatorHandler {
             Some(conn) => conn,
         };
 
+        let subnet_config = conn.subnet();
+        check_subnet(subnet_config)?;
+
         let subnet = SubnetID::from_str(&request.subnet)?;
         let to_add = request
             .to_add
             .iter()
             .map(|s| Address::from_str(s))
             .collect::<Result<Vec<_>, _>>()?;
-        let from = match request.from {
-            Some(addr) => Address::from_str(&addr)?,
-            None => conn.subnet().accounts[0],
-        };
+        let from = parse_from(subnet_config, request.from)?;
 
         conn.manager()
             .whitelist_propagator(subnet, request.postbox_msg_cid, from, to_add)
