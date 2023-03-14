@@ -13,7 +13,7 @@ use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::server::propagate::PropagateParams;
 
-/// The command to leave a new subnet.
+/// The command to propagate a message in the postbox.
 pub(crate) struct Propagate;
 
 #[async_trait]
