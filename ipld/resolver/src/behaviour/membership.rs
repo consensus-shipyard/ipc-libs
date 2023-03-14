@@ -1,6 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::task::{Context, Poll};
 use std::time::Duration;
 
@@ -99,6 +99,8 @@ pub struct Behaviour {
     subnet_ids: Vec<SubnetID>,
     /// Voting topics we are currently subscribed to.
     voting_topics: HashSet<TopicHash>,
+    /// Remember which subnet a topic was about.
+    preemptive_topics: HashMap<TopicHash, SubnetID>,
     /// Caching the latest state of subnet providers.
     provider_cache: SubnetProviderCache,
     /// Interval between publishing the currently supported subnets.
@@ -155,7 +157,10 @@ impl Behaviour {
         let mut interval = tokio::time::interval(mc.publish_interval);
         interval.reset();
 
-        Ok(Self {
+        // Not passing static subnets here; using pinning below instead so it subscribes as well
+        let provider_cache = SubnetProviderCache::new(mc.max_subnets, vec![]);
+
+        let mut membership = Self {
             inner: gossipsub,
             outbox: Default::default(),
             local_key: nc.local_key,
@@ -163,13 +168,20 @@ impl Behaviour {
             membership_topic,
             subnet_ids: Default::default(),
             voting_topics: Default::default(),
-            provider_cache: SubnetProviderCache::new(mc.max_subnets, mc.static_subnets),
+            preemptive_topics: Default::default(),
+            provider_cache,
             publish_interval: interval,
             min_time_between_publish: mc.min_time_between_publish,
             last_publish_timestamp: Timestamp::default(),
             next_publish_timestamp: Timestamp::now() + mc.publish_interval,
             max_provider_age: mc.max_provider_age,
-        })
+        };
+
+        for subnet_id in mc.static_subnets {
+            membership.pin_subnet(subnet_id)?;
+        }
+
+        Ok(membership)
     }
 
     /// Construct the topic used to gossip about pre-emptively published data.
@@ -257,7 +269,7 @@ impl Behaviour {
     /// This method could be called in a parent subnet when the ledger indicates
     /// there is a known child subnet, so we make sure this subnet cannot be
     /// crowded out during the initial phase of bootstrapping the network.
-    pub fn pin_subnet(&mut self, subnet_id: SubnetID) -> anyhow::Result<()> {
+    pub fn pin_subnet(&mut self, subnet_id: SubnetID) -> Result<(), SubscriptionError> {
         self.inner.subscribe(&self.preemptive_topic(&subnet_id))?;
         self.provider_cache.pin_subnet(subnet_id);
         Ok(())
