@@ -168,7 +168,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         Ok(())
     }
 
-    async fn release(&self, subnet: SubnetID, from: Address) -> Result<()> {
+    async fn release(&self, subnet: SubnetID, from: Address, amount: TokenAmount) -> Result<()> {
         // When we perform the release, we should send to the gateway of the subnet
         if !self.is_network_match(&subnet).await? {
             return Err(anyhow!(
@@ -176,12 +176,13 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             ));
         }
 
-        let message = MpoolPushMessage::new(
+        let mut message = MpoolPushMessage::new(
             Address::new_id(DEFAULT_IPC_GATEWAY_ADDR),
             from,
             ipc_gateway::Method::Release as MethodNum,
             vec![],
         );
+        message.value = amount;
 
         self.mpool_push_and_wait(message).await?;
         Ok(())
