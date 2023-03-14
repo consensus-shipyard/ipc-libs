@@ -48,7 +48,7 @@ pub(crate) struct PropagateArgs {
     pub ipc_agent_url: Option<String>,
     #[arg(long, short, help = "The address that pays for the propagation gas")]
     pub from: Option<String>,
-    #[arg(long, short, help = "The subnet to propagate")]
+    #[arg(long, short, help = "The subnet of the message to propagate")]
     pub subnet: String,
     #[arg(help = "The message cid to propagate")]
     pub postbox_msg_cid: Cid,
