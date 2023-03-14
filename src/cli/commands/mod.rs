@@ -8,9 +8,13 @@ mod manager;
 
 use crate::cli::commands::config::{ReloadConfig, ReloadConfigArgs};
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
+use crate::cli::commands::manager::fund::{Fund, FundArgs};
 use crate::cli::commands::manager::join::{JoinSubnet, JoinSubnetArgs};
 use crate::cli::commands::manager::kill::{KillSubnet, KillSubnetArgs};
 use crate::cli::commands::manager::leave::{LeaveSubnet, LeaveSubnetArgs};
+use crate::cli::commands::manager::propagate::{Propagate, PropagateArgs};
+use crate::cli::commands::manager::release::{Release, ReleaseArgs};
+use crate::cli::commands::manager::whitelist::{WhitelistPropagator, WhitelistPropagatorArgs};
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -35,6 +39,10 @@ enum Commands {
     JoinSubnet(JoinSubnetArgs),
     LeaveSubnet(LeaveSubnetArgs),
     KillSubnet(KillSubnetArgs),
+    Fund(FundArgs),
+    Release(ReleaseArgs),
+    Propagate(PropagateArgs),
+    WhitelistPropagator(WhitelistPropagatorArgs),
 }
 
 /// The overall command line struct to be used by `clap`.
@@ -93,6 +101,10 @@ pub async fn cli() {
         Commands::JoinSubnet(args) => JoinSubnet::handle(global, args).await,
         Commands::LeaveSubnet(args) => LeaveSubnet::handle(global, args).await,
         Commands::KillSubnet(args) => KillSubnet::handle(global, args).await,
+        Commands::Fund(args) => Fund::handle(global, args).await,
+        Commands::Release(args) => Release::handle(global, args).await,
+        Commands::Propagate(args) => Propagate::handle(global, args).await,
+        Commands::WhitelistPropagator(args) => WhitelistPropagator::handle(global, args).await,
     };
 
     if let Err(e) = r {
