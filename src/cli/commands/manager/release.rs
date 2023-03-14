@@ -47,7 +47,7 @@ pub(crate) struct ReleaseArgs {
     pub ipc_agent_url: Option<String>,
     #[arg(long, short, help = "The address that leaves the subnet")]
     pub from: Option<String>,
-    #[arg(long, short, help = "The subnet to release")]
+    #[arg(long, short, help = "The subnet to release funds from")]
     pub subnet: String,
     #[arg(help = "The amount to release")]
     pub amount: u64,
