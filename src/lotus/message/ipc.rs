@@ -41,6 +41,7 @@ pub struct IPCReadSubnetActorStateResponse {
 pub struct SubnetInfo {
     /// Id of the subnet.
     #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
+    #[serde(rename = "ID")]
     pub id: SubnetID,
     /// Collateral staked in the subnet.
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
