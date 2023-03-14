@@ -46,7 +46,7 @@ impl CommandLineHandler for Propagate {
 pub(crate) struct PropagateArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
-    #[arg(long, short, help = "The address that leaves the subnet")]
+    #[arg(long, short, help = "The address that pays for the propagation gas")]
     pub from: Option<String>,
     #[arg(long, short, help = "The subnet to propagate")]
     pub subnet: String,
