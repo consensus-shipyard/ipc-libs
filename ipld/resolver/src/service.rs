@@ -415,9 +415,16 @@ impl<P: StoreParams> Service<P> {
                     warn!("failed to publish vote: {e}")
                 }
             }
-            Request::PinSubnet(id) => self.membership_mut().pin_subnet(id),
-            Request::UnpinSubnet(id) => self.membership_mut().unpin_subnet(&id),
-
+            Request::PinSubnet(id) => {
+                if let Err(e) = self.membership_mut().pin_subnet(id) {
+                    warn!("error pinning subnet: {e}")
+                }
+            }
+            Request::UnpinSubnet(id) => {
+                if let Err(e) = self.membership_mut().unpin_subnet(&id) {
+                    warn!("error unpinning subnet: {e}")
+                }
+            }
             Request::Resolve(cid, subnet_id, response_channel) => {
                 self.start_query(cid, subnet_id, response_channel)
             }

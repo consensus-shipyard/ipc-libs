@@ -36,6 +36,8 @@ use super::NetworkConfig;
 const PUBSUB_MEMBERSHIP: &str = "/ipc/membership";
 /// `Gossipsub` topic identifier for voting about content.
 const PUBSUB_VOTES: &str = "/ipc/ipld/votes";
+/// `Gossipsub` topic identifier for pre-emptively published blocks of data.
+const PUBSUB_PREEMPTIVE: &str = "/ipc/ipld/pre-emptive";
 
 /// Events emitted by the [`membership::Behaviour`] behaviour.
 #[derive(Debug)]
@@ -170,6 +172,18 @@ impl Behaviour {
         })
     }
 
+    /// Construct the topic used to gossip about pre-emptively published data.
+    ///
+    /// Replaces "/" with "_" to avoid clashes from prefix/suffix overlap.
+    fn preemptive_topic(&self, subnet_id: &SubnetID) -> Sha256Topic {
+        Topic::new(format!(
+            "{}/{}/{}",
+            PUBSUB_PREEMPTIVE,
+            self.network_name.replace('/', "_"),
+            subnet_id.to_string().replace('/', "_")
+        ))
+    }
+
     /// Construct the topic used to gossip about votes.
     ///
     /// Replaces "/" with "_" to avoid clashes from prefix/suffix overlap.
@@ -237,18 +251,23 @@ impl Behaviour {
         self.publish_membership()
     }
 
-    /// Make sure a subnet is not pruned.
+    /// Make sure a subnet is not pruned, so we always track its providers.
+    /// Also subscribe to pre-emptively published blocks of data.
     ///
     /// This method could be called in a parent subnet when the ledger indicates
     /// there is a known child subnet, so we make sure this subnet cannot be
     /// crowded out during the initial phase of bootstrapping the network.
-    pub fn pin_subnet(&mut self, subnet_id: SubnetID) {
-        self.provider_cache.pin_subnet(subnet_id)
+    pub fn pin_subnet(&mut self, subnet_id: SubnetID) -> anyhow::Result<()> {
+        self.inner.subscribe(&self.preemptive_topic(&subnet_id))?;
+        self.provider_cache.pin_subnet(subnet_id);
+        Ok(())
     }
 
-    /// Make a subnet pruneable.
-    pub fn unpin_subnet(&mut self, subnet_id: &SubnetID) {
-        self.provider_cache.unpin_subnet(subnet_id)
+    /// Make a subnet pruneable and unsubscribe from pre-emptive data.
+    pub fn unpin_subnet(&mut self, subnet_id: &SubnetID) -> anyhow::Result<()> {
+        self.inner.unsubscribe(&self.preemptive_topic(&subnet_id))?;
+        self.provider_cache.unpin_subnet(subnet_id);
+        Ok(())
     }
 
     /// Send a message through Gossipsub to let everyone know about the current configuration.
