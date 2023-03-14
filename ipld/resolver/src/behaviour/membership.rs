@@ -337,6 +337,23 @@ impl Behaviour {
         }
     }
 
+    /// Publish arbitrary data to the pre-emptive topic of a subnet.
+    ///
+    /// We are not expected to be subscribed to this topic, only agents on the parent subnet are.
+    pub fn publish_preemptive(&mut self, subnet_id: SubnetID, data: Vec<u8>) -> anyhow::Result<()> {
+        let topic = self.preemptive_topic(&subnet_id);
+        match self.inner.publish(topic, data) {
+            Err(e) => {
+                stats::MEMBERSHIP_PUBLISH_FAILURE.inc();
+                Err(anyhow!(e))
+            }
+            Ok(_msg_id) => {
+                stats::MEMBERSHIP_PUBLISH_SUCCESS.inc();
+                Ok(())
+            }
+        }
+    }
+
     /// Mark a peer as routable in the cache.
     ///
     /// Call this method when the discovery service learns the address of a peer.

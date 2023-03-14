@@ -89,6 +89,7 @@ pub(crate) enum Request {
     AddProvidedSubnet(SubnetID),
     RemoveProvidedSubnet(SubnetID),
     PublishVote(Box<SignedVoteRecord>),
+    PublishPreemptive(SubnetID, Vec<u8>),
     PinSubnet(SubnetID),
     UnpinSubnet(SubnetID),
     Resolve(Cid, SubnetID, ResponseChannel),
@@ -421,6 +422,11 @@ impl<P: StoreParams> Service<P> {
             Request::PublishVote(vote) => {
                 if let Err(e) = self.membership_mut().publish_vote(*vote) {
                     warn!("failed to publish vote: {e}")
+                }
+            }
+            Request::PublishPreemptive(subnet_id, data) => {
+                if let Err(e) = self.membership_mut().publish_preemptive(subnet_id, data) {
+                    warn!("failed to publish pre-emptive data: {e}")
                 }
             }
             Request::PinSubnet(id) => {
