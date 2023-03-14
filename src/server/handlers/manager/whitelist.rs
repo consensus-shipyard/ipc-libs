@@ -40,7 +40,7 @@ impl JsonRPCRequestHandler for WhitelistPropagatorHandler {
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
         let conn = match self.pool.get(&request.subnet) {
-            None => return Err(anyhow!("target parent subnet not found")),
+            None => return Err(anyhow!("target subnet not found")),
             Some(conn) => conn,
         };
 
