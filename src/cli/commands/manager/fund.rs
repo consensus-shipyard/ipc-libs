@@ -41,7 +41,7 @@ impl CommandLineHandler for Fund {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "Fund operation in the gateway actor")]
+#[command(about = "Send funds from a parent to a child subnet")]
 pub(crate) struct FundArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
