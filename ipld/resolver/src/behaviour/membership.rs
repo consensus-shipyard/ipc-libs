@@ -196,6 +196,22 @@ impl Behaviour {
         ))
     }
 
+    /// Subscribe to a preemptive topic.
+    fn preemptive_subscribe(&mut self, subnet_id: SubnetID) -> Result<(), SubscriptionError> {
+        let topic = self.preemptive_topic(&subnet_id);
+        self.inner.subscribe(&topic)?;
+        self.preemptive_topics.insert(topic.hash(), subnet_id);
+        Ok(())
+    }
+
+    /// Subscribe to a preemptive topic.
+    fn preemptive_unsubscribe(&mut self, subnet_id: &SubnetID) -> anyhow::Result<()> {
+        let topic = self.preemptive_topic(subnet_id);
+        self.inner.unsubscribe(&topic)?;
+        self.preemptive_topics.remove(&topic.hash());
+        Ok(())
+    }
+
     /// Construct the topic used to gossip about votes.
     ///
     /// Replaces "/" with "_" to avoid clashes from prefix/suffix overlap.
@@ -209,18 +225,18 @@ impl Behaviour {
     }
 
     /// Subscribe to a voting topic.
-    fn voting_subscribe(&mut self, subnet_id: &SubnetID) -> anyhow::Result<()> {
+    fn voting_subscribe(&mut self, subnet_id: &SubnetID) -> Result<(), SubscriptionError> {
         let topic = self.voting_topic(subnet_id);
-        self.voting_topics.insert(topic.hash());
         self.inner.subscribe(&topic)?;
+        self.voting_topics.insert(topic.hash());
         Ok(())
     }
 
     /// Unsubscribe from a voting topic.
     fn voting_unsubscribe(&mut self, subnet_id: &SubnetID) -> anyhow::Result<()> {
         let topic = self.voting_topic(subnet_id);
-        self.voting_topics.remove(&topic.hash());
         self.inner.unsubscribe(&topic)?;
+        self.voting_topics.remove(&topic.hash());
         Ok(())
     }
 
@@ -270,14 +286,14 @@ impl Behaviour {
     /// there is a known child subnet, so we make sure this subnet cannot be
     /// crowded out during the initial phase of bootstrapping the network.
     pub fn pin_subnet(&mut self, subnet_id: SubnetID) -> Result<(), SubscriptionError> {
-        self.inner.subscribe(&self.preemptive_topic(&subnet_id))?;
+        self.preemptive_subscribe(subnet_id.clone())?;
         self.provider_cache.pin_subnet(subnet_id);
         Ok(())
     }
 
     /// Make a subnet pruneable and unsubscribe from pre-emptive data.
     pub fn unpin_subnet(&mut self, subnet_id: &SubnetID) -> anyhow::Result<()> {
-        self.inner.unsubscribe(&self.preemptive_topic(&subnet_id))?;
+        self.preemptive_unsubscribe(subnet_id)?;
         self.provider_cache.unpin_subnet(subnet_id);
         Ok(())
     }
