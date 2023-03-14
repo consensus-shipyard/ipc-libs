@@ -102,6 +102,8 @@ pub(crate) enum Request {
 pub enum Event {
     /// Received a vote about in a subnet about a CID.
     ReceivedVote(Box<VoteRecord>),
+    /// Received raw pre-emptive data published to a pinned subnet.
+    ReceivedPreemptive(SubnetID, Vec<u8>),
 }
 
 /// The `Service` handles P2P communication to resolve IPLD content by wrapping and driving a number of `libp2p` behaviours.
@@ -358,6 +360,12 @@ impl<P: StoreParams> Service<P> {
                 let event = Event::ReceivedVote(vote);
                 if self.event_tx.send(event).is_err() {
                     debug!("dropped received vote because there are no subscribers")
+                }
+            }
+            membership::Event::ReceivedPreemptive(subnet_id, data) => {
+                let event = Event::ReceivedPreemptive(subnet_id, data);
+                if self.event_tx.send(event).is_err() {
+                    debug!("dropped received preemptive data because there are no subscribers")
                 }
             }
         }

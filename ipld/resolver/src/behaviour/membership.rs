@@ -55,6 +55,9 @@ pub enum Event {
 
     /// We received a [`VoteRecord`] in one of the subnets we are providing data for.
     ReceivedVote(Box<VoteRecord>),
+
+    /// We received preemptive data published in a subnet we were interested in.
+    ReceivedPreemptive(SubnetID, Vec<u8>),
 }
 
 /// Configuration for [`membership::Behaviour`].
@@ -386,6 +389,8 @@ impl Behaviour {
                     );
                 }
             }
+        } else if let Some(subnet_id) = self.preemptive_topics.get(&msg.topic) {
+            self.handle_preemptive_data(subnet_id.clone(), msg.data)
         } else {
             stats::MEMBERSHIP_UNKNOWN_TOPIC.inc();
             warn!(
@@ -425,6 +430,11 @@ impl Behaviour {
     /// Raise an event to tell we received a new vote.
     fn handle_vote_record(&mut self, record: VoteRecord) {
         self.outbox.push_back(Event::ReceivedVote(Box::new(record)))
+    }
+
+    fn handle_preemptive_data(&mut self, subnet_id: SubnetID, data: Vec<u8>) {
+        self.outbox
+            .push_back(Event::ReceivedPreemptive(subnet_id, data))
     }
 
     /// Handle new subscribers to the membership topic.

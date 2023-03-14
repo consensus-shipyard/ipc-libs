@@ -238,8 +238,11 @@ async fn single_bootstrap_publish_receive_vote() {
         .expect("timeout receiving vote")
         .expect("error receiving vote");
 
-    let Event::ReceivedVote(v) = event;
-    assert_eq!(&*v, vote.record());
+    if let Event::ReceivedVote(v) = event {
+        assert_eq!(&*v, vote.record());
+    } else {
+        panic!("unexpected {event:?}")
+    }
 }
 
 fn make_service(config: Config) -> (Service<TestStoreParams>, TestBlockstore) {
