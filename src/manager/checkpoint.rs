@@ -42,7 +42,6 @@ pub struct CheckpointSubsystem {
 
 impl CheckpointSubsystem {
     /// Creates a new `CheckpointSubsystem` with a configuration `config`.
-    #[allow(dead_code)]
     pub fn new(config: Arc<ReloadableConfig>) -> Self {
         Self { config }
     }
