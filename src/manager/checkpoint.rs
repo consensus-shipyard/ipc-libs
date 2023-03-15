@@ -36,12 +36,13 @@ const CHAIN_HEAD_REQUEST_PERIOD: Duration = Duration::from_secs(10);
 pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
     /// management are those in the latest version of the config.
-    config: ReloadableConfig,
+    config: Arc<ReloadableConfig>,
 }
 
 impl CheckpointSubsystem {
     /// Creates a new `CheckpointSubsystem` with a configuration `config`.
-    pub fn new(config: ReloadableConfig) -> Self {
+    #[allow(dead_code)]
+    pub fn new(config: Arc<ReloadableConfig>) -> Self {
         Self { config }
     }
 
