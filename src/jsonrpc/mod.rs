@@ -25,7 +25,7 @@ mod tests;
 
 const DEFAULT_JSON_RPC_VERSION: &str = "2.0";
 const DEFAULT_JSON_RPC_ID: u8 = 1;
-const DEFAULT_REQ_TIMEOUT: Duration = Duration::from_secs(10);
+const DEFAULT_REQ_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// A convenience constant that represents empty params in a JSON-RPC request.
 pub const NO_PARAMS: Value = json!([]);
