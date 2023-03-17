@@ -37,7 +37,7 @@ type ArcHandlers = Arc<Handlers>;
 ///
 /// #[tokio::main]
 /// async fn main() {
-/// let path = "PATH TO YOUR CONFIG FILE";
+///     let path = "PATH TO YOUR CONFIG FILE";
 ///     let config = Arc::new(ReloadableConfig::new(path.to_string()).unwrap());
 ///     let server = JsonRPCServer::new(config);
 ///     Toplevel::new()
