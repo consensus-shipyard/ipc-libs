@@ -46,7 +46,7 @@ pub struct Receipt {
 
 impl Receipt {
     pub fn parse_result_into<T: Default + DeserializeOwned>(self) -> anyhow::Result<T> {
-        if self.result == None {
+        if self.result.is_none() {
             return Ok(Default::default());
         }
 
