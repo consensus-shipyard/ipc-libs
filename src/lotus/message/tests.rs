@@ -86,17 +86,16 @@ fn test_token_amount_from_str() {
 
 #[test]
 fn test_subnet_info_to_str() {
-    let s = SubnetInfo{
+    let s = SubnetInfo {
         id: Default::default(),
         stake: Default::default(),
         circ_supply: Default::default(),
-        status: Status::Active
+        status: Status::Active,
     };
 
     let w = serde_json::to_string(&s);
     assert!(w.is_ok());
 }
-
 
 #[test]
 fn test_subnet_info_from_str() {

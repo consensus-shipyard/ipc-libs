@@ -10,7 +10,7 @@ use crate::lotus::message::deserialize::{
     deserialize_subnet_id_from_map, deserialize_token_amount_from_str,
 };
 use crate::lotus::message::serialize::{
-    serialize_subnet_id_to_str, serialize_token_amount_to_atto
+    serialize_subnet_id_to_str, serialize_token_amount_to_atto,
 };
 use crate::lotus::message::CIDMap;
 
@@ -39,6 +39,9 @@ pub struct IPCReadSubnetActorStateResponse {
 }
 
 /// SubnetInfo is an auxiliary struct that collects relevant information about the state of a subnet
+///
+/// Note that the serialization and deserialization casing are different. Reason because for deserialization,
+/// it is from the fvm actor, which is `PascalCase`. When serializa, we are using rust's default casing
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubnetInfo {
     /// Id of the subnet.
