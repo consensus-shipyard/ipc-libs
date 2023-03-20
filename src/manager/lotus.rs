@@ -139,6 +139,8 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             .ipc_list_child_subnets(gateway_addr)
             .await?;
 
+        log::debug!("received subnets: {subnets:?}");
+
         let mut map = HashMap::new();
         for s in subnets {
             map.insert(s.id.clone(), s);
