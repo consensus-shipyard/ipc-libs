@@ -50,6 +50,7 @@ pub struct SubnetInfo {
     #[serde(serialize_with = "serialize_subnet_id_to_str")]
     pub id: SubnetID,
     /// Collateral staked in the subnet.
+    #[serde(rename(deserialize = "Stake"))]
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
     #[serde(serialize_with = "serialize_token_amount_to_atto")]
     pub stake: TokenAmount,
@@ -59,6 +60,7 @@ pub struct SubnetInfo {
     #[serde(serialize_with = "serialize_token_amount_to_atto")]
     pub circ_supply: TokenAmount,
     /// State of the Subnet (Initialized, Active, Killed)
+    #[serde(rename(deserialize = "Status"))]
     pub status: Status,
 }
 
