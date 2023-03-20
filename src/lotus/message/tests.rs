@@ -1,14 +1,14 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
+use fvm_shared::address::{set_current_network, Network};
 use std::str::FromStr;
-use fvm_shared::address::{Network, set_current_network};
 
 use crate::lotus::message::deserialize::{
     deserialize_subnet_id_from_map, deserialize_token_amount_from_str,
 };
+use crate::manager::SubnetInfo;
 use fvm_shared::econ::TokenAmount;
 use ipc_sdk::subnet_id::SubnetID;
-use crate::manager::SubnetInfo;
 
 #[test]
 fn test_subnet_from_map() {
