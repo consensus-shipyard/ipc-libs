@@ -145,6 +145,9 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         for s in subnets {
             map.insert(s.id.clone(), s);
         }
+
+        log::debug!("converted to subnets: {map:?}");
+
         Ok(map)
     }
 
