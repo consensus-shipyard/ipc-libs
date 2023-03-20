@@ -335,7 +335,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .client
             .request::<Option<Vec<SubnetInfo>>>(methods::IPC_LIST_CHILD_SUBNETS, params)
             .await?;
-        Ok(r.unwrap_or(vec![]))
+        Ok(r.unwrap_or_default())
     }
 }
 
