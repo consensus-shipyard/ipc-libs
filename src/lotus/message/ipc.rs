@@ -41,7 +41,7 @@ pub struct IPCReadSubnetActorStateResponse {
 /// SubnetInfo is an auxiliary struct that collects relevant information about the state of a subnet
 ///
 /// Note that the serialization and deserialization casing are different. Reason because for deserialization,
-/// it is from the fvm actor, which is `PascalCase`. When serializa, we are using rust's default casing
+/// it is from the fvm actor, which is `PascalCase`. When serialize, we are using rust's default casing
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubnetInfo {
     /// Id of the subnet.
