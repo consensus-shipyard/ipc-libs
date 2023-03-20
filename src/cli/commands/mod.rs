@@ -54,8 +54,6 @@ enum Commands {
     SendValue(SendValueArgs),
     WalletNew(WalletNewArgs),
 }
-
-/// The overall command line struct to be used by `clap`.
 #[derive(Debug, Parser)]
 #[command(
     name = "ipc",
