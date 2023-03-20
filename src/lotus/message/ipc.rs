@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 use crate::lotus::message::deserialize::{
     deserialize_subnet_id_from_map, deserialize_token_amount_from_str,
 };
+use crate::lotus::message::serialize::{
+    serialize_subnet_id_to_str, serialize_token_amount_to_atto
+};
 use crate::lotus::message::CIDMap;
 
 #[derive(Deserialize, Debug)]
@@ -37,18 +40,20 @@ pub struct IPCReadSubnetActorStateResponse {
 
 /// SubnetInfo is an auxiliary struct that collects relevant information about the state of a subnet
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
 pub struct SubnetInfo {
     /// Id of the subnet.
+    #[serde(rename(deserialize = "ID"))]
     #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
-    #[serde(rename = "ID")]
+    #[serde(serialize_with = "serialize_subnet_id_to_str")]
     pub id: SubnetID,
     /// Collateral staked in the subnet.
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
+    #[serde(serialize_with = "serialize_token_amount_to_atto")]
     pub stake: TokenAmount,
     /// Circulating supply available in the subnet.
+    #[serde(rename(deserialize = "CircSupply"))]
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
-    #[serde(rename = "CircSupply")]
+    #[serde(serialize_with = "serialize_token_amount_to_atto")]
     pub circ_supply: TokenAmount,
     /// State of the Subnet (Initialized, Active, Killed)
     pub status: Status,

@@ -8,6 +8,7 @@ use crate::lotus::message::deserialize::{
 };
 use crate::manager::SubnetInfo;
 use fvm_shared::econ::TokenAmount;
+use ipc_gateway::Status;
 use ipc_sdk::subnet_id::SubnetID;
 
 #[test]
@@ -62,6 +63,42 @@ fn test_subnet_from_map_error() {
 }
 
 #[test]
+fn test_token_amount_from_str() {
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct Wrapper {
+        #[allow(dead_code)]
+        #[serde(deserialize_with = "deserialize_token_amount_from_str")]
+        token_amount: TokenAmount,
+    }
+
+    let raw_str = r#"
+    {
+        "TokenAmount": "20000000000000000000"
+    }"#;
+
+    let w: Result<Wrapper, _> = serde_json::from_str(raw_str);
+    assert!(w.is_ok());
+    assert_eq!(w.unwrap().token_amount, TokenAmount::from_whole(20));
+}
+
+#[test]
+fn test_subnet_info_to_str() {
+    let s = SubnetInfo{
+        id: Default::default(),
+        stake: Default::default(),
+        circ_supply: Default::default(),
+        status: Status::Active
+    };
+
+    let w = serde_json::to_string(&s);
+    assert!(w.is_ok());
+}
+
+
+#[test]
 fn test_subnet_info_from_str() {
     set_current_network(Network::Testnet);
 
@@ -84,26 +121,4 @@ fn test_subnet_info_from_str() {
 
     let w: Result<SubnetInfo, _> = serde_json::from_str(raw_str);
     assert!(w.is_ok());
-}
-
-#[test]
-fn test_token_amount_from_str() {
-    use serde::Deserialize;
-
-    #[derive(Deserialize)]
-    #[serde(rename_all = "PascalCase")]
-    struct Wrapper {
-        #[allow(dead_code)]
-        #[serde(deserialize_with = "deserialize_token_amount_from_str")]
-        token_amount: TokenAmount,
-    }
-
-    let raw_str = r#"
-    {
-        "TokenAmount": "20000000000000000000"
-    }"#;
-
-    let w: Result<Wrapper, _> = serde_json::from_str(raw_str);
-    assert!(w.is_ok());
-    assert_eq!(w.unwrap().token_amount, TokenAmount::from_whole(20));
 }
