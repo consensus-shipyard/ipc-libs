@@ -10,6 +10,7 @@ use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
+use ipc_gateway::checkpoint::CheckData;
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
@@ -30,6 +31,8 @@ use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
 use crate::lotus::{LotusClient, NetworkVersion};
 use crate::manager::SubnetInfo;
+
+use super::message::ipc::CheckpointTemplate;
 
 // RPC methods
 mod methods {
@@ -283,12 +286,35 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint> {
         let r = self
             .client
-            .request::<Checkpoint>(
+            .request::<CheckpointTemplate>(
                 methods::IPC_GET_CHECKPOINT_TEMPLATE,
                 json!([GATEWAY_ACTOR_ADDRESS, epoch]),
             )
             .await?;
-        Ok(r)
+        let ch = Checkpoint {
+            data: CheckData::new(r.data.source, r.data.epoch),
+            sig: Vec::new(),
+        };
+
+        // FIXME: For now we are only picking up from the request
+        // the information that we need from the template,
+        // in the future we may consider including more.
+
+        // // TODO: Deserialize into the right type
+        // ch.data.children = r
+        //     .data
+        //     .children
+        //     .iter()
+        //     .map(|x| {
+        //         // TODO: Deserialize into the right type
+        //         panic!("not implemented");
+        //     })
+        //     .collect();
+        if r.data.cross_msgs.is_some() {
+            ch.data.cross_msgs = Cid::try_from(r.data.cross_msgs.unwrap())?;
+        }
+
+        Ok(ch)
     }
 
     async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse> {

@@ -6,6 +6,7 @@ use std::str::FromStr;
 use crate::lotus::message::deserialize::{
     deserialize_subnet_id_from_map, deserialize_token_amount_from_str,
 };
+use crate::lotus::message::ipc::CheckpointTemplate;
 use crate::manager::SubnetInfo;
 use fvm_shared::econ::TokenAmount;
 use ipc_gateway::Status;
@@ -119,5 +120,30 @@ fn test_subnet_info_from_str() {
     "#;
 
     let w: Result<SubnetInfo, _> = serde_json::from_str(raw_str);
+    assert!(w.is_ok());
+}
+
+#[test]
+fn test_checkpoint_template_from_str() {
+    set_current_network(Network::Testnet);
+
+    let raw_str = r#"
+    {
+    "Data": {
+        "Source": {
+        "Parent": "/root",
+        "Actor": "t01002"
+        },
+        "Proof": null,
+        "Epoch": 0,
+        "PrevCheck": null,
+        "Children": null,
+        "CrossMsgs": null
+    },
+    "Sig": null
+    }
+    "#;
+
+    let w: Result<CheckpointTemplate, _> = serde_json::from_str(raw_str);
     assert!(w.is_ok());
 }

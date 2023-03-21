@@ -82,3 +82,33 @@ pub struct Validator {
     pub net_addr: String,
     pub weight: String,
 }
+
+/// This deserializes from the `gateway::Checkpoint`, we need to redefine
+/// here because the Lotus API json serializes and the cbor tuple deserializer is not
+/// able to pick it up automatically
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct CheckpointTemplate {
+    pub data: CheckpointData,
+    pub sig: Option<Vec<u8>>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct CheckpointData {
+    pub source: SubnetID,
+    pub proof: Option<Vec<u8>>,
+    pub epoch: i64,
+    pub children: Option<Vec<CheckData>>,
+    #[serde(rename(deserialize = "PrevCheck"))]
+    pub prev_check: Option<CIDMap>,
+    #[serde(rename(deserialize = "CrossMsgs"))]
+    pub cross_msgs: Option<CIDMap>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct CheckData {
+    pub source: SubnetID,
+    pub checks: Vec<CIDMap>,
+}
