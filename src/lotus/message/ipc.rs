@@ -96,6 +96,7 @@ pub struct CheckpointTemplate {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct CheckpointData {
+    #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
     pub source: SubnetID,
     pub proof: Option<Vec<u8>>,
     pub epoch: i64,
@@ -109,6 +110,7 @@ pub struct CheckpointData {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct CheckData {
+    #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
     pub source: SubnetID,
     pub checks: Vec<CIDMap>,
 }

@@ -1,6 +1,5 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use fvm_shared::address::{set_current_network, Network};
 use std::str::FromStr;
 
 use crate::lotus::message::deserialize::{
@@ -100,13 +99,11 @@ fn test_subnet_info_to_str() {
 
 #[test]
 fn test_subnet_info_from_str() {
-    set_current_network(Network::Testnet);
-
     let raw_str = r#"
     {
         "ID": {
             "Parent": "/root",
-            "Actor": "t010000000002"
+            "Actor": "f010000000002"
         },
         "Stake": "10000000000000000000",
         "TopDownMsgs": {
@@ -119,20 +116,18 @@ fn test_subnet_info_from_str() {
     }
     "#;
 
-    let w: Result<SubnetInfo, _> = serde_json::from_str(raw_str);
-    assert!(w.is_ok());
+    let w: SubnetInfo = serde_json::from_str(raw_str).unwrap();
+    assert_eq!(w.id, SubnetID::from_str("/root/f010000000002").unwrap());
 }
 
 #[test]
 fn test_checkpoint_template_from_str() {
-    set_current_network(Network::Testnet);
-
     let raw_str = r#"
     {
     "Data": {
         "Source": {
-        "Parent": "/root",
-        "Actor": "t01002"
+            "Parent": "/root",
+            "Actor": "f01002"
         },
         "Proof": null,
         "Epoch": 0,
@@ -144,6 +139,6 @@ fn test_checkpoint_template_from_str() {
     }
     "#;
 
-    let w: Result<CheckpointTemplate, _> = serde_json::from_str(raw_str);
-    assert!(w.is_ok());
+    let w: CheckpointTemplate= serde_json::from_str(raw_str).unwrap();
+    assert_eq!(w.data.source, SubnetID::from_str("/root/f01002").unwrap());
 }

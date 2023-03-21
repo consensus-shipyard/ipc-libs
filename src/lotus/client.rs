@@ -10,7 +10,6 @@ use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::checkpoint::CheckData;
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
@@ -291,10 +290,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
                 json!([GATEWAY_ACTOR_ADDRESS, epoch]),
             )
             .await?;
-        let ch = Checkpoint {
-            data: CheckData::new(r.data.source, r.data.epoch),
-            sig: Vec::new(),
-        };
+        let ch = Checkpoint::new(r.data.source, r.data.epoch);
 
         // FIXME: For now we are only picking up from the request
         // the information that we need from the template,
@@ -310,9 +306,10 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         //         panic!("not implemented");
         //     })
         //     .collect();
-        if r.data.cross_msgs.is_some() {
-            ch.data.cross_msgs = Cid::try_from(r.data.cross_msgs.unwrap())?;
-        }
+
+        // if let Some(cross_msgs) = r.data.cross_msgs {
+        //     ch.data.cross_msgs = cross_msgs;
+        // }
 
         Ok(ch)
     }
