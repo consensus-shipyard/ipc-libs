@@ -105,7 +105,7 @@ fn test_subnet_info_from_str() {
     {
         "ID": {
             "Parent": "/root",
-            "Actor": "t01002"
+            "Actor": "t010000000002"
         },
         "Stake": "10000000000000000000",
         "TopDownMsgs": {
