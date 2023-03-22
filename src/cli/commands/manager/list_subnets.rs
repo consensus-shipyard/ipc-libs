@@ -56,7 +56,10 @@ pub(crate) struct ListSubnetsArgs {
     pub subnet_id: String,
 }
 
-/// A simplified wrapper for Subnet Info response
+/// A simplified wrapper for Subnet Info response. The SubnetInfo struct is deserialized differently
+/// as that struct is targeting deserialization from Actor. SubnetInfoWrapper is targeting ipc-agent
+/// rpc server, it is using different data structure and casing, i.e. id in actor is represented as
+/// a map, but in ipc-agent rpc server, it is a string.
 #[derive(Debug, Deserialize)]
 struct SubnetInfoWrapper {
     #[allow(dead_code)]
