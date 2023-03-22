@@ -46,7 +46,7 @@ pub struct IPCReadSubnetActorStateResponse {
 #[serde(rename_all = "PascalCase")]
 pub struct SubnetInfo {
     /// Id of the subnet.
-    #[serde(rename("ID"))]
+    #[serde(rename = "ID")]
     #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
     #[serde(serialize_with = "serialize_subnet_id_to_str")]
     pub id: SubnetID,
