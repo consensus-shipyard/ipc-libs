@@ -139,6 +139,6 @@ fn test_checkpoint_template_from_str() {
     }
     "#;
 
-    let w: CheckpointTemplate= serde_json::from_str(raw_str).unwrap();
+    let w: CheckpointTemplate = serde_json::from_str(raw_str).unwrap();
     assert_eq!(w.data.source, SubnetID::from_str("/root/f01002").unwrap());
 }
