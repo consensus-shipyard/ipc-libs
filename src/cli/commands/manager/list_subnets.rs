@@ -11,8 +11,8 @@ use crate::cli::commands::get_ipc_agent_url;
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::manager::SubnetInfo;
 use crate::server::list_subnets::ListSubnetsParams;
+use serde::Deserialize;
 
 /// The command to create a new subnet actor.
 pub(crate) struct ListSubnets;
@@ -33,7 +33,7 @@ impl CommandLineHandler for ListSubnets {
         };
 
         let subnets = json_rpc_client
-            .request::<HashMap<String, SubnetInfo>>(
+            .request::<HashMap<String, SubnetInfoWrapper>>(
                 json_rpc_methods::LIST_CHILD_SUBNETS,
                 serde_json::to_value(params)?,
             )
@@ -54,4 +54,17 @@ pub(crate) struct ListSubnetsArgs {
     pub gateway_address: String,
     #[arg(long, short, help = "The subnet id to query child subnets")]
     pub subnet_id: String,
+}
+
+/// A simplified wrapper for Subnet Info response
+#[derive(Debug, Deserialize)]
+struct SubnetInfoWrapper {
+    #[allow(dead_code)]
+    id: String,
+    #[allow(dead_code)]
+    stake: u64,
+    #[allow(dead_code)]
+    circ_supply: u64,
+    #[allow(dead_code)]
+    status: i32,
 }
