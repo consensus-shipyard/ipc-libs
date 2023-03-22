@@ -4,7 +4,6 @@
 
 use async_trait::async_trait;
 use clap::Args;
-use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
