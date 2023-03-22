@@ -42,10 +42,11 @@ pub struct IPCReadSubnetActorStateResponse {
 ///
 /// Note that the serialization and deserialization casing are different. Reason because for deserialization,
 /// it is from the fvm actor, which is `PascalCase`. When serialize, we are using rust's default casing
-#[serde(rename_all = "PascalCase")]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct SubnetInfo {
     /// Id of the subnet.
+    #[serde(rename("ID"))]
     #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
     #[serde(serialize_with = "serialize_subnet_id_to_str")]
     pub id: SubnetID,
