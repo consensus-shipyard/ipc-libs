@@ -34,7 +34,7 @@ impl CommandLineHandler for ListSubnets {
         };
 
         let subnets = json_rpc_client
-            .request::<HashMap<SubnetID, SubnetInfo>>(
+            .request::<HashMap<String, SubnetInfo>>(
                 json_rpc_methods::LIST_CHILD_SUBNETS,
                 serde_json::to_value(params)?,
             )
