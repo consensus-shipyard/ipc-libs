@@ -42,25 +42,22 @@ pub struct IPCReadSubnetActorStateResponse {
 ///
 /// Note that the serialization and deserialization casing are different. Reason because for deserialization,
 /// it is from the fvm actor, which is `PascalCase`. When serialize, we are using rust's default casing
+#[serde(rename_all = "PascalCase")]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubnetInfo {
     /// Id of the subnet.
-    #[serde(rename(deserialize = "ID"))]
     #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
     #[serde(serialize_with = "serialize_subnet_id_to_str")]
     pub id: SubnetID,
     /// Collateral staked in the subnet.
-    #[serde(rename(deserialize = "Stake"))]
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
     #[serde(serialize_with = "serialize_token_amount_to_atto")]
     pub stake: TokenAmount,
     /// Circulating supply available in the subnet.
-    #[serde(rename(deserialize = "CircSupply"))]
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
     #[serde(serialize_with = "serialize_token_amount_to_atto")]
     pub circ_supply: TokenAmount,
     /// State of the Subnet (Initialized, Active, Killed)
-    #[serde(rename(deserialize = "Status"))]
     pub status: Status,
 }
 
