@@ -27,6 +27,7 @@ pub struct IPCGetPrevCheckpointForChildResponse {
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadGatewayStateResponse {
     pub check_period: ChainEpoch,
+    pub applied_topdown_nonce: u64,
 }
 
 /// The state of a subnet actor. The struct omits all fields that are not relevant for the

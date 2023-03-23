@@ -10,12 +10,13 @@ use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::Checkpoint;
+use ipc_gateway::{Checkpoint, CrossMsg};
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
+use crate::constants::GATEWAY_ACTOR_ADDRESS;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::message::chain::ChainHeadResponse;
 use crate::lotus::message::ipc::{
@@ -48,10 +49,9 @@ mod methods {
     pub const IPC_READ_GATEWAY_STATE: &str = "Filecoin.IPCReadGatewayState";
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
+    pub const IPC_GET_TOPDOWN_MSGS: &str = "Filecoin.IPCGetTopDownMsgs";
 }
 
-/// The default gateway actor address
-const GATEWAY_ACTOR_ADDRESS: &str = "f064";
 /// The default state wait confidence value
 const STATE_WAIT_CONFIDENCE: u8 = 5;
 /// We dont set a limit on the look back epoch, i.e. check against latest block
@@ -336,6 +336,19 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .request::<Option<Vec<SubnetInfo>>>(methods::IPC_LIST_CHILD_SUBNETS, params)
             .await?;
         Ok(r.unwrap_or_default())
+    }
+
+    async fn ipc_get_topdown_msgs(
+        &self,
+        child_subnet_id: SubnetID,
+        start_nonce: u64,
+    ) -> Result<Vec<CrossMsg>> {
+        let params = json!([GATEWAY_ACTOR_ADDRESS, child_subnet_id.to_string(), start_nonce]);
+        let r = self
+            .client
+            .request::<Vec<CrossMsg>>(methods::IPC_GET_TOPDOWN_MSGS, params)
+            .await?;
+        Ok(r)
     }
 }
 
