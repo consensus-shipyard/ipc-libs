@@ -12,7 +12,7 @@ To build the IPC Agent you need to have Rust installed in your environment. The 
 ### Build instructions
 To build the binary for the IPC agent you need to build the requirements in your environment, clone this repo, and build the binary following these steps:
 ```bash
-$ git clone https://github.com/filecoin-project/ref-fvm.git
+$ git clone https://github.com/consensus-shipyard/ipc-agent.git
 $ cd ipc-agent
 $ rustup target add wasm32-unknown-unknown
 $ make build
@@ -53,9 +53,9 @@ Options:
 IPC currently uses [a fork of Lotus](https://github.com/consensus-shipyard/lotus), that we like to call _Eudico_, to run its subnets. The IPC agent does nothing by itself, and is just an orchestrator over existing subnet deployments. To ease the deployment of new subnets and nodes, we provide a set of convenient scripts to deploy all the infrastructure required to run IPC. 
 
 ### Install infrastructure scripts
-All the infrastructure scripts assume live in [Eudico's repo](https://github.com/consensus-shipyard/lotus/tree/spacenet/scripts/ipc), and assume a working installation of Docker. To install Docker [follow this link])(https://docs.docker.com/get-docker/) and choose your working environment.
+[Eudico](https://github.com/consensus-shipyard/lotus/tree/spacenet/scripts/ipc) provides a set of infrastructure scripts, which assume a working installation of Docker. To install Docker [follow this link])(https://docs.docker.com/get-docker/) and choose your working environment.
 
-With Docker installed, you can `make install-infra` to have all the infrastructure scripts available locally. This make rule will build the docker image that you need to run subnets, and install the infrastructure scripts in the `./bin` folder.
+With Docker installed, you can then `make install-infra` in this repository to clone the eudico repo, build the docker image that you need to run subnets, and install the infrastructure scripts in the `./bin` folder.
 
 To check if the installation was successful you can run the following command, and it should return a similar output: 
 ```bash
