@@ -113,4 +113,12 @@ pub trait LotusClient {
         subnet: SubnetID,
         checkpoint_cid: Cid,
     ) -> Result<Votes>;
+
+    /// Returns the list of checkpoints from a subnet actor for the given epoch range.
+    async fn ipc_list_checkpoints(
+        &self,
+        subnet_id: SubnetID,
+        from_epoch: ChainEpoch,
+        to_epoch: ChainEpoch,
+    ) -> Result<Vec<Checkpoint>>;
 }
