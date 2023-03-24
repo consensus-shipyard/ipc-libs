@@ -44,7 +44,7 @@ impl JsonRPCRequestHandler for ListCheckpointsHandler {
         let child_subnet_id = SubnetID::from_str(request.subnet_id.as_str())?;
         let parent_subnet_id = child_subnet_id
             .parent()
-            .ok_or(anyhow!("subnet id does not have a parent"))?;
+            .ok_or_else(|| anyhow!("subnet id does not have a parent"))?;
 
         let conn = match self.pool.get(&parent_subnet_id.to_string()) {
             None => return Err(anyhow!("target parent subnet not found")),
