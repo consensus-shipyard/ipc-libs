@@ -113,7 +113,10 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(ListSubnetsHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::LIST_CHILD_SUBNETS), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(ListCheckpointsHandler::new(pool));
+        let h: Box<dyn HandlerWrapper> = Box::new(ListSubnetsHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::LIST_CHILD_SUBNETS), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(ListCheckpointsHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::LIST_CHECKPOINTS), h);
 
         // query validator
