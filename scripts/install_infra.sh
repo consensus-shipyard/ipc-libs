@@ -3,7 +3,7 @@
 # Builds docker image and install the ipc-scripts required to conveniently
 # deploy the infrastructure for IPC subnets.
 rm -rf ./lotus
-git clone git@github.com:consensus-shipyard/lotus.git
+git clone https://github.com/consensus-shipyard/lotus.git
 cd ./lotus
 docker build -t eudico .
 cd ..

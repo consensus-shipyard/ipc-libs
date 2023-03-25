@@ -126,8 +126,8 @@ To run a subnet the first thing is to configure and create the subnet actor that
 ators 0 --finality-threshold 10 --check-period 10
 
 # Sample command execution
-./bin/ipc_agent create-subnet -p /root -n test --min-validator-stake 1 --min-valid
-ators 0 --finality-threshold 10 --check-period 10
+./bin/ipc_agent create-subnet -p /root -n test --min-validator-stake 1 \
+--min-validators 0 --finality-threshold 10 --check-period 10
 
 [2023-03-21T09:32:58Z INFO  ipc_agent::cli::commands::manager::create] created subnet actor with id: /root/t01002
 ```
@@ -136,7 +136,7 @@ This command deploys a subnet actor for a new subnet from the `root`, with a hum
 #### Deploy subnet daemon
 Before joining a new subnet, our node for that subnet should be initialized, because as part of the joining process we would need to provide information about our validator network address, so other validators know how to dial them. For the deployment of subnet daemons we also provide a convenient infra script: 
 ```bash
-$ ./bin/ipc-infra/run-subnet-docker.sh <lotus-api-port> <validator-libp2p-port> <subnet-id> <abssolute-path-validator-key>
+$ ./bin/ipc-infra/run-subnet-docker.sh <lotus-api-port> <validator-libp2p-port> <subnet-id> <absolute-path-validator-key>
 
 # Sample execution
 $ ./bin/ipc-infra/run-subnet-docker.sh 1239 1349 /root/t01002 /home/workspace/pl/lotus/scripts/ipc/src/wallet.key
@@ -164,7 +164,7 @@ jsonrpc_api_ws = "wss://example.org/rpc/v0"
 auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
 ```
-As always, remember to run `./bin/ipc_agen reload-config` for changes in the config of the agent to be picked up by the daemon.
+As always, remember to run `./bin/ipc_agent reload-config` for changes in the config of the agent to be picked up by the daemon.
 
 #### Exporting wallet keys from subnet
 In order to export the validator key from a wallet that may live in some other subnet into a file (like the wallet address we are using in the rootnet), we can use the following Lotus command:
