@@ -65,9 +65,9 @@ struct SubnetInfoWrapper {
     #[allow(dead_code)]
     id: String,
     #[allow(dead_code)]
-    stake: u64,
+    stake: String,
     #[allow(dead_code)]
-    circ_supply: u64,
+    circ_supply: String,
     #[allow(dead_code)]
     status: i32,
 }
