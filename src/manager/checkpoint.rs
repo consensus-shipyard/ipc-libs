@@ -17,7 +17,7 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::MethodNum;
 use ipc_gateway::checkpoint::checkpoint_epoch;
-use ipc_gateway::{Checkpoint, CHECKPOINT_GENESIS_CID};
+use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
 use tokio::select;

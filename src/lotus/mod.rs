@@ -18,10 +18,7 @@ use message::mpool::{MpoolPushMessage, MpoolPushMessageResponseInner};
 use message::state::{ReadStateResponse, StateWaitMsgResponse};
 use message::wallet::{WalletKeyType, WalletListResponse};
 
-use crate::lotus::message::ipc::{
-    IPCGetPrevCheckpointForChildResponse, IPCReadGatewayStateResponse,
-    IPCReadSubnetActorStateResponse,
-};
+use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
 use crate::manager::SubnetInfo;
 
 use self::message::CIDMap;

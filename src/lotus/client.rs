@@ -18,10 +18,7 @@ use serde_json::json;
 
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::message::chain::ChainHeadResponse;
-use crate::lotus::message::ipc::{
-    IPCGetPrevCheckpointForChildResponse, IPCReadGatewayStateResponse,
-    IPCReadSubnetActorStateResponse,
-};
+use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
 use crate::lotus::message::mpool::{
     MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
 };
