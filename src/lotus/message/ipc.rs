@@ -18,7 +18,7 @@ use crate::lotus::message::CIDMap;
 #[serde(rename_all = "PascalCase")]
 pub struct IPCGetPrevCheckpointForChildResponse {
     #[serde(rename = "CID")]
-    pub cid: CIDMap,
+    pub cid: Option<CIDMap>,
 }
 
 /// The state of a gateway actor. The struct omits all fields that are not relevant for the
@@ -88,7 +88,7 @@ pub struct Validator {
 /// able to pick it up automatically
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "PascalCase")]
-pub struct CheckpointTemplate {
+pub struct CheckpointResponse {
     pub data: CheckpointData,
     pub sig: Option<Vec<u8>>,
 }
@@ -98,7 +98,7 @@ pub struct CheckpointTemplate {
 pub struct CheckpointData {
     #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
     pub source: SubnetID,
-    pub proof: Option<Vec<u8>>,
+    pub proof: Option<String>,
     pub epoch: i64,
     pub children: Option<Vec<CheckData>>,
     #[serde(rename(deserialize = "PrevCheck"))]
