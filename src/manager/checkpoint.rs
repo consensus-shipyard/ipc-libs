@@ -257,7 +257,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
             // Sleep for an appropriate amount of time before checking the chain head again or return
             // if a stop notification is received.
-            if wait_next_iteration(&stop_notify).await? {
+            if !wait_next_iteration(&stop_notify).await? {
                 return Ok(());
             }
         }
