@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Set the validator memberships of a subnet command line operation
 
 use async_trait::async_trait;

@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Expose the subnet actor validator set
 
 use crate::config::ReloadableConfig;

@@ -1,4 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
+// Copyright 2022-2023 Protocol Labs
 //! Set the memberships of the validators.
 
 use crate::config::DEFAULT_IPC_GATEWAY_ADDR;
