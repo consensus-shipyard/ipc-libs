@@ -219,6 +219,34 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         Ok(())
     }
 
+    async fn set_validator_net_addr(
+        &self,
+        subnet: SubnetID,
+        from: Address,
+        validator_net_addr: String,
+    ) -> Result<()> {
+        if !self.is_network_match(&subnet).await? {
+            return Err(anyhow!(
+                "set validator net addr not targeting the correct network"
+            ));
+        }
+
+        let params = cbor::serialize(
+            &JoinParams { validator_net_addr },
+            "set validator net addr params",
+        )?;
+
+        let message = MpoolPushMessage::new(
+            subnet.subnet_actor(),
+            from,
+            ipc_subnet_actor::Method::SetValidatorNetAddr as MethodNum,
+            params.to_vec(),
+        );
+
+        self.mpool_push_and_wait(message).await?;
+        Ok(())
+    }
+
     async fn whitelist_propagator(
         &self,
         subnet: SubnetID,
