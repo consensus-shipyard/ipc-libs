@@ -5,6 +5,7 @@
 mod config;
 mod daemon;
 mod manager;
+mod validator;
 
 use crate::cli::commands::config::{InitConfig, InitConfigArgs, ReloadConfig, ReloadConfigArgs};
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
@@ -17,6 +18,7 @@ use crate::cli::commands::manager::list_subnets::{ListSubnets, ListSubnetsArgs};
 use crate::cli::commands::manager::propagate::{Propagate, PropagateArgs};
 use crate::cli::commands::manager::release::{Release, ReleaseArgs};
 use crate::cli::commands::manager::whitelist::{WhitelistPropagator, WhitelistPropagatorArgs};
+use crate::cli::commands::validator::{SetMemberships, SetMembershipsArgs};
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -53,6 +55,9 @@ enum Commands {
     WhitelistPropagator(WhitelistPropagatorArgs),
     SendValue(SendValueArgs),
     WalletNew(WalletNewArgs),
+
+    /// Validator commands
+    SetMemberships(SetMembershipsArgs),
 }
 #[derive(Debug, Parser)]
 #[command(
@@ -118,6 +123,8 @@ pub async fn cli() {
         Commands::WhitelistPropagator(args) => WhitelistPropagator::handle(global, args).await,
         Commands::SendValue(args) => SendValue::handle(global, args).await,
         Commands::WalletNew(args) => WalletNew::handle(global, args).await,
+        // Validator related commands
+        Commands::SetMemberships(args) => SetMemberships::handle(global, args).await,
     };
 
     if let Err(e) = r {

@@ -1,3 +1,5 @@
+use fvm_shared::address::Address;
+use std::str::FromStr;
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use fvm_shared::clock::ChainEpoch;
@@ -73,6 +75,31 @@ pub struct ValidatorSet {
     pub validators: Option<Vec<Validator>>,
     // sequence number that uniquely identifies a validator set
     pub configuration_number: u64,
+}
+
+impl TryFrom<ValidatorSet> for ipc_sdk::ValidatorSet {
+    type Error = anyhow::Error;
+
+    fn try_from(value: ValidatorSet) -> Result<Self, Self::Error> {
+        let validators = if let Some(validators) = value.validators {
+            let mut vs = vec![];
+            for validator in validators {
+                let whole_weight = validator.weight.parse::<u64>()?;
+                vs.push(ipc_sdk::Validator {
+                    addr: Address::from_str(&validator.addr)?,
+                    net_addr: validator.net_addr,
+                    weight: TokenAmount::from_whole(whole_weight),
+                });
+            }
+            vs
+        } else {
+            vec![]
+        };
+        Ok(ipc_sdk::ValidatorSet::new(
+            validators,
+            value.configuration_number,
+        ))
+    }
 }
 
 /// The validator struct. See `ValidatorSet` comment on why we need this duplicated definition.

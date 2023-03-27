@@ -10,6 +10,7 @@ use cid::Cid;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
+use ipc_sdk::ValidatorSet;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
 
 /// Trait to interact with a subnet and handle its lifecycle.
@@ -38,6 +39,14 @@ pub trait SubnetManager {
 
     /// Sends a signal to kill a subnet
     async fn kill_subnet(&self, subnet: SubnetID, from: Address) -> Result<()>;
+
+    /// Set the validator memberships of a subnet
+    async fn set_memberships(
+        &self,
+        from: Address,
+        gateway_addr: Address,
+        memberships: ValidatorSet,
+    ) -> Result<()>;
 
     /// Submits a checkpoint for a subnet from a wallet address.
     async fn submit_checkpoint(

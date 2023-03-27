@@ -14,6 +14,7 @@ use fvm_shared::METHOD_SEND;
 use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
 use ipc_gateway::{Checkpoint, PropagateParams, WhitelistPropagatorParams};
 use ipc_sdk::subnet_id::SubnetID;
+use ipc_sdk::ValidatorSet;
 use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
 
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
@@ -121,6 +122,25 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         .await?;
         log::info!("left subnet: {subnet:}");
 
+        Ok(())
+    }
+
+    async fn set_memberships(
+        &self,
+        from: Address,
+        gateway_addr: Address,
+        memberships: ValidatorSet,
+    ) -> Result<()> {
+        log::debug!("attempt to set memberships: {from:?}, {gateway_addr:?} and {memberships:?}");
+
+        let message = MpoolPushMessage::new(
+            gateway_addr,
+            from,
+            ipc_gateway::Method::SetMembership as MethodNum,
+            cbor::serialize(&memberships, "set memberships params")?.to_vec(),
+        );
+
+        self.mpool_push_and_wait(message).await?;
         Ok(())
     }
 
