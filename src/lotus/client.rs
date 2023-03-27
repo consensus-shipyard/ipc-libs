@@ -51,7 +51,7 @@ mod methods {
 }
 
 /// The default gateway actor address
-const GATEWAY_ACTOR_ADDRESS: &str = "f064";
+const GATEWAY_ACTOR_ADDRESS: &str = "t064";
 /// The default state wait confidence value
 const STATE_WAIT_CONFIDENCE: u8 = 5;
 /// We dont set a limit on the look back epoch, i.e. check against latest block
