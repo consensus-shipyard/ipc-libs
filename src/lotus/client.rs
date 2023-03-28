@@ -320,11 +320,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .to_string();
         let actor = subnet_id.subnet_actor().to_string();
         let params = json!([
-        {
-            "Parent": parent,
-            "Actor": actor
-        },
-        epoch,
+            {
+                "Parent": parent,
+                "Actor": actor
+            },
+            epoch,
         ]);
         let r = self
             .client
@@ -343,13 +343,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         // committed without any additional check, so we shouldn't worry
         // if the deserialization doesn't work for every field as long as it
         // doesn't fail if there is a checkpoint. But this NEEDS TO BE FIXED and we should transform a CheckpointReponse into a Checkpoint.
-
-        let mut ch = Checkpoint::new(r.data.source, r.data.epoch);
-        if r.data.proof.is_some() {
-            ch.data.proof = r.data.proof.unwrap().into_bytes();
-        }
-
-        Ok(ch)
+        Ok(Checkpoint::try_from(r)?)
     }
 
     async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse> {
