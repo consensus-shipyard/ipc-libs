@@ -383,9 +383,16 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         ]);
         let r = self
             .client
-            .request::<Vec<Checkpoint>>(methods::IPC_LIST_CHECKPOINTS, params)
+            .request::<Vec<CheckpointResponse>>(methods::IPC_LIST_CHECKPOINTS, params)
             .await?;
-        Ok(r)
+
+        let mut checkpoints: Vec<Checkpoint> = vec![];
+        for chr in r {
+            let ch = Checkpoint::try_from(chr)?;
+            checkpoints.push(ch);
+        }
+
+        Ok(checkpoints)
     }
 }
 
