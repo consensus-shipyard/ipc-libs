@@ -6,7 +6,7 @@ use serde::Deserialize;
 use url::Url;
 
 use crate::config::deserialize::{
-    deserialize_accounts, deserialize_address_from_i64, deserialize_subnet_id
+    deserialize_accounts, deserialize_address_from_i64, deserialize_subnet_id,
 };
 
 /// Represents a subnet declaration in the config.

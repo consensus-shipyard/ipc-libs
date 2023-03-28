@@ -18,8 +18,8 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::Result;
-use ipc_sdk::subnet_id::SubnetID;
 use deserialize::deserialize_subnets_from_vec;
+use ipc_sdk::subnet_id::SubnetID;
 pub use reload::ReloadableConfig;
 use serde::Deserialize;
 pub use server::JSON_RPC_ENDPOINT;
