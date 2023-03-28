@@ -174,7 +174,7 @@ impl TryFrom<CheckpointResponse> for Checkpoint {
             let msgs_cid = if let Some(cid_map) = cross_msgs.msgs_cid {
                 TCid::from(Cid::try_from(cid_map)?)
             } else {
-                TCid::from(CHECKPOINT_GENESIS_CID.clone())
+                TCid::from(*CHECKPOINT_GENESIS_CID)
             };
             Some(ipc_gateway::checkpoint::CrossMsgMeta {
                 msgs_cid,
