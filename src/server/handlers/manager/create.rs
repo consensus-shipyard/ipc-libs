@@ -51,15 +51,14 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
     type Response = CreateSubnetResponse;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let parent = &request.parent;
-
-        let conn = match self.pool.get(parent) {
+        let parent = SubnetID::from_str(&request.parent)?;
+        let conn = match self.pool.get(&parent) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
 
         let constructor_params = ConstructParams {
-            parent: SubnetID::from_str(parent)?,
+            parent,
             name: request.name,
             ipc_gateway_addr: DEFAULT_IPC_GATEWAY_ADDR,
             consensus: ConsensusType::Mir,

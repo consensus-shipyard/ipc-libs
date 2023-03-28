@@ -37,7 +37,8 @@ impl JsonRPCRequestHandler for PropagateHandler {
     type Response = ();
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let conn = match self.pool.get(&request.subnet) {
+        let subnet = SubnetID::from_str(&request.subnet)?;
+        let conn = match self.pool.get(&subnet) {
             None => return Err(anyhow!("target subnet not found")),
             Some(conn) => conn,
         };

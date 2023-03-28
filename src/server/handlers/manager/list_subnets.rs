@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use ipc_sdk::subnet_id::SubnetID;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListSubnetsParams {
@@ -38,7 +39,8 @@ impl JsonRPCRequestHandler for ListSubnetsHandler {
     type Response = HashMap<String, SubnetInfo>;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let conn = match self.pool.get(&request.subnet_id) {
+        let subnet = SubnetID::from_str(&request.subnet_id)?;
+        let conn = match self.pool.get(&subnet) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };

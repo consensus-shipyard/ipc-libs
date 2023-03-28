@@ -6,6 +6,7 @@ use crate::config::{ReloadableConfig, Subnet};
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::manager::LotusSubnetManager;
 use std::sync::Arc;
+use ipc_sdk::subnet_id::SubnetID;
 
 /// The subnet manager connection that holds the subnet config and the manager instance.
 pub struct Connection<T: JsonRpcClient> {
@@ -37,11 +38,11 @@ impl SubnetManagerPool {
     }
 
     /// Get the connection instance for the subnet.
-    pub fn get(&self, subnet_str: &str) -> Option<Connection<JsonRpcClientImpl>> {
+    pub fn get(&self, subnet: &SubnetID) -> Option<Connection<JsonRpcClientImpl>> {
         let config = self.config.get_config();
         let subnets = &config.subnets;
 
-        match subnets.get(subnet_str) {
+        match subnets.get(subnet) {
             Some(subnet) => {
                 let manager = LotusSubnetManager::from_subnet(subnet);
                 Some(Connection {

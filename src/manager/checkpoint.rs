@@ -123,13 +123,7 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
 /// manage checkpoint for. This means that for each `child_subnet` there exists at least one account
 /// for which we need to submit checkpoints on behalf of to `parent_subnet`, which must also be
 /// present in the map.
-fn subnets_to_manage(subnets: &HashMap<String, Subnet>) -> Vec<(Subnet, Subnet)> {
-    // First, we remap subnets by SubnetID.
-    let subnets_by_id: HashMap<SubnetID, Subnet> = subnets
-        .values()
-        .map(|s| (s.id.clone(), s.clone()))
-        .collect();
-
+fn subnets_to_manage(subnets_by_id: &HashMap<SubnetID, Subnet>) -> Vec<(Subnet, Subnet)> {
     // Then, we filter for subnets that have at least one account and for which the parent subnet
     // is also in the map, and map into a Vec of (child_subnet, parent_subnet) tuples.
     subnets_by_id
