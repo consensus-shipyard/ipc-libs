@@ -8,6 +8,7 @@ use fvm_shared::clock::ChainEpoch;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use ipc_gateway::Checkpoint;
 
 use crate::cli::commands::get_ipc_agent_url;
 use crate::cli::{CommandLineHandler, GlobalArguments};
@@ -36,7 +37,7 @@ impl CommandLineHandler for ListCheckpoints {
         };
 
         let checkpoints = json_rpc_client
-            .request::<HashMap<SubnetID, SubnetInfo>>(
+            .request::<HashMap<SubnetID, Checkpoint>>(
                 json_rpc_methods::LIST_CHECKPOINTS,
                 serde_json::to_value(params)?,
             )
