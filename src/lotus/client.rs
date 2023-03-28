@@ -18,10 +18,7 @@ use serde_json::json;
 
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::message::chain::ChainHeadResponse;
-use crate::lotus::message::ipc::{
-    IPCGetPrevCheckpointForChildResponse, IPCReadGatewayStateResponse,
-    IPCReadSubnetActorStateResponse,
-};
+use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
 use crate::lotus::message::mpool::{
     MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
 };
@@ -30,6 +27,8 @@ use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
 use crate::lotus::{LotusClient, NetworkVersion};
 use crate::manager::SubnetInfo;
+
+use super::message::ipc::CheckpointResponse;
 
 // RPC methods
 mod methods {
@@ -45,13 +44,14 @@ mod methods {
     pub const CHAIN_HEAD: &str = "Filecoin.ChainHead";
     pub const IPC_GET_PREV_CHECKPOINT_FOR_CHILD: &str = "Filecoin.IPCGetPrevCheckpointForChild";
     pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplate";
+    pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpoint";
     pub const IPC_READ_GATEWAY_STATE: &str = "Filecoin.IPCReadGatewayState";
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
 }
 
 /// The default gateway actor address
-const GATEWAY_ACTOR_ADDRESS: &str = "f064";
+const GATEWAY_ACTOR_ADDRESS: &str = "t064";
 /// The default state wait confidence value
 const STATE_WAIT_CONFIDENCE: u8 = 5;
 /// We dont set a limit on the look back epoch, i.e. check against latest block
@@ -261,7 +261,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
         child_subnet_id: SubnetID,
-    ) -> Result<IPCGetPrevCheckpointForChildResponse> {
+    ) -> Result<Option<CIDMap>> {
         let parent = match child_subnet_id.parent() {
             None => return Err(anyhow!("The child_subnet_id must be a valid child subnet")),
             Some(parent) => parent,
@@ -272,10 +272,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
         let r = self
             .client
-            .request::<IPCGetPrevCheckpointForChildResponse>(
-                methods::IPC_GET_PREV_CHECKPOINT_FOR_CHILD,
-                params,
-            )
+            .request::<Option<CIDMap>>(methods::IPC_GET_PREV_CHECKPOINT_FOR_CHILD, params)
             .await?;
         Ok(r)
     }
@@ -283,12 +280,46 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint> {
         let r = self
             .client
-            .request::<Checkpoint>(
+            .request::<CheckpointResponse>(
                 methods::IPC_GET_CHECKPOINT_TEMPLATE,
                 json!([GATEWAY_ACTOR_ADDRESS, epoch]),
             )
             .await?;
-        Ok(r)
+
+        Ok(Checkpoint::try_from(r)?)
+    }
+
+    async fn ipc_get_checkpoint(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<Checkpoint> {
+        let parent = subnet_id
+            .parent()
+            .ok_or_else(|| anyhow!("no parent found"))?
+            .to_string();
+        let actor = subnet_id.subnet_actor().to_string();
+        let params = json!([
+            {
+                "Parent": parent,
+                "Actor": actor
+            },
+            epoch,
+        ]);
+        let r = self
+            .client
+            .request::<CheckpointResponse>(methods::IPC_GET_CHECKPOINT, params)
+            .await
+            .map_err(|e| {
+                log::debug!(
+                    "error getting checkpoint for epoch {epoch:} in subnet {:?}: {}",
+                    subnet_id,
+                    e.to_string()
+                );
+                e
+            })?;
+
+        Ok(Checkpoint::try_from(r)?)
     }
 
     async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse> {
