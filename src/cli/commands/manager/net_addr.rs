@@ -51,11 +51,7 @@ impl CommandLineHandler for SetValidatorNetAddr {
 pub(crate) struct SetValidatorNetAddrArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
-    #[arg(
-        long,
-        short,
-        help = "Owner address of the validator being updated"
-    )]
+    #[arg(long, short, help = "Owner address of the validator being updated")]
     pub from: Option<String>,
     #[arg(long, short, help = "The subnet to set the validator")]
     pub subnet: String,
