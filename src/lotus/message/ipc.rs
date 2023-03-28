@@ -3,7 +3,7 @@ use cid::Cid;
 // SPDX-License-Identifier: MIT
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::{Checkpoint, Status};
+use ipc_gateway::{Checkpoint, Status, CHECKPOINT_GENESIS_CID};
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
 use serde::{Deserialize, Serialize};
@@ -174,7 +174,7 @@ impl TryFrom<CheckpointResponse> for Checkpoint {
             let msgs_cid = if let Some(cid_map) = cross_msgs.msgs_cid {
                 TCid::from(Cid::try_from(cid_map)?)
             } else {
-                TCid::default()
+                TCid::from(CHECKPOINT_GENESIS_CID.clone())
             };
             Some(ipc_gateway::checkpoint::CrossMsgMeta {
                 msgs_cid,
