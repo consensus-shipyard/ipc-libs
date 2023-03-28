@@ -54,11 +54,11 @@ pub(crate) struct SetValidatorNetAddrArgs {
     #[arg(
         long,
         short,
-        help = "The address that needs to set the validator net address"
+        help = "Owner address of the validator being updated"
     )]
     pub from: Option<String>,
     #[arg(long, short, help = "The subnet to set the validator")]
     pub subnet: String,
-    #[arg(long, short, help = "The validator net address")]
+    #[arg(long, short, help = "New validator net address")]
     pub validator_net_addr: String,
 }
