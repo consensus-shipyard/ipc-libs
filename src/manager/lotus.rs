@@ -225,9 +225,11 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         from: Address,
         validator_net_addr: String,
     ) -> Result<()> {
-        if !self.is_network_match(&subnet).await? {
+        // When we set the validator net addr, we should send to the subnet's parent
+        let parent = subnet.parent().ok_or_else(|| anyhow!("cannot fund root"))?;
+        if !self.is_network_match(&parent).await? {
             return Err(anyhow!(
-                "set validator net addr not targeting the correct network"
+                "set validator net addr not targeting the correct parent network"
             ));
         }
 
