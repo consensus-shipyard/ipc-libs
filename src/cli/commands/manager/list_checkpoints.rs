@@ -7,12 +7,13 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use clap::Args;
 use fvm_shared::clock::ChainEpoch;
+use serde::Deserialize;
 
 use crate::cli::commands::get_ipc_agent_url;
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::lotus::message::ipc::CheckpointResponse;
+use crate::lotus::message::ipc::CheckpointData;
 use crate::server::list_checkpoints::ListCheckpointsParams;
 
 /// The command to list checkpoints committed in a subnet actor.
@@ -35,7 +36,7 @@ impl CommandLineHandler for ListCheckpoints {
         };
 
         let checkpoints = json_rpc_client
-            .request::<Vec<CheckpointResponse>>(
+            .request::<Vec<CommandCheckpointResponse>>(
                 json_rpc_methods::LIST_CHECKPOINTS,
                 serde_json::to_value(params)?,
             )
@@ -58,4 +59,11 @@ pub(crate) struct ListCheckpointsArgs {
     pub from_epoch: ChainEpoch,
     #[arg(long, short, help = "Include checkpoints up to this epoch")]
     pub to_epoch: ChainEpoch,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CommandCheckpointResponse {
+    pub data: CheckpointData,
+    #[serde(with = "serde_bytes")]
+    pub sig: Option<Vec<u8>>,
 }
