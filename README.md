@@ -9,6 +9,8 @@ a
 ### Build requirements
 To build the IPC Agent you need to have Rust installed in your environment. The current MSRV (Minimum Supported Rust Version) is nightly-2022-10-03 due to some test build dependencies. A working version is tracked in rust-toolchain (this is picked up by rustup automatically). You can look for instructions on [how to run Rust and rustup following this link](https://www.rust-lang.org/tools/install).
 
+> According to the operating system you are running, you may have to install additional dependencies not installed in your system to follow these instructions like `build-essentials`, `libssl-dev`, `git`, `curl`. If something fails while building the binaries double-check these dependencies.
+
 ### Build instructions
 To build the binary for the IPC agent you need to build the requirements in your environment, clone this repo, and build the binary following these steps:
 ```bash
@@ -55,9 +57,15 @@ IPC currently uses [a fork of Lotus](https://github.com/consensus-shipyard/lotus
 ### Install infrastructure scripts
 [Eudico](https://github.com/consensus-shipyard/lotus/tree/spacenet/scripts/ipc) provides a set of infrastructure scripts, which assume a working installation of Docker. To install Docker [follow this link])(https://docs.docker.com/get-docker/) and choose your working environment.
 
-With Docker installed, you can then `make install-infra` in this repository to clone the eudico repo, build the docker image that you need to run subnets, and install the infrastructure scripts in the `./bin` folder.
+> Some users have reported some issues trying to build the required images using Docker Desktop, if this is the case, try installing a version of [Docker engine](https://docs.docker.com/engine/install/#server) supported by your system.
 
-To check if the installation was successful you can run the following command, and it should return a similar output: 
+With Docker installed, you can then `make install-infra` in the root of the `ipc-agent`. This make rule will clone the eudico repo, build the docker image that you need to run subnets, and install the infrastructure scripts in the `./bin` folder. In Unix-based systems, it is highly recommended to include your user inside the `docker` group to avoid having to run many of the commands from this tutorial using `sudo`. You can achieve this running the following commands:
+```bash
+$ sudo usermod -aG docker $USER newgrp docker
+$ newgrp docker
+```
+
+To check if the installation of the image and all infra-related scripts was successful you can run the following command, and it should return a similar output: 
 ```bash
 $ docker images | grep eudico
 eudico                      latest        8fb6db609712   2 minutes ago   341MB
@@ -78,7 +86,11 @@ Alternatively, the agent can also be used as a CLI to interact with IPC. Under t
 ```
 $ ./bin/ipc_agent daemon
 ```
+
+Running the agent at this point will throw an error, because we haven´t configured it to interact with any IPC network. In the next few sections we will walk you through different alternatives to spawn and connect your agent to a running IPC instance.
+
 The RPC server of the daemon will be listening to the endpoint determined in the `json_rpc_address` field of the config. If you are looking for your agent to be accessible from Docker or externally, remember to listen from `0.0.0.0` instead of `127.0.0.1` as specified in the empty configuration. 
+
 
 ### Interacting with a rootnet
 #### Spacenet
@@ -120,10 +132,8 @@ To spawn a new subnet, our IPC agent should be connected to at least the subnet 
 
 #### Spawn subnet actor
 To run a subnet the first thing is to configure and create the subnet actor that will govern the subnet's operation:
-> TODO: Update instructions when the new IPC actor bundle is deployed as some of these parameters have changed.
 ```bash
-./bin/ipc_agent create-subnet -p <parent-id> -n <subnet-name> --min-validator-stake 1 --min-valid
-ators 0 --finality-threshold 10 --check-period 10
+./bin/ipc_agent create-subnet -p <parent-id> -n <subnet-name> --min-validator-stake 1 --min-validators <num-validators> --finality-threshold <number-epochs> --check-period <epochs-between-checks>
 
 # Sample command execution
 ./bin/ipc_agent create-subnet -p /root -n test --min-validator-stake 1 \
@@ -133,13 +143,42 @@ ators 0 --finality-threshold 10 --check-period 10
 ```
 This command deploys a subnet actor for a new subnet from the `root`, with a human-readable name `test`, that requires at least `1` validator to join the subnet to be able to mine new blocks, and with a checkpointing period to the parent of `10` blocks. We can see that the output of this command is the ID of the new subnet.
 
+#### Exporting wallet keys from subnet
+In order to run a validator in a subnet, we'll need a set of keys to handle that validator. To export the validator key from a wallet that may live in some other subnet into a file (like the wallet address we are using in the rootnet), we can use the following Lotus command:
+```bash
+eudico wallet export --lotus-json <address-to-export> > <output file>
+
+# Sample execution
+eudico wallet export --lotus-json t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq > ~/.ipc-agent/wallet.key
+```
+If your daemon is running on a docker container, you can get the container id (provided also in the output of the infra scripts), and run the following command above inside a container outputting the exported private key into a file locally:
+```bash
+$ docker exec -it <container-id> eudico wallet export --lotus-json <adress-to-export> > ~/.ipc-agent/wallet.key
+
+# Sample execution
+$ docker exec -it 84711d67cf162e30747c4525d69728c4dea8c6b4b35cd89f6d0947fee14bf908 eudico wallet export --lotus-json t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq > ~/.ipc-agent/wallet.key
+```
+
+Let's illustrate the flow by creating a new wallet in our recently deployed root and exporting the keys.
+```bash
+# Create the new wallet
+$ ./bin/ipc_agent wallet-new --key-type=secp256k1 --subnet=/root
+[2023-03-29T09:32:52Z INFO  ipc_agent::cli::commands::manager::wallet] created new wallet with address WalletNewResponse { address: "t17rnww5qirr2fh5uiqy6fyi6ix7otwjzgu6pgpey" } in subnet "/root"
+
+# Export the created wallet into ipc-agent
+$ docker exec -it <subnet-container-id> eudico wallet export --lotus-json <filecoin-addr> > <output_directory>
+
+# Sample execution for the address created above
+$ docker exec -it 84711d67cf162e30747c4525d69728c4dea8c6b4b35cd89f6d0947fee14bf908 eudico wallet export --lotus-json t17rnww5qirr2fh5uiqy6fyi6ix7otwjzgu6pgpey > ~/.ipc-agent/wallet.key
+```
+
 #### Deploy subnet daemon
-Before joining a new subnet, our node for that subnet should be initialized, because as part of the joining process we would need to provide information about our validator network address, so other validators know how to dial them. For the deployment of subnet daemons we also provide a convenient infra script: 
+Before joining a new subnet, our node for that subnet should be initialized, because as part of the joining process we would need to provide information about our validator network address, so other validators know how to dial them. For the deployment of subnet daemons we also provide a convenient infra script:
 ```bash
 $ ./bin/ipc-infra/run-subnet-docker.sh <lotus-api-port> <validator-libp2p-port> <subnet-id> <absolute-path-validator-key>
 
 # Sample execution
-$ ./bin/ipc-infra/run-subnet-docker.sh 1239 1349 /root/t01002 /home/workspace/pl/lotus/scripts/ipc/src/wallet.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1239 1349 /root/t01002 ~/.ipc-agent/wallet.key
 ```
 > Beware: This script doesn't support the use of relative paths for the wallet path.
 
@@ -166,22 +205,6 @@ accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
 ```
 As always, remember to run `./bin/ipc_agent reload-config` for changes in the config of the agent to be picked up by the daemon.
 
-#### Exporting wallet keys from subnet
-In order to export the validator key from a wallet that may live in some other subnet into a file (like the wallet address we are using in the rootnet), we can use the following Lotus command:
-```bash
-eudico wallet export --lotus-json <address-to-export> > <output file>
-
-# Sample execution
-eudico wallet export --lotus-json t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq > /tmp/wallet.key
-```
-If your daemon is running on a docker container, you can get the container id (provided also in the output of the infra scripts), and run the following command above inside a container outputting the exported private key into a file locally:
-```bash
-$ docker exec -it <container-id> eudico wallet export --lotus-json <adress-to-export> > /tmp/wallet.key
-
-# Sample execution
-$ docker exec -it 84711d67cf162e30747c4525d69728c4dea8c6b4b35cd89f6d0947fee14bf908 eudico wallet export --lotus-json t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq > /tmp/wallet.key
-```
-
 
 #### Joining a subnet
 With the daemon for the subnet deployed, we can join the subnet:
@@ -189,9 +212,9 @@ With the daemon for the subnet deployed, we can join the subnet:
 $ ./bin/ipc_agent join-subnet --subnet=<subnet-id> --collateral=<collateral_amount> --validator-net-addr=<libp2p-add-validator>
 
 # Sample execution
-$ ./bin/ipc_agent join-subnet --subnet=/root/t01002 --collateral=2 --validator-net-addr="/dns/host.docker.internal/tcp/1349/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3Fb"
+$ ./bin/ipc_agent join-subnet --subnet=/root/t01002 --collateral=2 --validator-net-addr="GET_ADDRESS_FROM_SCRIPT"
 ```
-This command specifies the subnet to join, the amount of collateral to provide and the validator net address used by other validators to dial them. We can pick up this information from the execution of the script above or running `eudico validator config validator-addr` from your deployment. Bear in mind that the multiaddress provided for the validator needs to be accessible publicly by other validators. According to the deployment used you may need to tweak the IP addresses of the multiaddresses and the ones provided by these scripts and commands won't be usable out-of-the-box.
+This command specifies the subnet to join, the amount of collateral to provide and the validator net address used by other validators to dial them. We can pick up this information from the execution of the script above or running `eudico mir validator config validator-addr` from your deployment. Bear in mind that the multiaddress provided for the validator needs to be accessible publicly by other validators. According to the deployment used you may need to tweak the IP addresses of the multiaddresses and the ones provided by these scripts and commands won't be usable out-of-the-box.
 
 For instance, in the example above, we are using the DNS endpoint `/dns/host.docker.internal/` so other Docker containers for the subnet deployed in the host machine know how to contact the validator.
 
@@ -219,6 +242,18 @@ $  ./bin/ipc-infra/mine-subnet.sh 84711d67cf162e30747c4525d69728c4dea8c6b4b35cd8
 
 > TODO: The mining process is currently run in the foreground in interactive mode. Update infra scripts so they can be run detached and the logs are directed to a file.
 
+#### Changing subnet validator network address
+It may be the case that while joining the subnet, you didn't set the multiaddress for your validator correctly and you need to update it. You'll realize that the network address of your validator is not configured correctly, because your agent throws an error when trying to connect to your subnet node, or starting the validator in your subnet throws a network-related error.
+
+Changing the validator is as simple as running the following command:
+/dns/host.docker.internal/tcp/1349/p2p/12D3KooWDeN3bTvZEH11s9Gq5bDeZZLKgRZiMDcy2KmA6mUaT9KE
+```bash
+$ ./bin/ipc_agent set-validator-net-addr --subnet=<subnet-id> --validator-net-addr=<new-validator-addr>
+
+# Sample execution
+$ ./bin/ipc_agent set-validator-net-addr --subnet=/root/t01002 --validator-net-addr="/dns/host.docker.internal/tcp/1349/p2p/12D3KooWDeN3bTvZEH11s9Gq5bDeZZLKgRZiMDcy2KmA6mUaT9KE"
+```
+
 #### Leaving a subnet
 To leave a subnet, the following agent command can be used:
 ```bash
@@ -232,3 +267,19 @@ Leaving a subnet will release the collateral for the validator and remove all th
 
 ### Running a several nodes subnet
 
+## Troubleshooting
+### Upgrading the IPC agent
+Sometimes, things break, and we'll need to push a quick path to fix some bug. If this happens, and you need to upgrade your agent version, kill you agent daemon if you have any running, pull the latest changes from this repo, build the binary, and start your daemon again. This should pick up the latest version for the agent. In the future, we will provide a better way to upgrade your agent.
+```bash
+# Pull latest changes
+$ git pull
+# Build the agent
+$ make build
+# Restart the daemon
+$ ./bin/ipc_agent daemon
+```
+
+### Issues building Eudico image
+`make install-infra` may fail and not build the `eudico` image if your system is not configured correctly. If this happens, you can always try to build the image yourself to have a finer-grain report of the issues to help you debug them. For this you can [follow these instructions](https://github.com/consensus-shipyard/lotus/blob/spacenet/scripts/ipc/README.md).
+
+High-level you just need to clone the [eudico repo](https://github.com/consensus-shipyard/lotus), and run `docker build -t eudico .` in the root of the repo.
