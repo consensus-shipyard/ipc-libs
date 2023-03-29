@@ -41,7 +41,16 @@ impl CommandLineHandler for ListCheckpoints {
             )
             .await?;
 
-        log::info!("list checkpoints: {checkpoints:?}");
+        for c in checkpoints.as_array().unwrap().iter() {
+            let c = &c["data"];
+            log::info!(
+                "epoch {} - prev_check={}, cross_msgs={}, child_checks={}",
+                c["epoch"],
+                c["prev_check"],
+                c["cross_msgs"],
+                c["children"]
+            );
+        }
 
         Ok(())
     }
