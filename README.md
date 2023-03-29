@@ -220,10 +220,10 @@ For instance, in the example above, we are using the DNS endpoint `/dns/host.doc
 As a sanity-check that we have joined the subnet successfully and that we provided enough collateral to register the subnet to IPC, we can list the child subnets of our parent with the following command:
 ```bash
 
-$ ./bin/ipc_agent list-subnets --gateway-address=<gateway-addr> --subnet-id=<parent-subnet-id>
+$ ./bin/ipc_agent list-subnets --gateway-address=<gateway-addr> --subnet=<parent-subnet-id>
 
 # Sample execution
-$ ./bin/ipc_agent list-subnets --gateway-address=t064 --subnet-id=/root
+$ ./bin/ipc_agent list-subnets --gateway-address=t064 --subnet=/root
 
 [2023-03-22T15:42:22Z INFO  ipc_agent::cli::commands::manager::list_subnets] found child subnets: {"/root/t01002": SubnetInfoWrapper { id: "/root/t01002", stake: 2000000000000000000, circ_supply: 0, status:
 ```
@@ -254,12 +254,26 @@ $ ./bin/ipc_agent set-validator-net-addr --subnet=/root/t01002 --validator-net-a
 ```
 
 #### Committing checkpoints from a subnet
-Subnets are periodically committing checkpoints to their parent every `check-period` (parameter defined when creating the subnet). When you configure the connection to your subnet in the agent config and `reload-config`, your agent should automatically start the process responsible for creating the checkpoints and submitting them to the parent if you are running a validator in the subnet. You 
+Subnets are periodically committing checkpoints to their parent every `check-period` (parameter defined when creating the subnet). When you configure the connection to your child subnet in the agent config, and `reload-config`, your agent should automatically start the process responsible for creating the checkpoints and submitting them to the parent. This process will only commit new subnet if you are a validator in that subnet. If the agent has spawned successfully the checkpointing process, you should start seeing every now and then these logs:
 ```
 [2023-03-29T09:52:48Z INFO  ipc_agent::manager::checkpoint] Submitting checkpoint for account t1cp4q4lqsdhob23ysywffg2tvb
 [2023-03-29T09:52:55Z INFO  ipc_agent::manager::checkpoint] successfully published checkpoint submission for epoch 50
 ```
 
+It is common for the checkpointing process to fail if while configuring a child subnet: either because the auth token is not correct, or because no wallet addresses have been configured in the subnet, etc. If this happens, running `./bin/ipc_agent reload-config` will restart the checkpoint manager and pick up the latest config values. Whenever you see an error in the checkpointing process, check that your subnet's configuration is correct and `reload-config` to restart the process.
+
+Finally, if you want to inspect the information of a range of checkpoints committed in the parent for a subnet, you can use the `list-checkpoints` command provided by the agent as follows: 
+```bash
+# List checkpoints between two epochs for a subnet
+$ ./bin/ipc_agent list-checkpoints --from-epoch=<range-start> --to-epoch=<range-end> --subnet=<subnet-id>
+
+# Sample execution
+$ ./bin/ipc_agent list-checkpoints --from-epoch=0 --to-epoch=100 --subnet=/
+root/t01002
+[2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 0 - prev_check={"/":"bafy2bzacedkoa623kvi5gfis2yks7xxjl73vg7xwbojz4tpq63dd5jpfz757i"}, cross_msgs=null, child_checks=null
+[2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 10 - prev_check={"/":"bafy2bzacecsatvda6lodrorh7y7foxjt3a2dexxx5jiyvtl7gimrrvywb7l5m"}, cross_msgs=null, child_checks=null
+[2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 30 - prev_check={"/":"bafy2bzaceauzdx22hna4e4cqf55jqmd64a4fx72sxprzj72qhrwuxhdl7zexu"}, cross_msgs=null, child_checks=null
+```
 #### Leaving a subnet
 To leave a subnet, the following agent command can be used:
 ```bash
