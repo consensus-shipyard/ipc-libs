@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use crate::config::{Subnet, DEFAULT_IPC_GATEWAY_ADDR};
+use crate::config::Subnet;
 use crate::lotus::message::wallet::WalletKeyType;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -154,7 +154,13 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         Ok(map)
     }
 
-    async fn fund(&self, subnet: SubnetID, from: Address, amount: TokenAmount) -> Result<()> {
+    async fn fund(
+        &self,
+        subnet: SubnetID,
+        gateway_addr: Address,
+        from: Address,
+        amount: TokenAmount,
+    ) -> Result<()> {
         // When we perform the fund, we should send to the gateway of the subnet's parent
         let parent = subnet.parent().ok_or_else(|| anyhow!("cannot fund root"))?;
         if !self.is_network_match(&parent).await? {
@@ -165,7 +171,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
 
         let fund_params = cbor::serialize(&subnet, "fund subnet actor params")?;
         let mut message = MpoolPushMessage::new(
-            Address::new_id(DEFAULT_IPC_GATEWAY_ADDR),
+            gateway_addr,
             from,
             ipc_gateway::Method::Fund as MethodNum,
             fund_params.to_vec(),
@@ -176,7 +182,13 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         Ok(())
     }
 
-    async fn release(&self, subnet: SubnetID, from: Address, amount: TokenAmount) -> Result<()> {
+    async fn release(
+        &self,
+        subnet: SubnetID,
+        gateway_addr: Address,
+        from: Address,
+        amount: TokenAmount,
+    ) -> Result<()> {
         // When we perform the release, we should send to the gateway of the subnet
         if !self.is_network_match(&subnet).await? {
             return Err(anyhow!(
@@ -185,7 +197,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         }
 
         let mut message = MpoolPushMessage::new(
-            Address::new_id(DEFAULT_IPC_GATEWAY_ADDR),
+            gateway_addr,
             from,
             ipc_gateway::Method::Release as MethodNum,
             vec![],
@@ -196,7 +208,13 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         Ok(())
     }
 
-    async fn propagate(&self, subnet: SubnetID, from: Address, postbox_msg_cid: Cid) -> Result<()> {
+    async fn propagate(
+        &self,
+        subnet: SubnetID,
+        gateway_addr: Address,
+        from: Address,
+        postbox_msg_cid: Cid,
+    ) -> Result<()> {
         if !self.is_network_match(&subnet).await? {
             return Err(anyhow!("propagation not targeting the correct network"));
         }
@@ -209,7 +227,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         )?;
 
         let message = MpoolPushMessage::new(
-            Address::new_id(DEFAULT_IPC_GATEWAY_ADDR),
+            gateway_addr,
             from,
             ipc_gateway::Method::Propagate as MethodNum,
             params.to_vec(),
@@ -222,6 +240,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
     async fn whitelist_propagator(
         &self,
         subnet: SubnetID,
+        gateway_addr: Address,
         postbox_msg_cid: Cid,
         from: Address,
         to_add: Vec<Address>,
@@ -239,7 +258,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         )?;
 
         let message = MpoolPushMessage::new(
-            Address::new_id(DEFAULT_IPC_GATEWAY_ADDR),
+            gateway_addr,
             from,
             ipc_gateway::Method::WhiteListPropagator as MethodNum,
             params.to_vec(),

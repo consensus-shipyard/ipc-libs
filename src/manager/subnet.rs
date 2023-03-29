@@ -54,18 +54,37 @@ pub trait SubnetManager {
     ) -> Result<HashMap<SubnetID, SubnetInfo>>;
 
     /// Fund injects new funds from an account of the parent chain to a subnet
-    async fn fund(&self, subnet: SubnetID, from: Address, amount: TokenAmount) -> Result<()>;
+    async fn fund(
+        &self,
+        subnet: SubnetID,
+        gateway_addr: Address,
+        from: Address,
+        amount: TokenAmount,
+    ) -> Result<()>;
 
     /// Release creates a new check message to release funds in parent chain
-    async fn release(&self, subnet: SubnetID, from: Address, amount: TokenAmount) -> Result<()>;
+    async fn release(
+        &self,
+        subnet: SubnetID,
+        gateway_addr: Address,
+        from: Address,
+        amount: TokenAmount,
+    ) -> Result<()>;
 
     /// Propagate a cross-net message forward
-    async fn propagate(&self, subnet: SubnetID, from: Address, postbox_msg_cid: Cid) -> Result<()>;
+    async fn propagate(
+        &self,
+        subnet: SubnetID,
+        gateway_addr: Address,
+        from: Address,
+        postbox_msg_cid: Cid,
+    ) -> Result<()>;
 
     /// Whitelist a series of addresses as propagator of a cross net message
     async fn whitelist_propagator(
         &self,
         subnet: SubnetID,
+        gateway_addr: Address,
         postbox_msg_cid: Cid,
         from: Address,
         to_add: Vec<Address>,

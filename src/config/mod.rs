@@ -27,7 +27,6 @@ pub use server::{json_rpc_methods, Server};
 pub use subnet::Subnet;
 
 pub const JSON_RPC_VERSION: &str = "2.0";
-pub const DEFAULT_IPC_GATEWAY_ADDR: u64 = 64;
 
 /// Default config template
 pub const DEFAULT_CONFIG_TEMPLATE: &str = r#"
