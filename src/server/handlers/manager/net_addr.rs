@@ -1,39 +1,38 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-//! Fund operation in the gateway actor
+//! Set the subnet actor validator net addr
 
 use crate::manager::SubnetManager;
-use crate::server::handlers::manager::subnet::SubnetManagerPool;
+use crate::server::subnet::SubnetManagerPool;
 use crate::server::{check_subnet, parse_from, JsonRPCRequestHandler};
 use anyhow::anyhow;
 use async_trait::async_trait;
-use fvm_shared::econ::TokenAmount;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FundParams {
+pub struct SetValidatorNetAddrParams {
     pub subnet: String,
     pub from: Option<String>,
-    pub amount: u64,
+    pub validator_net_addr: String,
 }
 
-/// The fund json rpc method handler.
-pub(crate) struct FundHandler {
+/// Sets a new net address to an existing validator
+pub(crate) struct SetValidatorNetAddrHandler {
     pool: Arc<SubnetManagerPool>,
 }
 
-impl FundHandler {
+impl SetValidatorNetAddrHandler {
     pub(crate) fn new(pool: Arc<SubnetManagerPool>) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl JsonRPCRequestHandler for FundHandler {
-    type Request = FundParams;
+impl JsonRPCRequestHandler for SetValidatorNetAddrHandler {
+    type Request = SetValidatorNetAddrParams;
     type Response = ();
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
@@ -48,10 +47,9 @@ impl JsonRPCRequestHandler for FundHandler {
         check_subnet(subnet_config)?;
 
         let from = parse_from(subnet_config, request.from)?;
-        let amount = TokenAmount::from_whole(request.amount);
 
         conn.manager()
-            .fund(subnet, subnet_config.gateway_addr, from, amount)
+            .set_validator_net_addr(subnet, from, request.validator_net_addr)
             .await
     }
 }

@@ -8,7 +8,6 @@ use crate::server::handlers::manager::{check_subnet, parse_from};
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use ipc_sdk::subnet_id::SubnetID;
@@ -21,7 +20,6 @@ use std::sync::Arc;
 pub struct CreateSubnetParams {
     pub from: Option<String>,
     pub parent: String,
-    pub parent_gateway_addr: Address,
     pub name: String,
     pub min_validator_stake: u64,
     pub min_validators: u64,
@@ -58,10 +56,13 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
             Some(conn) => conn,
         };
 
+        let subnet_config = conn.subnet();
+        check_subnet(subnet_config)?;
+
         let constructor_params = ConstructParams {
             parent,
             name: request.name,
-            ipc_gateway_addr: request.parent_gateway_addr.id()?,
+            ipc_gateway_addr: subnet_config.gateway_addr.id()?,
             consensus: ConsensusType::Mir,
             min_validator_stake: TokenAmount::from_whole(request.min_validator_stake), // In FIL
             min_validators: request.min_validators,
@@ -69,9 +70,6 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
             check_period: request.check_period,
             genesis: vec![],
         };
-
-        let subnet_config = conn.subnet();
-        check_subnet(subnet_config)?;
 
         let from = parse_from(subnet_config, request.from)?;
 

@@ -56,7 +56,13 @@ impl JsonRPCRequestHandler for WhitelistPropagatorHandler {
         let from = parse_from(subnet_config, request.from)?;
 
         conn.manager()
-            .whitelist_propagator(subnet, request.postbox_msg_cid, from, to_add)
+            .whitelist_propagator(
+                subnet,
+                subnet_config.gateway_addr,
+                request.postbox_msg_cid,
+                from,
+                to_add,
+            )
             .await
     }
 }

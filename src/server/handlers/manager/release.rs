@@ -49,6 +49,8 @@ impl JsonRPCRequestHandler for ReleaseHandler {
         let amount = TokenAmount::from_whole(request.amount);
         let from = parse_from(subnet_config, request.from)?;
 
-        conn.manager().release(subnet, from, amount).await
+        conn.manager()
+            .release(subnet, subnet_config.gateway_addr, from, amount)
+            .await
     }
 }
