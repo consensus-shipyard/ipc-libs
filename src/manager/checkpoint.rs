@@ -1,7 +1,7 @@
+use std::collections::{HashMap, HashSet};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use std::collections::hash_map::RandomState;
-use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -178,19 +178,22 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
             // check if it has already been successfully committed.
             // FIXME: We shouldn't just check if OK, but that the error
             // received is that the checkpoint is not committed yet.
-            if parent_client
-                .ipc_get_checkpoint(&child.id, epoch)
-                .await
-                .is_ok()
-            {
-                log::debug!("checkpoint for epoch {epoch:} already committed. Nothing to do yet!");
-                // Sleep for an appropriate amount of time before checking the chain head again or return
-                // if a stop notification is received.
-                if !wait_next_iteration(&stop_notify).await? {
-                    return Ok(());
+            match parent_client.ipc_get_checkpoint(&child.id, epoch).await {
+                Ok(_) => {
+                    log::debug!(
+                        "checkpoint for epoch {epoch:} already committed. Nothing to do yet!"
+                    );
+                    // Sleep for an appropriate amount of time before checking the chain head again or return
+                    // if a stop notification is received.
+                    if !wait_next_iteration(&stop_notify).await? {
+                        return Ok(());
+                    }
+                    continue;
                 }
-                continue;
-            }
+                Err(e) => {
+                    log::debug!("tracking error from get_checkpoint: {}", e.to_string());
+                }
+            };
 
             // It's a checkpointing epoch and we may have checkpoints to submit.
             log::info!(
@@ -325,6 +328,21 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
         checkpoint.data.prev_check = TCid::from(cid);
     }
     checkpoint.data.proof = child_tip_set.to_bytes();
+
+    // The checkpoint is constructed. We now check if this validator already submitted a vote
+    // for this checkpoint. If so, we do not submit the checkpoint again.
+    let votes = parent_client
+        .ipc_get_votes_for_checkpoint(child_subnet.id.clone(), checkpoint.cid())
+        .await?;
+
+    if votes.validators.contains(account) {
+        log::info!(
+            "Checkpoint for {epoch:} in subnet: {:?} already submitted by validator: {:?}",
+            &child_subnet.id,
+            account
+        );
+        return Ok(());
+    }
 
     // The checkpoint is constructed. Now we call the `submit_checkpoint` method on the subnet actor
     // of the child subnet that is deployed on the parent subnet.
