@@ -367,7 +367,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<Checkpoint>> {
+    ) -> Result<Vec<CheckpointResponse>> {
         let parent = subnet_id
             .parent()
             .ok_or_else(|| anyhow!("no parent found"))?
@@ -385,14 +385,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .client
             .request::<Vec<CheckpointResponse>>(methods::IPC_LIST_CHECKPOINTS, params)
             .await?;
-
-        let mut checkpoints: Vec<Checkpoint> = vec![];
-        for chr in r {
-            let ch = Checkpoint::try_from(chr)?;
-            checkpoints.push(ch);
-        }
-
-        Ok(checkpoints)
+        Ok(r)
     }
 }
 

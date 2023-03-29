@@ -2,16 +2,17 @@
 // SPDX-License-Identifier: MIT
 //! List checkpoints cli command
 
+use std::fmt::Debug;
+
 use async_trait::async_trait;
 use clap::Args;
 use fvm_shared::clock::ChainEpoch;
-use ipc_gateway::Checkpoint;
-use std::fmt::Debug;
 
 use crate::cli::commands::get_ipc_agent_url;
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
+use crate::lotus::message::ipc::CheckpointResponse;
 use crate::server::list_checkpoints::ListCheckpointsParams;
 
 /// The command to list checkpoints committed in a subnet actor.
@@ -34,7 +35,7 @@ impl CommandLineHandler for ListCheckpoints {
         };
 
         let checkpoints = json_rpc_client
-            .request::<Vec<Checkpoint>>(
+            .request::<Vec<CheckpointResponse>>(
                 json_rpc_methods::LIST_CHECKPOINTS,
                 serde_json::to_value(params)?,
             )

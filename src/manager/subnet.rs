@@ -12,6 +12,7 @@ use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
 
+use crate::lotus::message::ipc::CheckpointResponse;
 use crate::lotus::message::{ipc::SubnetInfo, wallet::WalletKeyType};
 
 /// Trait to interact with a subnet and handle its lifecycle.
@@ -93,5 +94,5 @@ pub trait SubnetManager {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<Checkpoint>>;
+    ) -> Result<Vec<CheckpointResponse>>;
 }
