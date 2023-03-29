@@ -29,7 +29,7 @@ where
 }
 
 /// A serde deserialization method to deserialize an address from i64
-pub(crate) fn deserialize_address_from_i64<'de, D>(
+pub(crate) fn deserialize_address_from_str<'de, D>(
     deserializer: D,
 ) -> anyhow::Result<Address, D::Error>
 where
@@ -40,17 +40,17 @@ where
         type Value = Address;
 
         fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-            formatter.write_str("an u64")
+            formatter.write_str("an string")
         }
 
-        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
         where
             E: Error,
         {
-            Ok(Address::new_id(v as u64))
+            Address::from_str(v).map_err(E::custom)
         }
     }
-    deserializer.deserialize_i64(Visitor)
+    deserializer.deserialize_str(Visitor)
 }
 
 /// A serde deserialization method to deserialize a subnet path string into a [`SubnetID`].
