@@ -205,7 +205,6 @@ accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
 ```
 As always, remember to run `./bin/ipc_agent reload-config` for changes in the config of the agent to be picked up by the daemon.
 
-
 #### Joining a subnet
 With the daemon for the subnet deployed, we can join the subnet:
 ```bash
@@ -254,6 +253,13 @@ $ ./bin/ipc_agent set-validator-net-addr --subnet=<subnet-id> --validator-net-ad
 $ ./bin/ipc_agent set-validator-net-addr --subnet=/root/t01002 --validator-net-addr="/dns/host.docker.internal/tcp/1349/p2p/12D3KooWDeN3bTvZEH11s9Gq5bDeZZLKgRZiMDcy2KmA6mUaT9KE"
 ```
 
+#### Committing checkpoints from a subnet
+Subnets are periodically committing checkpoints to their parent every `check-period` (parameter defined when creating the subnet). When you configure the connection to your subnet in the agent config and `reload-config`, your agent should automatically start the process responsible for creating the checkpoints and submitting them to the parent if you are running a validator in the subnet. You 
+```
+[2023-03-29T09:52:48Z INFO  ipc_agent::manager::checkpoint] Submitting checkpoint for account t1cp4q4lqsdhob23ysywffg2tvb
+[2023-03-29T09:52:55Z INFO  ipc_agent::manager::checkpoint] successfully published checkpoint submission for epoch 50
+```
+
 #### Leaving a subnet
 To leave a subnet, the following agent command can be used:
 ```bash
@@ -268,7 +274,7 @@ Leaving a subnet will release the collateral for the validator and remove all th
 ### Running a several nodes subnet
 
 ## Troubleshooting
-### Upgrading the IPC agent
+#### I need to upgrade my IPC agent
 Sometimes, things break, and we'll need to push a quick path to fix some bug. If this happens, and you need to upgrade your agent version, kill you agent daemon if you have any running, pull the latest changes from this repo, build the binary, and start your daemon again. This should pick up the latest version for the agent. In the future, we will provide a better way to upgrade your agent.
 ```bash
 # Pull latest changes
@@ -279,7 +285,9 @@ $ make build
 $ ./bin/ipc_agent daemon
 ```
 
-### Issues building Eudico image
+#### `make install-infra` is not building the `eudico` image
 `make install-infra` may fail and not build the `eudico` image if your system is not configured correctly. If this happens, you can always try to build the image yourself to have a finer-grain report of the issues to help you debug them. For this you can [follow these instructions](https://github.com/consensus-shipyard/lotus/blob/spacenet/scripts/ipc/README.md).
 
 High-level you just need to clone the [eudico repo](https://github.com/consensus-shipyard/lotus), and run `docker build -t eudico .` in the root of the repo.
+
+#### M
