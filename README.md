@@ -29,21 +29,23 @@ The IPC agent command line tool
 Usage: ipc-agent [OPTIONS] <COMMAND>
 
 Commands:
-  daemon                Launch the ipc agent daemon
-  reload-config         Config commands
-  init-config           Arguments to initialize a new empty config file
-  create-subnet         Subnet manager commands
-  list-subnets          List child subnets
-  join-subnet           Join a subnet
-  leave-subnet          Leaving a subnet
-  kill-subnet           Kill an existing subnet
-  fund                  Send funds from a parent to a child subnet
-  release               Release operation in the gateway actor
-  propagate             Propagate operation in the gateway actor
-  whitelist-propagator  Whitelist propagators in the gateway actor
-  send-value            Send value to an address within a subnet
-  wallet-new            Create new wallet in subnet
-  help                  Print this message or the help of the given subcommand(s)
+  daemon                  Launch the ipc agent daemon
+  reload-config           Config commands
+  init-config             Arguments to initialize a new empty config file
+  create-subnet           Subnet manager commands
+  list-subnets            List child subnets
+  join-subnet             Join a subnet
+  leave-subnet            Leaving a subnet
+  kill-subnet             Kill an existing subnet
+  fund                    Send funds from a parent to a child subnet
+  release                 Release operation in the gateway actor
+  propagate               Propagate operation in the gateway actor
+  whitelist-propagator    Whitelist propagators in the gateway actor
+  send-value              Send value to an address within a subnet
+  wallet-new              Create new wallet in subnet
+  set-validator-net-addr  Set the validator net address
+  list-checkpoints        List checkpoints
+  help                    Print this message or the help of the given subcommand(s)
 
 Options:
   -c, --config-path <CONFIG_PATH>  The toml config file path for IPC Agent, default to ${HOME}/.ipc-agent/config.toml
@@ -55,7 +57,7 @@ Options:
 IPC currently uses [a fork of Lotus](https://github.com/consensus-shipyard/lotus), that we like to call _Eudico_, to run its subnets. The IPC agent does nothing by itself, and is just an orchestrator over existing subnet deployments. To ease the deployment of new subnets and nodes, we provide a set of convenient scripts to deploy all the infrastructure required to run IPC. 
 
 ### Install infrastructure scripts
-[Eudico](https://github.com/consensus-shipyard/lotus/tree/spacenet/scripts/ipc) provides a set of infrastructure scripts, which assume a working installation of Docker. To install Docker [follow this link])(https://docs.docker.com/get-docker/) and choose your working environment.
+[Eudico](https://github.com/consensus-shipyard/lotus/tree/spacenet/scripts/ipc) provides a set of infrastructure scripts, which assume a working installation of Docker. To install Docker [follow this link](https://docs.docker.com/get-docker/) and choose your working environment.
 
 > Some users have reported some issues trying to build the required images using Docker Desktop, if this is the case, try installing a version of [Docker engine](https://docs.docker.com/engine/install/#server) supported by your system.
 
@@ -94,7 +96,65 @@ The RPC server of the daemon will be listening to the endpoint determined in the
 
 ### Interacting with a rootnet
 #### Spacenet
-> WIP: This instructions will be updated once IPC has been fully deployed in Spacenet.
+For more information about the Spacenet testnet have a look at the [Spacenet repo](https://github.com/consensus-shipyard/spacenet). In this section we will guide you through how to connect your IPC agent to a running instance of Spacenet. Spacenet hosts all the IPC actors and can be used as a rootnet to deploy new subnets from. 
+
+In order to use the IPC agent with Spacenet we need to have access to a full-node syncing with the network. The easiest way to achieve this is to run your own Spacenet node. Running you own Spacenet node is as simple as cloning Eudico repo,compiling and running it:
+```bash
+$ git clone https://github.com/consensus-shipyard/lotus
+
+# `spacenet` is the master branch of the repo. To find the latest
+# release deployed over spacenet, you can check the last release 
+# published in the repo and use checkout that tag.
+$ git checkout <release/branch>
+
+# Compile eudico for Spacenet
+$ make spacenet
+
+# Run your node
+$ ./eudico mir daemon --bootstrap=true
+```
+With this, your node should automatically connect to the bootstraps of the network and start syncing the latest state of the chain.
+
+> More information and further details about the operation of Spacenet can be found in the [Spacenet repo](https://github.com/consensus-shipyard/spacenet)
+
+With the node running, you are ready to connect the IPC agent to Spacenet. For this, you'll need to get an authentication token for your node, and point to the RPC API of the node (by default running on port `1234`).
+```bash
+# Generate auth token to node
+$ ./eudico auth create-token --perm admin
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8vIV7pCrWx-nxOBAAw_IayDzrGf22kMjagRYmj_8Qqw
+```
+Additionally, you should create a new wallet address (if you don't have one already) to use for your IPC interactions. You can create a new wallet by running the following command in your eudico node:
+```bash
+# Create new wallet
+./eudico wallet new
+
+t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq
+```
+With all this information, the config of the agent should be updated to connect to the peer and start interacting with Spacenet's IPC by adding the following section for the `/root`:
+```toml
+[[subnets]]
+id = "/root"
+gateway_addr = "t064"
+network_name = "root"
+jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
+auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8vIV7pCrWx-
+nxOBAAw_IayDzrGf22kMjagRYmj_8Qqw"
+accounts = ["t1xbevqterae2tanmh2kaqksnoacflrv6w2dflq4i"]
+```
+
+You can now start your IPC agent daemon with `./bin/ipc-agent daemon`.
+
+> In the current implementation of Spacenet, the gateway is always deployed in the `t064` address. This should be the address always reflected on your config for the gateway. In the future, this will change, and the gateway may be deployed in different addresses.
+
+To check if the agent has been connected to Spacenet successfully you can try creating a new wallet in the network, but this type through the agent by running:
+```bash
+./bin/ipc-agent wallet-new --key-type=bls --subnet=/root
+
+2023-03-30T12:01:11Z INFO  ipc_agent::cli::commands::manager::wallet] created new wallet with address WalletNewResponse { address: "t1om5pijjq5dqic4ccnqqrvv6zgzwrlxf6bh2apvi" } in subnet "/root"
+```
+
+Finally, to be able to interact with Spacenet and run new subnets, some FIL should be provided to, at least, the wallet that will be used by the agent to interact with IPC. You can request some Spacenet FIL for your address through the [Spacenet Faucet](https://spacenet.consensus.ninja/).
 
 #### Local deployment
 To deploy sample rootnet locally for testing you can use the IPC scripts installed in `./bin/ipc-infra` (refer to the [installation of infrastructure](#Installation-infrastructure-scripts)) by running:
@@ -112,8 +172,10 @@ This information will be relevant to configure our agent to connect to this root
 
 The configuration for our rootnet should look therefore like this:
 ```toml
-[subnets."/root"]
+[[subnets]]
 id = "/root"
+gateway_addr = "t064"
+network_name = "root"
 jsonrpc_api_http = "http://127.0.0.1:1235/rpc/v1"
 auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.j94YYOr8_AWhGGHQd0q8JuQVuNhJA017SK9EUkqDOO0"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
@@ -195,8 +257,10 @@ t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/172.17.0.3/udp/1348/quic/p2p/12D3
 
 This log provides information about the API and auth tokens for the daemon, default validator wallet used, the multiaddresses where the validator is listening, etc. To configure our IPC agent with this subnet daemon, we need to once again update our IPC agent with the relevant information. In this case, for the sample execution above we need to add the following section to the end of our config file:
 ```toml
-[subnets."/root/t01002"]
+[[subnets]]
 id = "/root/t01002"
+gateway_addr = "t064"
+network_name = "test"
 jsonrpc_api_http = "http://127.0.0.1:1239/rpc/v1"
 auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
@@ -223,7 +287,7 @@ $ ./bin/ipc-agent list-subnets --gateway-address=<gateway-addr> --subnet=<parent
 # Sample execution
 $ ./bin/ipc-agent list-subnets --gateway-address=t064 --subnet=/root
 
-[2023-03-22T15:42:22Z INFO  ipc_agent::cli::commands::manager::list_subnets] found child subnets: {"/root/t01002": SubnetInfoWrapper { id: "/root/t01002", stake: 2000000000000000000, circ_supply: 0, status:
+[2023-03-30T17:00:25Z INFO  ipc_agent::cli::commands::manager::list_subnets] /root/t01003 - status: 0, collateral: 2 FIL, circ.supply: 0.0 FIL
 ```
 
 > Note: In the current implementation of IPC the gateway actor is deployed as a system actor on the default addres `t064`, so whenever one of the IPC commands requests the address of the gateway actor you can use that value.
@@ -300,5 +364,3 @@ $ ./bin/ipc-agent daemon
 `make install-infra` may fail and not build the `eudico` image if your system is not configured correctly. If this happens, you can always try to build the image yourself to have a finer-grain report of the issues to help you debug them. For this you can [follow these instructions](https://github.com/consensus-shipyard/lotus/blob/spacenet/scripts/ipc/README.md).
 
 High-level you just need to clone the [eudico repo](https://github.com/consensus-shipyard/lotus), and run `docker build -t eudico .` in the root of the repo.
-
-#### M

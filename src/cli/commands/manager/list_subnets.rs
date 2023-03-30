@@ -51,12 +51,10 @@ impl CommandLineHandler for ListSubnets {
                 "{} - status: {}, collateral: {} FIL, circ.supply: {} FIL",
                 s.id,
                 s.status,
-                stake.div_floor(10u64.pow(18)),
-                supply.div_floor(10u64.pow(18)),
+                stake,
+                supply,
             );
         }
-
-        log::info!("found child subnets: {subnets:?}");
 
         Ok(())
     }
