@@ -115,7 +115,6 @@ The configuration for our rootnet should look therefore like this:
 [subnets."/root"]
 id = "/root"
 jsonrpc_api_http = "http://127.0.0.1:1235/rpc/v1"
-jsonrpc_api_ws = "wss://example.org/rpc/v0"
 auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.j94YYOr8_AWhGGHQd0q8JuQVuNhJA017SK9EUkqDOO0"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
 ```
@@ -143,8 +142,8 @@ To run a subnet the first thing is to configure and create the subnet actor that
 ```
 This command deploys a subnet actor for a new subnet from the `root`, with a human-readable name `test`, that requires at least `1` validator to join the subnet to be able to mine new blocks, and with a checkpointing period to the parent of `10` blocks. We can see that the output of this command is the ID of the new subnet.
 
-#### Exporting wallet keys from subnet
-In order to run a validator in a subnet, we'll need a set of keys to handle that validator. To export the validator key from a wallet that may live in some other subnet into a file (like the wallet address we are using in the rootnet), we can use the following Lotus command:
+#### Exporting wallet keys
+In order to run a validator in a subnet, we'll need a set of keys to handle that validator. To export the validator key from a wallet that may live in another network into a file (like the wallet address we are using in the rootnet), we can use the following Lotus command:
 ```bash
 eudico wallet export --lotus-json <address-to-export> > <output file>
 
@@ -199,7 +198,6 @@ This log provides information about the API and auth tokens for the daemon, defa
 [subnets."/root/t01002"]
 id = "/root/t01002"
 jsonrpc_api_http = "http://127.0.0.1:1239/rpc/v1"
-jsonrpc_api_ws = "wss://example.org/rpc/v0"
 auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
 ```
@@ -245,7 +243,6 @@ $  ./bin/ipc-infra/mine-subnet.sh 84711d67cf162e30747c4525d69728c4dea8c6b4b35cd8
 It may be the case that while joining the subnet, you didn't set the multiaddress for your validator correctly and you need to update it. You'll realize that the network address of your validator is not configured correctly, because your agent throws an error when trying to connect to your subnet node, or starting the validator in your subnet throws a network-related error.
 
 Changing the validator is as simple as running the following command:
-/dns/host.docker.internal/tcp/1349/p2p/12D3KooWDeN3bTvZEH11s9Gq5bDeZZLKgRZiMDcy2KmA6mUaT9KE
 ```bash
 $ ./bin/ipc-agent set-validator-net-addr --subnet=<subnet-id> --validator-net-addr=<new-validator-addr>
 
