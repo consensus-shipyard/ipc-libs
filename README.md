@@ -335,6 +335,16 @@ root/t01002
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 10 - prev_check={"/":"bafy2bzacecsatvda6lodrorh7y7foxjt3a2dexxx5jiyvtl7gimrrvywb7l5m"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 30 - prev_check={"/":"bafy2bzaceauzdx22hna4e4cqf55jqmd64a4fx72sxprzj72qhrwuxhdl7zexu"}, cross_msgs=null, child_checks=null
 ```
+
+#### Exchaing funds in a subnet
+The agent provides a command to conveniently exchange funds between addresses of the same subnet. This can be achieved through the following command:
+```bash
+$ ./bin/ipc-agent send-value --subnet=<subnet-id> --to=<to-addr> <value>
+
+# Sample execution
+$ ./bin/ipc-agent send-value --subnet=/root/t01002 --to=t1xbevqterae2tanmh2kaqksnoacflrv6w2dflq4i 10
+```
+
 #### Leaving a subnet
 To leave a subnet, the following agent command can be used:
 ```bash
