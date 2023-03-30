@@ -50,7 +50,12 @@ impl JsonRPCRequestHandler for PropagateHandler {
         let subnet = SubnetID::from_str(&request.subnet)?;
 
         conn.manager()
-            .propagate(subnet, from, request.postbox_msg_cid)
+            .propagate(
+                subnet,
+                subnet_config.gateway_addr,
+                from,
+                request.postbox_msg_cid,
+            )
             .await
     }
 }

@@ -50,6 +50,8 @@ impl JsonRPCRequestHandler for FundHandler {
         let from = parse_from(subnet_config, request.from)?;
         let amount = TokenAmount::from_whole(request.amount);
 
-        conn.manager().fund(subnet, from, amount).await
+        conn.manager()
+            .fund(subnet, subnet_config.gateway_addr, from, amount)
+            .await
     }
 }

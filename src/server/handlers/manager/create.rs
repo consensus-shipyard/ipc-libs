@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 //! Create subnet handler and parameters
 
-use crate::config::DEFAULT_IPC_GATEWAY_ADDR;
 use crate::manager::SubnetManager;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::handlers::manager::{check_subnet, parse_from};
@@ -57,10 +56,13 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
             Some(conn) => conn,
         };
 
+        let subnet_config = conn.subnet();
+        check_subnet(subnet_config)?;
+
         let constructor_params = ConstructParams {
             parent,
             name: request.name,
-            ipc_gateway_addr: DEFAULT_IPC_GATEWAY_ADDR,
+            ipc_gateway_addr: subnet_config.gateway_addr.id()?,
             consensus: ConsensusType::Mir,
             min_validator_stake: TokenAmount::from_whole(request.min_validator_stake), // In FIL
             min_validators: request.min_validators,
@@ -68,9 +70,6 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
             check_period: request.check_period,
             genesis: vec![],
         };
-
-        let subnet_config = conn.subnet();
-        check_subnet(subnet_config)?;
 
         let from = parse_from(subnet_config, request.from)?;
 
