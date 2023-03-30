@@ -22,11 +22,11 @@ $ make build
 
 This builds the binary of the IPC agent in the `./bin` folder of your repo. If you want to make the command available everywhere, add this folder to the binary `PATH` of your system. To see if the installation was successfully you can run the following command: 
 ``` bash
-$ ./bin/ipc_agent --help
+$ ./bin/ipc-agent --help
 
 The IPC agent command line tool
 
-Usage: ipc_agent [OPTIONS] <COMMAND>
+Usage: ipc-agent [OPTIONS] <COMMAND>
 
 Commands:
   daemon                Launch the ipc agent daemon
@@ -46,7 +46,7 @@ Commands:
   help                  Print this message or the help of the given subcommand(s)
 
 Options:
-  -c, --config-path <CONFIG_PATH>  The toml config file path for IPC Agent, default to ${HOME}/.ipc_agent/config.toml
+  -c, --config-path <CONFIG_PATH>  The toml config file path for IPC Agent, default to ${HOME}/.ipc-agent/config.toml
   -h, --help                       Print help
   -V, --version                    Print version
 ```
@@ -73,18 +73,18 @@ eudico                      latest        8fb6db609712   2 minutes ago   341MB
 
 ## Usage
 ### Configuration
-If you are running the agent for the first time, the first thing you need to do is to create a new config. The default config path for the agent is `~/.ipc_agent/config.toml`. The agent will always try to pick up the config from this path unless told otherwise. To populate a sample config file in the default path, you can run the following command:
+If you are running the agent for the first time, the first thing you need to do is to create a new config. The default config path for the agent is `~/.ipc-agent/config.toml`. The agent will always try to pick up the config from this path unless told otherwise. To populate a sample config file in the default path, you can run the following command:
 ```bash
-$ ./bin/ipc_agent init-config
+$ ./bin/ipc-agent init-config
 ```
-If you `cat ~/.ipc_agent/config.toml` you should see a new config populated with a sample root and subnet configurations.
+If you `cat ~/.ipc-agent/config.toml` you should see a new config populated with a sample root and subnet configurations.
 
 ### Running the daemon
 The IPC agent runs as a foreground daemon process that spawns a new JSON RPC server to interact with it, and all the processes to automatically handle checkpoints and the execution of cross-net messages for the subnets our agent is participating in. The agent determines the list of subnets it should interact with from its config file. 
 
 Alternatively, the agent can also be used as a CLI to interact with IPC. Under the hood, this cli sends new commands to the RPC server of the daemon. To run the IPC agent daemon you can run:
 ```
-$ ./bin/ipc_agent daemon
+$ ./bin/ipc-agent daemon
 ```
 
 Running the agent at this point will throw an error, because we haven´t configured it to interact with any IPC network. In the next few sections we will walk you through different alternatives to spawn and connect your agent to a running IPC instance.
@@ -120,11 +120,11 @@ auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3Jpd
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
 ```
 
-> Beware: If you are already running the daemon, changes in the config file are only picked up after running `./bin/ipc_agent reload-config` so be sure to run it after editing your config.
+> Beware: If you are already running the daemon, changes in the config file are only picked up after running `./bin/ipc-agent reload-config` so be sure to run it after editing your config.
 
 Finally, to test if the connection to the rootnet has been successful, we can for instance try to create a new wallet in the rootnet: 
 ```
-./bin/ipc_agent wallet-new --key-type=bls --subnet=/root
+./bin/ipc-agent wallet-new --key-type=bls --subnet=/root
 ```
 
 ### Running a subnet
@@ -133,10 +133,10 @@ To spawn a new subnet, our IPC agent should be connected to at least the subnet 
 #### Spawn subnet actor
 To run a subnet the first thing is to configure and create the subnet actor that will govern the subnet's operation:
 ```bash
-./bin/ipc_agent create-subnet -p <parent-id> -n <subnet-name> --min-validator-stake 1 --min-validators <num-validators> --finality-threshold <number-epochs> --check-period <epochs-between-checks>
+./bin/ipc-agent create-subnet -p <parent-id> -n <subnet-name> --min-validator-stake 1 --min-validators <num-validators> --finality-threshold <number-epochs> --check-period <epochs-between-checks>
 
 # Sample command execution
-./bin/ipc_agent create-subnet -p /root -n test --min-validator-stake 1 \
+./bin/ipc-agent create-subnet -p /root -n test --min-validator-stake 1 \
 --min-validators 0 --finality-threshold 10 --check-period 10
 
 [2023-03-21T09:32:58Z INFO  ipc_agent::cli::commands::manager::create] created subnet actor with id: /root/t01002
@@ -162,7 +162,7 @@ $ docker exec -it 84711d67cf162e30747c4525d69728c4dea8c6b4b35cd89f6d0947fee14bf9
 Let's illustrate the flow by creating a new wallet in our recently deployed root and exporting the keys.
 ```bash
 # Create the new wallet
-$ ./bin/ipc_agent wallet-new --key-type=secp256k1 --subnet=/root
+$ ./bin/ipc-agent wallet-new --key-type=secp256k1 --subnet=/root
 [2023-03-29T09:32:52Z INFO  ipc_agent::cli::commands::manager::wallet] created new wallet with address WalletNewResponse { address: "t17rnww5qirr2fh5uiqy6fyi6ix7otwjzgu6pgpey" } in subnet "/root"
 
 # Export the created wallet into ipc-agent
@@ -203,15 +203,15 @@ jsonrpc_api_ws = "wss://example.org/rpc/v0"
 auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
 ```
-As always, remember to run `./bin/ipc_agent reload-config` for changes in the config of the agent to be picked up by the daemon.
+As always, remember to run `./bin/ipc-agent reload-config` for changes in the config of the agent to be picked up by the daemon.
 
 #### Joining a subnet
 With the daemon for the subnet deployed, we can join the subnet:
 ```bash
-$ ./bin/ipc_agent join-subnet --subnet=<subnet-id> --collateral=<collateral_amount> --validator-net-addr=<libp2p-add-validator>
+$ ./bin/ipc-agent join-subnet --subnet=<subnet-id> --collateral=<collateral_amount> --validator-net-addr=<libp2p-add-validator>
 
 # Sample execution
-$ ./bin/ipc_agent join-subnet --subnet=/root/t01002 --collateral=2 --validator-net-addr="GET_ADDRESS_FROM_SCRIPT"
+$ ./bin/ipc-agent join-subnet --subnet=/root/t01002 --collateral=2 --validator-net-addr="GET_ADDRESS_FROM_SCRIPT"
 ```
 This command specifies the subnet to join, the amount of collateral to provide and the validator net address used by other validators to dial them. We can pick up this information from the execution of the script above or running `eudico mir validator config validator-addr` from your deployment. Bear in mind that the multiaddress provided for the validator needs to be accessible publicly by other validators. According to the deployment used you may need to tweak the IP addresses of the multiaddresses and the ones provided by these scripts and commands won't be usable out-of-the-box.
 
@@ -220,10 +220,10 @@ For instance, in the example above, we are using the DNS endpoint `/dns/host.doc
 As a sanity-check that we have joined the subnet successfully and that we provided enough collateral to register the subnet to IPC, we can list the child subnets of our parent with the following command:
 ```bash
 
-$ ./bin/ipc_agent list-subnets --gateway-address=<gateway-addr> --subnet=<parent-subnet-id>
+$ ./bin/ipc-agent list-subnets --gateway-address=<gateway-addr> --subnet=<parent-subnet-id>
 
 # Sample execution
-$ ./bin/ipc_agent list-subnets --gateway-address=t064 --subnet=/root
+$ ./bin/ipc-agent list-subnets --gateway-address=t064 --subnet=/root
 
 [2023-03-22T15:42:22Z INFO  ipc_agent::cli::commands::manager::list_subnets] found child subnets: {"/root/t01002": SubnetInfoWrapper { id: "/root/t01002", stake: 2000000000000000000, circ_supply: 0, status:
 ```
@@ -247,10 +247,10 @@ It may be the case that while joining the subnet, you didn't set the multiaddres
 Changing the validator is as simple as running the following command:
 /dns/host.docker.internal/tcp/1349/p2p/12D3KooWDeN3bTvZEH11s9Gq5bDeZZLKgRZiMDcy2KmA6mUaT9KE
 ```bash
-$ ./bin/ipc_agent set-validator-net-addr --subnet=<subnet-id> --validator-net-addr=<new-validator-addr>
+$ ./bin/ipc-agent set-validator-net-addr --subnet=<subnet-id> --validator-net-addr=<new-validator-addr>
 
 # Sample execution
-$ ./bin/ipc_agent set-validator-net-addr --subnet=/root/t01002 --validator-net-addr="/dns/host.docker.internal/tcp/1349/p2p/12D3KooWDeN3bTvZEH11s9Gq5bDeZZLKgRZiMDcy2KmA6mUaT9KE"
+$ ./bin/ipc-agent set-validator-net-addr --subnet=/root/t01002 --validator-net-addr="/dns/host.docker.internal/tcp/1349/p2p/12D3KooWDeN3bTvZEH11s9Gq5bDeZZLKgRZiMDcy2KmA6mUaT9KE"
 ```
 
 #### Committing checkpoints from a subnet
@@ -260,15 +260,15 @@ Subnets are periodically committing checkpoints to their parent every `check-per
 [2023-03-29T09:52:55Z INFO  ipc_agent::manager::checkpoint] successfully published checkpoint submission for epoch 50
 ```
 
-It is common for the checkpointing process to fail if while configuring a child subnet: either because the auth token is not correct, or because no wallet addresses have been configured in the subnet, etc. If this happens, running `./bin/ipc_agent reload-config` will restart the checkpoint manager and pick up the latest config values. Whenever you see an error in the checkpointing process, check that your subnet's configuration is correct and `reload-config` to restart the process.
+It is common for the checkpointing process to fail if while configuring a child subnet: either because the auth token is not correct, or because no wallet addresses have been configured in the subnet, etc. If this happens, running `./bin/ipc-agent reload-config` will restart the checkpoint manager and pick up the latest config values. Whenever you see an error in the checkpointing process, check that your subnet's configuration is correct and `reload-config` to restart the process.
 
 Finally, if you want to inspect the information of a range of checkpoints committed in the parent for a subnet, you can use the `list-checkpoints` command provided by the agent as follows: 
 ```bash
 # List checkpoints between two epochs for a subnet
-$ ./bin/ipc_agent list-checkpoints --from-epoch=<range-start> --to-epoch=<range-end> --subnet=<subnet-id>
+$ ./bin/ipc-agent list-checkpoints --from-epoch=<range-start> --to-epoch=<range-end> --subnet=<subnet-id>
 
 # Sample execution
-$ ./bin/ipc_agent list-checkpoints --from-epoch=0 --to-epoch=100 --subnet=/
+$ ./bin/ipc-agent list-checkpoints --from-epoch=0 --to-epoch=100 --subnet=/
 root/t01002
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 0 - prev_check={"/":"bafy2bzacedkoa623kvi5gfis2yks7xxjl73vg7xwbojz4tpq63dd5jpfz757i"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 10 - prev_check={"/":"bafy2bzacecsatvda6lodrorh7y7foxjt3a2dexxx5jiyvtl7gimrrvywb7l5m"}, cross_msgs=null, child_checks=null
@@ -277,10 +277,10 @@ root/t01002
 #### Leaving a subnet
 To leave a subnet, the following agent command can be used:
 ```bash
-$ ./bin/ipc_agent leave-subnet --subnet=<subnet-id>
+$ ./bin/ipc-agent leave-subnet --subnet=<subnet-id>
 
 # Sample execution
-$ ./bin/ipc_agent leave-subnet --subnet=/root/t01002
+$ ./bin/ipc-agent leave-subnet --subnet=/root/t01002
 ```
 
 Leaving a subnet will release the collateral for the validator and remove all the validation rights from its account. This means that if you have a validator running in that subnet, its validation process will immediately terminate.
@@ -296,7 +296,7 @@ $ git pull
 # Build the agent
 $ make build
 # Restart the daemon
-$ ./bin/ipc_agent daemon
+$ ./bin/ipc-agent daemon
 ```
 
 #### `make install-infra` is not building the `eudico` image

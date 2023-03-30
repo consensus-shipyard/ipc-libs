@@ -78,7 +78,7 @@ const STATE_WAIT_ALLOW_REPLACE: bool = true;
 ///     let n = LotusJsonRPCClient::new(h);
 ///     println!(
 ///         "wallets: {:?}",
-///         n.wallet_new(ipc_agent::lotus::message::wallet::WalletKeyType::Secp256k1).await
+///         n.wallet_new(ipc-agent::lotus::message::wallet::WalletKeyType::Secp256k1).await
 ///     );
 /// }
 /// ```
