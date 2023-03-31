@@ -164,10 +164,6 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
         // we are checking often enough. We do two checks per period.
         let chain_head_req_period: Duration = Duration::from_secs(period.try_into().unwrap() / 2);
 
-        // We should have a way of knowing whether the validator has voted in the current open
-        // checkpoint epoch.
-        // TODO: Hook this up to the new IPC methods.
-
         // We can now start looping. In each loop we read the child subnet's chain head and check if
         // it's a checkpoint epoch. If it is, we construct and submit a checkpoint.
         loop {
