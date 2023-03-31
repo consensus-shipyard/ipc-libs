@@ -4,6 +4,7 @@
 
 use crate::lotus::message::ipc::SubnetInfo;
 use crate::manager::SubnetManager;
+use crate::server::handlers::manager::check_subnet;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
@@ -35,15 +36,23 @@ impl ListSubnetsHandler {
 #[async_trait]
 impl JsonRPCRequestHandler for ListSubnetsHandler {
     type Request = ListSubnetsParams;
-    type Response = HashMap<SubnetID, SubnetInfo>;
+    type Response = HashMap<String, SubnetInfo>;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let conn = match self.pool.get(&request.subnet_id) {
+        let subnet = SubnetID::from_str(&request.subnet_id)?;
+        let conn = match self.pool.get(&subnet) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
 
+        let subnet_config = conn.subnet();
+        check_subnet(subnet_config)?;
+
         let gateway_addr = Address::from_str(&request.gateway_address)?;
-        conn.manager().list_child_subnets(gateway_addr).await
+        let subnet_map = conn.manager().list_child_subnets(gateway_addr).await?;
+        Ok(subnet_map
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect())
     }
 }

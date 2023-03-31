@@ -11,7 +11,7 @@ use crate::cli::commands::get_ipc_agent_url;
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::server::{CreateSubnetParams, CreateSubnetResponse};
+use crate::server::create::{CreateSubnetParams, CreateSubnetResponse};
 
 /// The command to create a new subnet actor.
 pub(crate) struct CreateSubnet;
@@ -27,6 +27,7 @@ impl CommandLineHandler for CreateSubnet {
         let json_rpc_client = JsonRpcClientImpl::new(url, None);
 
         let params = CreateSubnetParams {
+            from: arguments.from.clone(),
             parent: arguments.parent.clone(),
             name: arguments.name.clone(),
             min_validator_stake: arguments.min_validator_stake,
@@ -43,7 +44,11 @@ impl CommandLineHandler for CreateSubnet {
             .await?
             .address;
 
-        log::info!("created subent actor with address: {address:}");
+        log::info!(
+            "created subnet actor with id: {}/{}",
+            arguments.parent,
+            address
+        );
 
         Ok(())
     }
@@ -52,18 +57,20 @@ impl CommandLineHandler for CreateSubnet {
 #[derive(Debug, Args)]
 #[command(about = "Create a new subnet actor")]
 pub(crate) struct CreateSubnetArgs {
-    #[arg(help = "The JSON RPC server url for ipc agent")]
+    #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
-    #[arg(help = "The parent subnet to create the new actor in")]
+    #[arg(long, short, help = "The address that creates the subnet")]
+    pub from: Option<String>,
+    #[arg(long, short, help = "The parent subnet to create the new actor in")]
     pub parent: String,
-    #[arg(help = "The name of the subnet")]
+    #[arg(long, short, help = "The name of the subnet")]
     pub name: String,
-    #[arg(help = "The minimal validator stake amount")]
+    #[arg(long, help = "The minimal validator stake amount (in whole FIL units)")]
     pub min_validator_stake: u64,
-    #[arg(help = "The minimal number of validators")]
+    #[arg(long, help = "The minimal number of validators")]
     pub min_validators: u64,
-    #[arg(help = "The finality threshold for MIR")]
+    #[arg(long, help = "The finality threshold for MIR")]
     pub finality_threshold: ChainEpoch,
-    #[arg(help = "The checkpoint period")]
+    #[arg(long, help = "The checkpoint period")]
     pub check_period: ChainEpoch,
 }

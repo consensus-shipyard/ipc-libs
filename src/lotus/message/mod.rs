@@ -8,14 +8,19 @@ use anyhow::anyhow;
 use cid::Cid;
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+mod tests;
+
 pub mod chain;
+pub mod deserialize;
 pub mod ipc;
 pub mod mpool;
+pub mod serialize;
 pub mod state;
 pub mod wallet;
 
 /// Helper struct to interact with lotus node
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct CIDMap {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "/")]

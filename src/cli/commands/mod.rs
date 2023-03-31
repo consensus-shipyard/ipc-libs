@@ -3,19 +3,30 @@
 //! This mod contains the different command line implementations.
 
 mod config;
-mod create;
 mod daemon;
-mod list_subnets;
+mod manager;
 
-use crate::cli::commands::config::{ReloadConfig, ReloadConfigArgs};
-use crate::cli::commands::create::{CreateSubnet, CreateSubnetArgs};
+use crate::cli::commands::config::{InitConfig, InitConfigArgs, ReloadConfig, ReloadConfigArgs};
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
-use crate::cli::commands::list_subnets::{ListSubnets, ListSubnetsArgs};
+use crate::cli::commands::manager::create::{CreateSubnet, CreateSubnetArgs};
+use crate::cli::commands::manager::fund::{Fund, FundArgs};
+use crate::cli::commands::manager::join::{JoinSubnet, JoinSubnetArgs};
+use crate::cli::commands::manager::kill::{KillSubnet, KillSubnetArgs};
+use crate::cli::commands::manager::leave::{LeaveSubnet, LeaveSubnetArgs};
+use crate::cli::commands::manager::list_checkpoints::{ListCheckpoints, ListCheckpointsArgs};
+use crate::cli::commands::manager::list_subnets::{ListSubnets, ListSubnetsArgs};
+use crate::cli::commands::manager::net_addr::{SetValidatorNetAddr, SetValidatorNetAddrArgs};
+use crate::cli::commands::manager::propagate::{Propagate, PropagateArgs};
+use crate::cli::commands::manager::release::{Release, ReleaseArgs};
+use crate::cli::commands::manager::whitelist::{WhitelistPropagator, WhitelistPropagatorArgs};
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::fmt::Debug;
 use url::Url;
+
+use self::manager::send_value::{SendValue, SendValueArgs};
+use self::manager::wallet::{WalletNew, WalletNewArgs};
 
 /// The collection of all subcommands to be called, see clap's documentation for usage. Internal
 /// to the current mode. Register a new command accordingly.
@@ -27,12 +38,26 @@ enum Commands {
     /// and not in the background as what daemon processes are. Still, this struct contains `Daemon`
     /// due to the convention from `lotus` and the expected behavior from the filecoin user group.
     Daemon(LaunchDaemonArgs),
-    CreateSubnet(CreateSubnetArgs),
-    ReloadConfig(ReloadConfigArgs),
-    ListSubnets(ListSubnetsArgs),
-}
 
-/// The overall command line struct to be used by `clap`.
+    /// Config commands
+    ReloadConfig(ReloadConfigArgs),
+    InitConfig(InitConfigArgs),
+
+    /// Subnet manager commands
+    CreateSubnet(CreateSubnetArgs),
+    ListSubnets(ListSubnetsArgs),
+    JoinSubnet(JoinSubnetArgs),
+    LeaveSubnet(LeaveSubnetArgs),
+    KillSubnet(KillSubnetArgs),
+    Fund(FundArgs),
+    Release(ReleaseArgs),
+    Propagate(PropagateArgs),
+    WhitelistPropagator(WhitelistPropagatorArgs),
+    SendValue(SendValueArgs),
+    WalletNew(WalletNewArgs),
+    SetValidatorNetAddr(SetValidatorNetAddrArgs),
+    ListCheckpoints(ListCheckpointsArgs),
+}
 #[derive(Debug, Parser)]
 #[command(
     name = "ipc",
@@ -82,9 +107,23 @@ pub async fn cli() {
     let global = &args.global_params;
     let r = match &args.command {
         Commands::Daemon(args) => LaunchDaemon::handle(global, args).await,
-        Commands::CreateSubnet(args) => CreateSubnet::handle(global, args).await,
+        // Config commands
         Commands::ReloadConfig(args) => ReloadConfig::handle(global, args).await,
+        Commands::InitConfig(args) => InitConfig::handle(global, args).await,
+        // Subnet manager commands
+        Commands::CreateSubnet(args) => CreateSubnet::handle(global, args).await,
         Commands::ListSubnets(args) => ListSubnets::handle(global, args).await,
+        Commands::JoinSubnet(args) => JoinSubnet::handle(global, args).await,
+        Commands::LeaveSubnet(args) => LeaveSubnet::handle(global, args).await,
+        Commands::KillSubnet(args) => KillSubnet::handle(global, args).await,
+        Commands::Fund(args) => Fund::handle(global, args).await,
+        Commands::Release(args) => Release::handle(global, args).await,
+        Commands::Propagate(args) => Propagate::handle(global, args).await,
+        Commands::WhitelistPropagator(args) => WhitelistPropagator::handle(global, args).await,
+        Commands::SendValue(args) => SendValue::handle(global, args).await,
+        Commands::WalletNew(args) => WalletNew::handle(global, args).await,
+        Commands::SetValidatorNetAddr(args) => SetValidatorNetAddr::handle(global, args).await,
+        Commands::ListCheckpoints(args) => ListCheckpoints::handle(global, args).await,
     };
 
     if let Err(e) = r {

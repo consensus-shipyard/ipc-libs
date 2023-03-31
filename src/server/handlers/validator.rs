@@ -18,13 +18,14 @@ use std::sync::Arc;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryValidatorSetParams {
     pub subnet: String,
-    pub tip_set: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryValidatorSetResponse {
-    /// The address of the created subnet
+    /// The validator set for the subnet fetched from the parent.
     pub validator_set: ValidatorSet,
+    /// Minimum number of validators required by the subnet
+    pub min_validators: u64,
 }
 
 /// The create subnet json rpc method handler.
@@ -44,27 +45,33 @@ impl JsonRPCRequestHandler for QueryValidatorSetHandler {
     type Response = QueryValidatorSetResponse;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
-        let tip_set = Cid::from_str(&request.tip_set)?;
         let subnet_id = SubnetID::from_str(&request.subnet)?;
         let parent = subnet_id
             .parent()
-            .ok_or_else(|| anyhow!("cannot get for root"))?
-            .to_string();
+            .ok_or_else(|| anyhow!("cannot get for root"))?;
 
         let config = self.config.get_config();
-        // TODO: once get_by_subnet_id is merged, will use parent subnet id directly.
         let subnet = match config.subnets.get(&parent) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(s) => s,
         };
 
         let lotus = LotusJsonRPCClient::from_subnet(subnet);
+
+        // Read the parent's chain head and obtain the tip set CID.
+        // FIXME: This is used all over the place, make it a more
+        // compact function
+        let parent_head = lotus.chain_head().await?;
+        let cid_map = parent_head.cids.first().unwrap().clone();
+        let tip_set = Cid::try_from(cid_map)?;
+
         let response = lotus
             .ipc_read_subnet_actor_state(&subnet_id, tip_set)
             .await?;
 
         Ok(QueryValidatorSetResponse {
             validator_set: response.validator_set,
+            min_validators: response.min_validators,
         })
     }
 }

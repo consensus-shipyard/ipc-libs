@@ -19,12 +19,14 @@ use message::state::{ReadStateResponse, StateWaitMsgResponse};
 use message::wallet::{WalletKeyType, WalletListResponse};
 
 use crate::lotus::message::ipc::{
-    IPCGetPrevCheckpointForChildResponse, IPCReadGatewayStateResponse,
-    IPCReadSubnetActorStateResponse,
+    CheckpointResponse, IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse, Votes,
 };
 use crate::manager::SubnetInfo;
 
+use self::message::CIDMap;
+
 pub mod client;
+mod json;
 pub mod message;
 #[cfg(test)]
 mod tests;
@@ -80,10 +82,17 @@ pub trait LotusClient {
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
         child_subnet_id: SubnetID,
-    ) -> Result<IPCGetPrevCheckpointForChildResponse>;
+    ) -> Result<Option<CIDMap>>;
 
     /// Returns the checkpoint template at `epoch`.
     async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint>;
+
+    /// Returns the checkpoint committed for an epoch in a child subnet.
+    async fn ipc_get_checkpoint(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<Checkpoint>;
 
     /// Returns the state of the gateway actor at `tip_set`.
     async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse>;
@@ -97,4 +106,19 @@ pub trait LotusClient {
 
     /// Returns the list of subnets in a gateway.
     async fn ipc_list_child_subnets(&self, gateway_addr: Address) -> Result<Vec<SubnetInfo>>;
+
+    // Returns the votes for a checkpoint with a specific cid.
+    async fn ipc_get_votes_for_checkpoint(
+        &self,
+        subnet: SubnetID,
+        checkpoint_cid: Cid,
+    ) -> Result<Votes>;
+
+    /// Returns the list of checkpoints from a subnet actor for the given epoch range.
+    async fn ipc_list_checkpoints(
+        &self,
+        subnet_id: SubnetID,
+        from_epoch: ChainEpoch,
+        to_epoch: ChainEpoch,
+    ) -> Result<Vec<CheckpointResponse>>;
 }

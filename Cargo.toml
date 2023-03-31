@@ -7,7 +7,7 @@ edition = "2021"
 license-file = "LICENSE"
 
 [package]
-name = "ipc_agent"
+name = "ipc-agent"
 version = "0.1.0"
 edition.workspace = true
 license-file.workspace = true
@@ -23,9 +23,10 @@ indoc = "2.0.0"
 log = { workspace = true }
 reqwest = { version = "0.11.13", features = ["json"] }
 serde = { workspace = true }
-serde_json = "1.0.91"
+serde_json = { version = "1.0.91", features = ["raw_value"] }
 cid = { version = "0.8.3", default-features = false, features = ["serde-codec"] }
 tokio = { workspace = true }
+tokio-graceful-shutdown = "0.12.1"
 tokio-tungstenite = { version = "0.18.0", features = ["native-tls"] }
 derive_builder = "0.12.0"
 num-traits = "0.2.15"
@@ -37,6 +38,7 @@ toml = "0.7.2"
 url = { version = "2.3.1", features = ["serde"] }
 warp = "0.3.3"
 bytes = "1.4.0"
+serde_bytes = "0.11.9"
 clap = { version = "4.1.4", features = ["env", "derive"] }
 thiserror = "1.0.38"
 serde_tuple = "0.5.0"
@@ -47,6 +49,7 @@ ipc-sdk = { workspace = true }
 ipc-subnet-actor = { workspace = true }
 ipc-gateway = { workspace = true }
 fvm_ipld_encoding = { workspace = true }
+primitives = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3.4.0"
@@ -69,7 +72,8 @@ fvm_ipld_blockstore = "0.1"
 fvm_ipld_encoding = "0.3"
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false }
 fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }
-ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git" }
-ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
-ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
+ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git"}
+ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = []}
+ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = []}
 libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
+primitives = { git = "https://github.com/consensus-shipyard/fvm-utils"}

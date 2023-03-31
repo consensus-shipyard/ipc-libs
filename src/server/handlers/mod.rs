@@ -2,29 +2,40 @@
 // SPDX-License-Identifier: MIT
 //! The module contains the handlers implementation for the json rpc server.
 
-mod config;
-mod manager;
-mod validator;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use anyhow::{anyhow, Result};
+use async_trait::async_trait;
+use serde_json::Value;
+
+pub use config::ReloadConfigParams;
+use manager::create::CreateSubnetHandler;
+use manager::join::JoinSubnetHandler;
+use manager::kill::KillSubnetHandler;
+use manager::leave::LeaveSubnetHandler;
+use manager::subnet::SubnetManagerPool;
+pub use manager::*;
 
 use crate::config::json_rpc_methods;
 use crate::config::ReloadableConfig;
 use crate::server::handlers::config::ReloadConfigHandler;
+use crate::server::handlers::manager::fund::FundHandler;
 use crate::server::handlers::manager::list_subnets::ListSubnetsHandler;
+use crate::server::handlers::manager::propagate::PropagateHandler;
+use crate::server::handlers::manager::release::ReleaseHandler;
+use crate::server::handlers::manager::whitelist::WhitelistPropagatorHandler;
+use crate::server::handlers::send_value::SendValueHandler;
 use crate::server::handlers::validator::QueryValidatorSetHandler;
+use crate::server::list_checkpoints::ListCheckpointsHandler;
+use crate::server::net_addr::SetValidatorNetAddrHandler;
 use crate::server::JsonRPCRequestHandler;
-use anyhow::{anyhow, Result};
-use async_trait::async_trait;
-pub use config::ReloadConfigParams;
-use manager::create::CreateSubnetHandler;
-pub use manager::create::{CreateSubnetParams, CreateSubnetResponse};
-use manager::join::JoinSubnetHandler;
-use manager::kill::KillSubnetHandler;
-use manager::leave::LeaveSubnetHandler;
-pub use manager::list_subnets::ListSubnetsParams;
-use manager::subnet::SubnetManagerPool;
-use serde_json::Value;
-use std::collections::HashMap;
-use std::sync::Arc;
+
+use self::wallet::WalletNewHandler;
+
+mod config;
+mod manager;
+mod validator;
 
 pub type Method = String;
 
@@ -58,12 +69,10 @@ impl Handlers {
         }
     }
 
-    pub fn new(config_path_string: String) -> Result<Self> {
+    pub fn new(config: Arc<ReloadableConfig>) -> Result<Self> {
         let mut handlers = HashMap::new();
 
-        let config = Arc::new(ReloadableConfig::new(config_path_string.clone())?);
-        let h: Box<dyn HandlerWrapper> =
-            Box::new(ReloadConfigHandler::new(config.clone(), config_path_string));
+        let h: Box<dyn HandlerWrapper> = Box::new(ReloadConfigHandler::new(config.clone()));
         handlers.insert(String::from(json_rpc_methods::RELOAD_CONFIG), h);
 
         // subnet manager methods
@@ -80,8 +89,32 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(JoinSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::JOIN_SUBNET), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(ListSubnetsHandler::new(pool));
+        let h: Box<dyn HandlerWrapper> = Box::new(FundHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::FUND), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(ReleaseHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::RELEASE), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(PropagateHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::PROPAGATE), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(WhitelistPropagatorHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::WHITELIST_PROPAGATOR), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(SendValueHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::SEND_VALUE), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::WALLET_NEW), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(SetValidatorNetAddrHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::SET_VALIDATOR_NET_ADDR), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(ListSubnetsHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::LIST_CHILD_SUBNETS), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(ListCheckpointsHandler::new(pool));
+        handlers.insert(String::from(json_rpc_methods::LIST_CHECKPOINTS), h);
 
         // query validator
         let h: Box<dyn HandlerWrapper> = Box::new(QueryValidatorSetHandler::new(config));
