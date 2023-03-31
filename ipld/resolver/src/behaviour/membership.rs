@@ -243,34 +243,6 @@ impl Behaviour {
         Ok(())
     }
 
-    /// Construct the topic used to gossip about votes.
-    ///
-    /// Replaces "/" with "_" to avoid clashes from prefix/suffix overlap.
-    fn voting_topic(&self, subnet_id: &SubnetID) -> Sha256Topic {
-        Topic::new(format!(
-            "{}/{}/{}",
-            PUBSUB_VOTES,
-            self.network_name.replace('/', "_"),
-            subnet_id.to_string().replace('/', "_")
-        ))
-    }
-
-    /// Subscribe to a voting topic.
-    fn voting_subscribe(&mut self, subnet_id: &SubnetID) -> anyhow::Result<()> {
-        let topic = self.voting_topic(subnet_id);
-        self.voting_topics.insert(topic.hash());
-        self.inner.subscribe(&topic)?;
-        Ok(())
-    }
-
-    /// Unsubscribe from a voting topic.
-    fn voting_unsubscribe(&mut self, subnet_id: &SubnetID) -> anyhow::Result<()> {
-        let topic = self.voting_topic(subnet_id);
-        self.voting_topics.remove(&topic.hash());
-        self.inner.unsubscribe(&topic)?;
-        Ok(())
-    }
-
     /// Set all the currently supported subnet IDs, then publish the updated list.
     pub fn set_provided_subnets(&mut self, subnet_ids: Vec<SubnetID>) -> anyhow::Result<()> {
         let old_subnet_ids = std::mem::take(&mut self.subnet_ids);
