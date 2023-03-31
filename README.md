@@ -292,7 +292,7 @@ $ ./bin/ipc-agent list-subnets --gateway-address=t064 --subnet=/root
 
 > Note: In the current implementation of IPC the gateway actor is deployed as a system actor on the default addres `t064`, so whenever one of the IPC commands requests the address of the gateway actor you can use that value.
 
-#### Mining in a subnet.
+#### Mining in a subnet
 With our subnet daemon deployed, and having joined the network, as the minimum number of validators we set for our subnet is 0, we can start mining and creating new blocks in the subnet. Doing so is a simple as running the following script using as an argument the container of our subnet node: 
 ```bash
 $  ./bin/ipc-infra/mine-subnet.sh <node-container-id>
