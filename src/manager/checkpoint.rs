@@ -31,9 +31,6 @@ use crate::lotus::client::LotusJsonRPCClient;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
 
-/// The frequency at which to check a new chain head.
-const CHAIN_HEAD_REQUEST_PERIOD: Duration = Duration::from_secs(10);
-
 /// The `CheckpointSubsystem`. When run, it actively monitors subnets and submits checkpoints.
 pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
@@ -162,6 +159,10 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                 e
             })?;
         let period = state.check_period;
+        // The frequency at which to check a new chain head. We make this
+        // dependent of the checkpoint period of the subnet to ensure that
+        // we are checking often enough.
+        let chain_head_req_period: Duration = Duration::from_secs(period.try_into().unwrap());
 
         // We should have a way of knowing whether the validator has voted in the current open
         // checkpoint epoch.
@@ -185,7 +186,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                     );
                     // Sleep for an appropriate amount of time before checking the chain head again or return
                     // if a stop notification is received.
-                    if !wait_next_iteration(&stop_notify).await? {
+                    if !wait_next_iteration(&stop_notify, chain_head_req_period).await? {
                         return Ok(());
                     }
                     continue;
@@ -254,7 +255,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
             // Sleep for an appropriate amount of time before checking the chain head again or return
             // if a stop notification is received.
-            if !wait_next_iteration(&stop_notify).await? {
+            if !wait_next_iteration(&stop_notify, chain_head_req_period).await? {
                 return Ok(());
             }
         }
@@ -267,9 +268,9 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
 /// Sleeps for some time if stop_notify is not fired. It returns true to flag that we should move to the
 /// next iteration of the loop, while false informs that the loop should return.
-async fn wait_next_iteration(stop_notify: &Arc<Notify>) -> Result<bool> {
+async fn wait_next_iteration(stop_notify: &Arc<Notify>, timeout: Duration) -> Result<bool> {
     select! {
-        _ = sleep(CHAIN_HEAD_REQUEST_PERIOD) => {Ok(true)}
+        _ = sleep(timeout) => {Ok(true)}
         _ = stop_notify.notified() => {Ok(false)}
     }
 }
@@ -372,9 +373,14 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     // wait for the checkpoint to be committed before moving on.
     let message_cid = mem_push_response.cid()?;
     log::debug!("checkpoint message published with cid: {message_cid:?}");
-    log::info!("waiting for checkpoint for epoch {epoch:} to be committed");
-    parent_client.state_wait_msg(message_cid).await?;
-    log::info!("successfully published checkpoint submission for epoch {epoch:}");
+
+    // TODO: Waiting for checkpoints to be committed may take too long for slow parent,
+    // making the checkpoint manager to fall behind. For now we are not going to
+    // wait for commitment. We can check with list-checkpoints the commitment state.
+    // This may be refactored in the future.
+    // log::info!("waiting for checkpoint for epoch {epoch:} to be committed");
+    // parent_client.state_wait_msg(message_cid).await?;
+    // log::info!("successfully published checkpoint submission for epoch {epoch:}");
 
     Ok(())
 }
