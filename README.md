@@ -98,9 +98,10 @@ The RPC server of the daemon will be listening to the endpoint determined in the
 #### Spacenet
 For more information about the Spacenet testnet have a look at the [Spacenet repo](https://github.com/consensus-shipyard/spacenet). In this section we will guide you through how to connect your IPC agent to a running instance of Spacenet. Spacenet hosts all the IPC actors and can be used as a rootnet to deploy new subnets from. 
 
-In order to use the IPC agent with Spacenet we need to have access to a full-node syncing with the network. The easiest way to achieve this is to run your own Spacenet node. Running you own Spacenet node is as simple as cloning Eudico repo,compiling and running it:
+In order to use the IPC agent with Spacenet we need to have access to a full-node syncing with the network. The easiest way to achieve this is to run your own Spacenet node. Running you own Spacenet node is as simple as [installing the dependencies](https://github.com/consensus-shipyard/lotus#basic-build-instructions), cloning the Eudico repo, and compiling and running it:
 ```bash
 $ git clone https://github.com/consensus-shipyard/lotus
+$ cd lotus
 
 # `spacenet` is the master branch of the repo. To find the latest
 # release deployed over spacenet, you can check the last release 
@@ -138,8 +139,7 @@ id = "/root"
 gateway_addr = "t064"
 network_name = "root"
 jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
-auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8vIV7pCrWx-
-nxOBAAw_IayDzrGf22kMjagRYmj_8Qqw"
+auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8vIV7pCrWx-nxOBAAw_IayDzrGf22kMjagRYmj_8Qqw"
 accounts = ["t1xbevqterae2tanmh2kaqksnoacflrv6w2dflq4i"]
 ```
 
