@@ -162,7 +162,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
         // The frequency at which to check a new chain head. We make this
         // dependent of the checkpoint period of the subnet to ensure that
         // we are checking often enough. We do two checks per period.
-        let chain_head_req_period: Duration = Duration::from_secs(period.try_into().unwrap() / 2);
+        let chain_head_req_period: Duration = Duration::from_secs(period as u64 / 2);
 
         // We can now start looping. In each loop we read the child subnet's chain head and check if
         // it's a checkpoint epoch. If it is, we construct and submit a checkpoint.
