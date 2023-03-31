@@ -161,8 +161,8 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
         let period = state.check_period;
         // The frequency at which to check a new chain head. We make this
         // dependent of the checkpoint period of the subnet to ensure that
-        // we are checking often enough.
-        let chain_head_req_period: Duration = Duration::from_secs(period.try_into().unwrap());
+        // we are checking often enough. We do two checks per period.
+        let chain_head_req_period: Duration = Duration::from_secs(period.try_into().unwrap() / 2);
 
         // We should have a way of knowing whether the validator has voted in the current open
         // checkpoint epoch.
