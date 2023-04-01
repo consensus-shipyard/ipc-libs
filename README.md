@@ -194,6 +194,8 @@ Finally, to test if the connection to the rootnet has been successful, we can fo
 ### Running a subnet
 To spawn a new subnet, our IPC agent should be connected to at least the subnet of the parent we want to spawn the subnet from. You can refer to the previous section for information on how to run or connect to a rootnet. This instructions will assume the deployment of a subnet from `/root`, but the steps are equivalent for any other parent subnet. 
 
+This section provides instructions for spawning a simple subnet with a single validator. If you'd like to spawn a subnet with multiple validators in a Docker setup, be sure to also read on till the [corresponding section](#running-a-subnet-with-several-validators). 
+
 #### Spawn subnet actor
 To run a subnet the first thing is to configure and create the subnet actor that will govern the subnet's operation:
 ```bash
