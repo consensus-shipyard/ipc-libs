@@ -95,7 +95,10 @@ The RPC server of the daemon will be listening to the endpoint determined in the
 
 
 ### Interacting with a rootnet
-#### Spacenet
+
+You can deploy an IPC hierarchy from any compatible rootnet. At this time, your options are to use the public Spacenet testnet or to deploy or your own rootnet. Instructions are provided for both below, but we recommend using Spacenet if possible.
+
+#### Option 1: Spacenet
 For more information about the Spacenet testnet have a look at the [Spacenet repo](https://github.com/consensus-shipyard/spacenet). In this section we will guide you through how to connect your IPC agent to a running instance of Spacenet. Spacenet hosts all the IPC actors and can be used as a rootnet to deploy new subnets from. 
 
 In order to use the IPC agent with Spacenet we need to have access to a full-node syncing with the network. The easiest way to achieve this is to run your own Spacenet node. Running you own Spacenet node is as simple as [installing the dependencies](https://github.com/consensus-shipyard/lotus#basic-build-instructions), cloning the Eudico repo, and compiling and running it:
@@ -156,7 +159,7 @@ To check if the agent has been connected to Spacenet successfully you can try cr
 
 Finally, to be able to interact with Spacenet and run new subnets, some FIL should be provided to, at least, the wallet that will be used by the agent to interact with IPC. You can request some Spacenet FIL for your address through the [Spacenet Faucet](https://spacenet.consensus.ninja/).
 
-#### Local deployment
+#### Option 2: Local deployment
 To deploy sample rootnet locally for testing you can use the IPC scripts installed in `./bin/ipc-infra` (refer to the [installation of infrastructure](#Installation-infrastructure-scripts)) by running:
 ```bash
 $ ./bin/ipc-infra/run-root-docker-1val.sh <lotus-api-port> <validator-libp2p-port>
@@ -321,7 +324,7 @@ Subnets are periodically committing checkpoints to their parent every `check-per
 [2023-03-29T09:52:55Z INFO  ipc_agent::manager::checkpoint] successfully published checkpoint submission for epoch 50
 ```
 
-It is common for the checkpointing process to fail if while configuring a child subnet: either because the auth token is not correct, or because no wallet addresses have been configured in the subnet, etc. If this happens, running `./bin/ipc-agent reload-config` will restart the checkpoint manager and pick up the latest config values. Whenever you see an error in the checkpointing process, check that your subnet's configuration is correct and `reload-config` to restart the process.
+It is common for the checkpointing process to fail while configuring a child subnet: either because the auth token is not correct, or because no wallet addresses have been configured in the subnet, etc. If this happens, running `./bin/ipc-agent reload-config` will restart the checkpoint manager and pick up the latest config values. Whenever you see an error in the checkpointing process, check that your subnet's configuration is correct and `reload-config` to restart the process.
 
 Finally, if you want to inspect the information of a range of checkpoints committed in the parent for a subnet, you can use the `list-checkpoints` command provided by the agent as follows: 
 ```bash
@@ -374,7 +377,7 @@ $ docker exec -it 91d2af805346 sh -c "eudico wallet import --format=json-lotus i
 ### Running a subnet with several validators
 In this section, we will deploy a subnet where the IPC agent is responsible for handling more than one validator in the subnet. Throughout this guide, we use the `ipc-infra` scripts to deploy the nodes in Docker containers, but a similar steps could be used to deploy the nodes on bare-metal or any other runtime.
 
-For the rest of this tutorial, we'll assume that you have your agent already configured and interacting with a rootnet. For more information on how to connect to a rootnet check [revisit this section](#Interacting-with-a-rootnet). We are going to deploy a subnet with 5 validators. The first thing we'll need to do is creating a new wallet for every validator we want to run. We can do this directly through the agent with the following command:
+For the rest of this tutorial, we'll assume that you have your agent already configured and interacting with a rootnet. For more information on how to connect to a rootnet [revisit this section](#Interacting-with-a-rootnet). We are going to deploy a subnet with 5 validators. The first thing we'll need to do is creating a new wallet for every validator we want to run. We can do this directly through the agent with the following command:
 ```bash
 $ ./bin/ipc-agent wallet-new --key-type=secp256k1 --subnet=/root
 ```
