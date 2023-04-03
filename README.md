@@ -146,7 +146,7 @@ auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3Jpd
 accounts = ["t1xbevqterae2tanmh2kaqksnoacflrv6w2dflq4i"]
 ```
 
-You can now start your IPC agent daemon with `./bin/ipc-agent daemon`.
+You can now start your IPC agent daemon with `./bin/ipc-agent daemon` .If you are already running the daemon, changes in the config file are only picked up after running `./bin/ipc-agent reload-config` so be sure to run it after editing your config.
 
 > In the current implementation of Spacenet, the gateway is always deployed in the `t064` address. This should be the address always reflected on your config for the gateway. In the future, this will change, and the gateway may be deployed in different addresses.
 
