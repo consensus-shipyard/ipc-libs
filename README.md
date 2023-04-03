@@ -294,6 +294,7 @@ $ ./bin/ipc-agent list-subnets --gateway-address=t064 --subnet=/root
 
 [2023-03-30T17:00:25Z INFO  ipc_agent::cli::commands::manager::list_subnets] /root/t01003 - status: 0, collateral: 2 FIL, circ.supply: 0.0 FIL
 ```
+This command only shows subnets that have been registered to the gateway, i.e. that have provided enough collateral to participate in the IPC protocol and haven't been killed. It is not an exhaustive list of all of the subnet actors deployed over the network.
 
 > Note: In the current implementation of IPC the gateway actor is deployed as a system actor on the default addres `t064`, so whenever one of the IPC commands requests the address of the gateway actor you can use that value.
 
