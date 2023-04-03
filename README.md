@@ -363,7 +363,7 @@ $ ./bin/ipc-agent leave-subnet --subnet=/root/t01002
 Leaving a subnet will release the collateral for the validator and remove all the validation rights from its account. This means that if you have a validator running in that subnet, its validation process will immediately terminate.
 
 #### Importing a wallet to a subnet node
-Depending on if the subnet is running inside a docker container or not, we can use the following commands to import a wallet to a subnet node: 
+Depending on whether the subnet is running inside a docker container or not, we can use the following commands to import a wallet to a subnet node: 
 ```bash
 # Importing directly into the node
 $ eudico wallet import --lotus-json <wallet-key-file-path>
