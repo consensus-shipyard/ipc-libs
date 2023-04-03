@@ -360,6 +360,15 @@ Leaving a subnet will release the collateral for the validator and remove all th
 
 ### Running a several nodes subnet
 
+## Integration testing
+Integration testing is done using the corresponding functionality from Rust. The tests are located in `tests` folder. Before running the test cases, one needs to launch a `lotus` cluster and a `ipc-agent` daemon using the above instructions.
+Once the nodes are setup, we can run the integration tests by using:
+```shell
+cargo test --test <TESTCASE_NAME>
+# To run the subnet lifecycle test, perform:
+cargo test --test subnet_lifecycle
+```
+
 ## Troubleshooting
 #### I need to upgrade my IPC agent
 Sometimes, things break, and we'll need to push a quick path to fix some bug. If this happens, and you need to upgrade your agent version, kill you agent daemon if you have any running, pull the latest changes from this repo, build the binary, and start your daemon again. This should pick up the latest version for the agent. In the future, we will provide a better way to upgrade your agent.
