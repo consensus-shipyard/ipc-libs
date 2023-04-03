@@ -367,13 +367,12 @@ Depending on if the subnet is running inside a docker container or not, we can u
 # Importing directly into the node
 $ eudico wallet import --lotus-json <wallet-key-file-path>
 
-# Importing directly into a docker container
+# Copy the wallet key into the container
 $ docker cp <wallet-key-path> <container-id>:<target-file-in-container>
-# Copy the wallet key inside the container
-$ docker exec -it <container-id> sh -c "./eudico wallet import --format=json-lotus <target-file-in-container>"
+# Import the key into eudico
+$ docker exec -it <container-id> eudico wallet import --format=json-lotus <target-file-in-container>
 # Sample execution
-$ docker cp ~/.ipc-agent/t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy.key 91d2af805346:/input.key
-$ docker exec -it 91d2af805346 sh -c "eudico wallet import --format=json-lotus input.key"
+$ docker cp ~/.ipc-agent/t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy.key 91d2af805346:/input.key && docker exec -it 91d2af805346 eudico wallet import --format=json-lotus input.key
 ```
 
 ### Running a subnet with several validators
@@ -398,11 +397,11 @@ In order to deploy the 5 validators for the subnet, we will have to first export
 
 With the five keys conveniently exported, we can deploy the subnet nodes using the `infra-scripts`. The following code snippet showcases the deployment of five sample nodes. Note that each node should be importing a different wallet key for their validator, and should be exposing different ports for their API and validators:
 ```bash
-$ ./bin/ipc-infra/run-subnet-docker.sh 1240 1359 /root/t01002 ~/.ipc-agent/wallet1.key
-$ ./bin/ipc-infra/run-subnet-docker.sh 1250 1369 /root/t01002 ~/.ipc-agent/wallet2.key
-$ ./bin/ipc-infra/run-subnet-docker.sh 1280 1379 /root/t01002 ~/.ipc-agent/wallet3.key
-$ ./bin/ipc-infra/run-subnet-docker.sh 1270 1389 /root/t01002 ~/.ipc-agent/wallet4.key
-$ ./bin/ipc-infra/run-subnet-docker.sh 1280 1399 /root/t01002 ~/.ipc-agent/wallet5.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1251 1351 /root/t01002 ~/.ipc-agent/wallet1.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1252 1352 /root/t01002 ~/.ipc-agent/wallet2.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1253 1353 /root/t01002 ~/.ipc-agent/wallet3.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1254 1354 /root/t01002 ~/.ipc-agent/wallet4.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1255 1355 /root/t01002 ~/.ipc-agent/wallet5.key
 ```
 If the deployment is successful each of these nodes should return the following output at the end of their logs. Note down this information somewhere as we will need it to conveniently join our validators to the subnet.
 ```
@@ -441,7 +440,7 @@ This is the command that needs to be executed for every validator to join the su
 $ ./bin/ipc-agent join-subnet --from=<validator-wallet> --subnet=/root/t01002 --collateral=<amount-collateral> --validator-net-addr="/dns/host.docker.internal/tcp/<VALIDATOR_PORT>/p2p/<VALIDATOR_MULTIADDR>"
 
 # Sample execution for the validator whose logs where shared above for 2FIL collateral
-$ ./bin/ipc-agent join-subnet --from=t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy --subnet=/root/t01002 --collateral=2 --validator-net-addr="/dns/host.docker.internal/tcp/1359/p2p/12D3KooWEJXcSPw6Yv4jDk52xvp2rdeG3J6jCPX9AgBJE2mRCVoR
+$ ./bin/ipc-agent join-subnet --from=t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy --subnet=/root/t01002 --collateral=2 --validator-net-addr="/dns/host.docker.internal/tcp/1359/p2p/12D3KooWEJXcSPw6Yv4jDk52xvp2rdeG3J6jCPX9AgBJE2mRCVoR"
 ```
 Remember doing the above step for the five validators.
 
