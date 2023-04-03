@@ -254,7 +254,10 @@ The end of the log of the execution of this script provides a bit more of inform
 >>> Token to /root/t01002 daemon: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA
 >>> Default wallet: t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq
 >>> Subnet subnet validator info:
-t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/172.17.0.3/udp/1348/quic/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmS t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/127.0.0.1/udp/1348/quic/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmS t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/172.17.0.3/tcp/1347/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3Fb t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/127.0.0.1/tcp/1347/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3FbaVcL
+t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/172.17.0.3/udp/1348/quic/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmS
+t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/127.0.0.1/udp/1348/quic/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmS
+t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/172.17.0.3/tcp/1347/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3Fb
+t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq@/ip4/127.0.0.1/tcp/1347/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3FbaVcL
 >>> API listening in host port 1239
 >>> Validator listening in host port 1349
 ```
