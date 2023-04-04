@@ -449,7 +449,7 @@ $ ./bin/ipc-agent join-subnet --from=t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy -
 Remember doing the above step for the five validators.
 
 #### Mining in subnet
-We have everything in place now to start mining from all the validators. Mining is as simple as running the following script passing the container id for the validators:
+We have everything in place now to start mining. Mining is as simple as running the following script for each of the validators, passing the container id/name:
 ```bash
 $  ./bin/ipc-infra/mine-subnet.sh <node-container-id>
 ```
