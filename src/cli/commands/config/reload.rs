@@ -1,4 +1,7 @@
-use crate::cli::{get_ipc_agent_url, CommandLineHandler, GlobalArguments};
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
+use crate::cli::commands::get_ipc_agent_url;
+use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::config::json_rpc_methods;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::server::ReloadConfigParams;

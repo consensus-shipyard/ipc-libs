@@ -1,11 +1,11 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::cli::{CommandLineHandler, GlobalArguments};
 
-use crate::cli::commands::wallet::send_value::{SendValue, SendValueArgs};
-use crate::cli::commands::wallet::wallet::{WalletNew, WalletNewArgs};
+use crate::cli::commands::wallet::new::{WalletNew, WalletNewArgs};
 use clap::{Args, Subcommand};
 
-pub mod send_value;
-pub mod wallet;
+mod new;
 
 #[derive(Debug, Args)]
 #[command(name = "wallet", about = "wallet related commands")]
@@ -18,7 +18,6 @@ pub(crate) struct WalletCommandsArgs {
 impl WalletCommandsArgs {
     pub async fn handle(&self, global: &GlobalArguments) -> anyhow::Result<()> {
         match &self.command {
-            Commands::Send(args) => SendValue::handle(global, args).await,
             Commands::New(args) => WalletNew::handle(global, args).await,
         }
     }
@@ -26,6 +25,5 @@ impl WalletCommandsArgs {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Commands {
-    Send(SendValueArgs),
     New(WalletNewArgs),
 }

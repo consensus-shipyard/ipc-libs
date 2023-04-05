@@ -22,6 +22,8 @@ use url::Url;
 use crate::cli::commands::config::ConfigCommandsArgs;
 use crate::cli::commands::wallet::WalletCommandsArgs;
 
+pub use subnet::*;
+
 /// The collection of all subcommands to be called, see clap's documentation for usage. Internal
 /// to the current mode. Register a new command accordingly.
 #[derive(Debug, Subcommand)]

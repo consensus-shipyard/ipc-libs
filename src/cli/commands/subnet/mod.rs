@@ -1,13 +1,13 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use crate::cli::commands::subnet::create::{CreateSubnet, CreateSubnetArgs};
-use crate::cli::commands::subnet::join::{JoinSubnet, JoinSubnetArgs};
-use crate::cli::commands::subnet::kill::{KillSubnet, KillSubnetArgs};
-use crate::cli::commands::subnet::leave::{LeaveSubnet, LeaveSubnetArgs};
+pub use crate::cli::commands::subnet::create::{CreateSubnet, CreateSubnetArgs};
+pub use crate::cli::commands::subnet::join::{JoinSubnet, JoinSubnetArgs};
+pub use crate::cli::commands::subnet::kill::{KillSubnet, KillSubnetArgs};
+pub use crate::cli::commands::subnet::leave::{LeaveSubnet, LeaveSubnetArgs};
 use crate::cli::commands::subnet::list_subnets::{ListSubnets, ListSubnetsArgs};
 use crate::cli::commands::subnet::net_addr::{SetValidatorNetAddr, SetValidatorNetAddrArgs};
-use crate::cli::commands::wallet::send_value::{SendValue, SendValueArgs};
+use crate::cli::commands::subnet::send_value::{SendValue, SendValueArgs};
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use clap::{Args, Subcommand};
 
@@ -17,6 +17,7 @@ pub mod kill;
 pub mod leave;
 pub mod list_subnets;
 pub mod net_addr;
+pub mod send_value;
 
 #[derive(Debug, Args)]
 #[command(

@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::cli::commands::checkpoint::list_checkpoints::{ListCheckpoints, ListCheckpointsArgs};
 use crate::cli::{CommandLineHandler, GlobalArguments};
 

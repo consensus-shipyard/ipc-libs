@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::cli::commands::crossmsg::fund::Fund;
 use crate::cli::commands::crossmsg::propagate::Propagate;
 use crate::cli::commands::crossmsg::release::Release;
