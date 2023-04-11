@@ -17,7 +17,7 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::MethodNum;
 use ipc_gateway::checkpoint::checkpoint_epoch;
-use ipc_gateway::{BottomUpCheckpoint, Checkpoint};
+use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
 use reqwest::redirect::Policy;
