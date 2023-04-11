@@ -28,10 +28,10 @@ use crate::lotus::message::mpool::{
 use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
-use crate::lotus::{LotusClient, NetworkVersion};
+use crate::lotus::{LotusBottomUpCheckpointClient, LotusClient, NetworkVersion};
 use crate::manager::SubnetInfo;
 
-use super::message::ipc::CheckpointResponse;
+use super::message::ipc::BottomUpCheckpointResponse;
 
 // RPC methods
 mod methods {
@@ -92,6 +92,17 @@ pub struct LotusJsonRPCClient<T: JsonRpcClient> {
 impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
     pub fn new(client: T) -> Self {
         Self { client }
+    }
+}
+
+#[async_trait]
+impl<T: JsonRpcClient + Send + Sync> LotusBottomUpCheckpointClient for LotusJsonRPCClient<T> {
+    async fn ipc_has_voted_in_epoch(&self, epoch: ChainEpoch, validator: &Address) -> Result<bool> {
+        todo!()
+    }
+
+    async fn last_executed_epoch(&self) -> Result<ChainEpoch> {
+        todo!()
     }
 }
 
@@ -285,7 +296,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint> {
         let r = self
             .client
-            .request::<CheckpointResponse>(
+            .request::<BottomUpCheckpointResponse>(
                 methods::IPC_GET_CHECKPOINT_TEMPLATE,
                 json!([GATEWAY_ACTOR_ADDRESS, epoch]),
             )
@@ -302,7 +313,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let params = json!([subnet_id.to_json(), epoch]);
         let r = self
             .client
-            .request::<CheckpointResponse>(methods::IPC_GET_CHECKPOINT, params)
+            .request::<BottomUpCheckpointResponse>(methods::IPC_GET_CHECKPOINT, params)
             .await
             .map_err(|e| {
                 log::debug!(
@@ -370,7 +381,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<CheckpointResponse>> {
+    ) -> Result<Vec<BottomUpCheckpointResponse>> {
         let parent = subnet_id
             .parent()
             .ok_or_else(|| anyhow!("no parent found"))?
@@ -386,7 +397,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         ]);
         let r = self
             .client
-            .request::<Vec<CheckpointResponse>>(methods::IPC_LIST_CHECKPOINTS, params)
+            .request::<Vec<BottomUpCheckpointResponse>>(methods::IPC_LIST_CHECKPOINTS, params)
             .await?;
         Ok(r)
     }

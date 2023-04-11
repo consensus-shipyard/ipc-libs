@@ -7,4 +7,5 @@ pub use crate::lotus::message::ipc::SubnetInfo;
 
 pub mod checkpoint;
 mod lotus;
+pub mod policy;
 mod subnet;

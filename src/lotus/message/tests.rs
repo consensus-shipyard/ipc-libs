@@ -5,7 +5,7 @@ use std::str::FromStr;
 use crate::lotus::message::deserialize::{
     deserialize_subnet_id_from_map, deserialize_token_amount_from_str,
 };
-use crate::lotus::message::ipc::CheckpointResponse;
+use crate::lotus::message::ipc::BottomUpCheckpointResponse;
 use crate::manager::SubnetInfo;
 use fvm_shared::econ::TokenAmount;
 use ipc_gateway::Status;
@@ -139,6 +139,6 @@ fn test_checkpoint_template_from_str() {
     }
     "#;
 
-    let w: CheckpointResponse = serde_json::from_str(raw_str).unwrap();
+    let w: BottomUpCheckpointResponse = serde_json::from_str(raw_str).unwrap();
     assert_eq!(w.data.source, SubnetID::from_str("/root/t01002").unwrap());
 }

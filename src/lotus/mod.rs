@@ -19,7 +19,7 @@ use message::state::{ReadStateResponse, StateWaitMsgResponse};
 use message::wallet::{WalletKeyType, WalletListResponse};
 
 use crate::lotus::message::ipc::{
-    CheckpointResponse, IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse, Votes,
+    BottomUpCheckpointResponse, IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse, Votes,
 };
 use crate::manager::SubnetInfo;
 
@@ -37,7 +37,7 @@ pub type NetworkVersion = u32;
 
 /// The Lotus client api to interact with the Lotus node.
 #[async_trait]
-pub trait LotusClient {
+pub trait LotusClient: LotusBottomUpCheckpointClient {
     /// Push the message to memory pool, see: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
     async fn mpool_push_message(
         &self,
@@ -120,5 +120,15 @@ pub trait LotusClient {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<CheckpointResponse>>;
+    ) -> Result<Vec<BottomUpCheckpointResponse>>;
+}
+
+/// Bottom up checkpoint client for the gateway
+#[async_trait]
+pub trait LotusBottomUpCheckpointClient {
+    /// Checks if the validator has voted in the specified epoch
+    async fn ipc_has_voted_in_epoch(&self, epoch: ChainEpoch, validator: &Address) -> Result<bool>;
+
+    /// Get the last executed epoch
+    async fn last_executed_epoch(&self) -> Result<ChainEpoch>;
 }
