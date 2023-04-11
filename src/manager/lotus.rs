@@ -32,6 +32,15 @@ pub struct LotusSubnetManager<T: JsonRpcClient> {
     lotus_client: LotusJsonRPCClient<T>,
 }
 
+pub type DefaultSubnetManager = LotusSubnetManager<JsonRpcClientImpl>;
+
+impl AsRef<DefaultSubnetManager> for DefaultSubnetManager {
+    fn as_ref(&self) -> &DefaultSubnetManager {
+        self
+    }
+}
+
+#[async_trait]
 impl<T: JsonRpcClient + Send + Sync> SubnetChainInfo for LotusSubnetManager<T> {
     async fn current_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
         if !self.is_network_match(subnet).await? {
@@ -58,13 +67,15 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
             return Err(anyhow!("checkpoint submitted in the wrong parent network"));
         }
 
+        let epoch = ch.data.epoch;
+
         log::debug!(
             "Pushing checkpoint submission message for {:} in subnet: {:?}",
-            ch.data.epoch,
-            &child_subnet.id
+            epoch,
+            subnet
         );
 
-        let to = subnet.id.subnet_actor();
+        let to = subnet.subnet_actor();
         let message = MpoolPushMessage::new(
             to,
             from,
@@ -78,7 +89,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
             .map_err(|e| {
                 log::error!(
                     "error submitting checkpoint for epoch {epoch:} in subnet: {:?}",
-                    &subnet.id
+                    subnet
                 );
                 e
             })?;
@@ -101,7 +112,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
 
         let response = match tokio::time::timeout(
             timeout,
-            self.lotus_client.state_wait_msg(message_cid.clone()),
+            self.lotus_client.state_wait_msg(message_cid),
         )
         .await
         {
@@ -135,7 +146,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
         // and the bottom-up cross-net messages.
         log::debug!(
             "Getting checkpoint template for {epoch:} in subnet: {:?}",
-            &child_subnet.id
+            subnet
         );
         let template = self
             .lotus_client
@@ -144,7 +155,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
             .map_err(|e| {
                 log::error!(
                     "error getting checkpoint template for epoch:{epoch:} in subnet: {:?}",
-                    &child_subnet.id
+                    subnet
                 );
                 e
             })?;
@@ -156,7 +167,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
         // subnet.
         log::debug!(
             "Getting previous checkpoint from parent gateway for {epoch:} in subnet: {:?}",
-            &child_subnet.id
+            subnet
         );
 
         Ok(checkpoint)
@@ -175,7 +186,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
             return Err(anyhow!("checking vote in the wrong parent network"));
         }
         self.lotus_client
-            .ipc_has_voted_in_epoch(epoch, validator)
+            .ipc_has_voted_in_epoch(subnet, epoch, validator)
             .await
     }
 
@@ -186,7 +197,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
         if !self.is_network_match(&parent).await? {
             return Err(anyhow!("checking vote in the wrong parent network"));
         }
-        self.lotus_client.ipc_last_executed_epoch().await
+        self.lotus_client.ipc_last_executed_epoch(subnet).await
     }
 }
 

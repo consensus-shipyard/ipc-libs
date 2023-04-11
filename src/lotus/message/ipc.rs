@@ -7,7 +7,8 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
-use ipc_gateway::{BottomUpCheckpoint, Status, CHECKPOINT_GENESIS_CID};
+use ipc_gateway::checkpoint::BatchCrossMsgs;
+use ipc_gateway::{BottomUpCheckpoint, CrossMsg, Status, StorableMsg};
 use ipc_sdk::address::IPCAddress;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
@@ -118,7 +119,7 @@ pub struct CheckpointData {
     #[serde(rename(deserialize = "PrevCheck"))]
     pub prev_check: Option<CIDMap>,
     #[serde(rename(deserialize = "CrossMsgs"))]
-    pub cross_msgs: Option<CrossMsgMetaWrapper>,
+    pub cross_msgs: Option<BatchCrossMsgWrapper>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug, Default, Deserialize, Serialize)]
@@ -130,14 +131,40 @@ pub struct BatchCrossMsgWrapper {
     pub fee: TokenAmount,
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Default, Deserialize, Serialize)]
+impl From<BatchCrossMsgWrapper> for BatchCrossMsgs {
+    fn from(wrapper: BatchCrossMsgWrapper) -> Self {
+        let cross_msgs = wrapper.cross_msgs.map(|cross_msgs| {
+            cross_msgs
+                .into_iter()
+                .map(|cross_wrapper| CrossMsg {
+                    msg: StorableMsg {
+                        from: cross_wrapper.msg.from,
+                        to: cross_wrapper.msg.to,
+                        method: cross_wrapper.msg.method,
+                        params: cross_wrapper.msg.params,
+                        value: cross_wrapper.msg.value,
+                        nonce: cross_wrapper.msg.nonce,
+                    },
+                    wrapped: cross_wrapper.wrapped,
+                })
+                .collect::<Vec<_>>()
+        });
+
+        BatchCrossMsgs {
+            cross_msgs,
+            fee: wrapper.fee,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct CrossMsgsWrapper {
-    pub msg: StorableMsgWrapper,
+    pub msg: StorableMsgsWrapper,
     pub wrapped: bool,
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct StorableMsgsWrapper {
     // TODO: @will,IPCAddress is currently serialized by default as a tuple,
@@ -199,19 +226,9 @@ impl TryFrom<BottomUpCheckpointResponse> for BottomUpCheckpoint {
         log::debug!("children: {children:?}");
 
         let cross_msgs = if let Some(cross_msgs) = checkpoint_response.data.cross_msgs {
-            let msgs_cid = if let Some(cid_map) = cross_msgs.msgs_cid {
-                TCid::from(Cid::try_from(cid_map)?)
-            } else {
-                TCid::from(*CHECKPOINT_GENESIS_CID)
-            };
-            Some(ipc_gateway::checkpoint::CrossMsgMeta {
-                msgs_cid,
-                nonce: cross_msgs.nonce,
-                value: cross_msgs.value,
-                fee: cross_msgs.fee,
-            })
+            BatchCrossMsgs::from(cross_msgs)
         } else {
-            None
+            BatchCrossMsgs::default()
         };
         log::debug!("cross_msgs: {cross_msgs:?}");
 

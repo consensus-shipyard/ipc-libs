@@ -1,42 +1,32 @@
-use std::collections::{HashMap, HashSet};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use std::collections::hash_map::RandomState;
-use std::ops::Deref;
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use cid::Cid;
-use fil_actors_runtime::cbor;
 use futures_util::stream::FuturesUnordered;
 use futures_util::StreamExt;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use fvm_shared::MethodNum;
-use ipc_gateway::checkpoint::checkpoint_epoch;
-use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use primitives::TCid;
-use reqwest::redirect::Policy;
 use tokio::select;
 use tokio::sync::Notify;
-use tokio::time::sleep;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
 use crate::config::{ReloadableConfig, Subnet};
 use crate::jsonrpc::JsonRpcClient;
 use crate::lotus::client::LotusJsonRPCClient;
-use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
 use crate::manager::policy::{CheckpointPolicy, SequentialCheckpointPolicy};
 use crate::manager::subnet::BottomUpCheckpointManager;
 use crate::manager::LotusSubnetManager;
 
 /// The frequency at which to check a new chain head.
-const CHAIN_HEAD_REQUEST_PERIOD: Duration = Duration::from_secs(10);
+const SUBMIT_PERIOD: Duration = Duration::from_secs(10);
 
 /// The `CheckpointSubsystem`. When run, it actively monitors subnets and submits checkpoints.
 pub struct CheckpointSubsystem {
@@ -141,7 +131,7 @@ fn subnets_to_manage(subnets_by_id: &HashMap<SubnetID, Subnet>) -> Vec<(Subnet, 
 /// Monitors a subnet `child` for checkpoint blocks. It emits an event for every new checkpoint block.
 async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notify>) -> Result<()> {
     log::info!(
-        "Starting checkpoint manager for (child, parent) subnet pair ({}, {})",
+        "Starting checkpoint manager for (child, parent) subnet pair ({:?}, {:?})",
         child.id,
         parent.id
     );
@@ -149,9 +139,9 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
     let child_client = LotusJsonRPCClient::from_subnet(&child);
     let parent_client = LotusJsonRPCClient::from_subnet(&parent);
 
-    let checkpoint_period = get_checkpoint_period(&parent, &parent_client).await?;
+    let checkpoint_period = get_checkpoint_period(&child.id, &parent_client).await?;
 
-    let validators = get_validators(&child.accounts, &parent_client).await?;
+    let validators = get_validators(&child.id, &child.accounts, &parent_client).await?;
     if validators.is_empty() {
         log::error!("no validator in subnet");
         return Ok(());
@@ -161,6 +151,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
     let parent_manager = LotusSubnetManager::new(parent_client);
 
     let policy = SequentialCheckpointPolicy::new(
+        parent.id.clone(),
         child.id.clone(),
         &parent_manager,
         &child_manager,
@@ -169,8 +160,8 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
     loop {
         select! {
-            _ = submit_checkpoint(&child_manager, &policy, &validators) => {
-                tokio::time::sleep(Duration::from_secs(2)).await;
+            _ = submit_checkpoint(&child.id, &child_manager, &policy, &validators) => {
+                tokio::time::sleep(SUBMIT_PERIOD).await;
             }
             _ = stop_notify.notified() => { break; }
         }
@@ -180,17 +171,16 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 }
 
 async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
+    child: &SubnetID,
     child_manager: &LotusSubnetManager<T>,
     policy: &impl CheckpointPolicy,
     validators: &[Address],
 ) -> Result<()> {
     // validators not be empty at this stage
     for validator in validators.iter() {
-        while let Some(next_epoch) = policy.next_submission_epoch(validator) {
-            let checkpoint = child_manager.create_checkpoint(&child, next_epoch).await?;
-            policy
-                .submit_checkpoint(validator.clone(), checkpoint)
-                .await?;
+        while let Some(next_epoch) = policy.next_submission_epoch(validator).await? {
+            let checkpoint = child_manager.create_checkpoint(child, next_epoch).await?;
+            policy.submit_checkpoint(*validator, checkpoint).await?;
         }
     }
     Ok(())
@@ -198,7 +188,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
 
 /// Get the checkpoint period in the parent subnet
 async fn get_checkpoint_period<T: JsonRpcClient + Send + Sync>(
-    parent_subnet: &Subnet,
+    child: &SubnetID,
     client: &LotusJsonRPCClient<T>,
 ) -> Result<ChainEpoch> {
     log::debug!("Getting parent tipset");
@@ -208,16 +198,17 @@ async fn get_checkpoint_period<T: JsonRpcClient + Send + Sync>(
     let parent_tip_set = Cid::try_from(cid_map)?;
 
     let state = client
-        .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
+        .ipc_read_subnet_actor_state(child, parent_tip_set)
         .await
         .map_err(|e| {
-            log::error!("error getting subnet actor state for {:?}", &child.id);
+            log::error!("error getting subnet actor state for {:?}", child);
             e
         })?;
     Ok(state.check_period)
 }
 
 async fn get_validators<T: JsonRpcClient + Send + Sync>(
+    child: &SubnetID,
     child_subnet_accounts: &[Address],
     parent_client: &LotusJsonRPCClient<T>,
 ) -> Result<Vec<Address>> {
@@ -231,14 +222,20 @@ async fn get_validators<T: JsonRpcClient + Send + Sync>(
     let parent_tip_set = Cid::try_from(cid_map)?;
 
     let subnet_actor_state = parent_client
-        .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
+        .ipc_read_subnet_actor_state(child, parent_tip_set)
         .await?;
 
     match subnet_actor_state.validator_set.validators {
         None => Ok(vec![]),
-        Some(validators) => Ok(validators
-            .iter()
-            .filter(|v| child_subnet_accounts.contains(&Address::from_str(&v.addr)?))
-            .collect()),
+        Some(validators) => {
+            let mut vs = vec![];
+            for v in validators {
+                let addr = Address::from_str(&v.addr)?;
+                if child_subnet_accounts.contains(&addr) {
+                    vs.push(addr);
+                }
+            }
+            Ok(vs)
+        }
     }
 }

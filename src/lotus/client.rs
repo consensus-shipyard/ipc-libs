@@ -10,7 +10,7 @@ use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::Checkpoint;
+use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
@@ -99,14 +99,14 @@ impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
 impl<T: JsonRpcClient + Send + Sync> LotusBottomUpCheckpointClient for LotusJsonRPCClient<T> {
     async fn ipc_has_voted_in_epoch(
         &self,
-        subnet: &SubnetID,
-        epoch: ChainEpoch,
-        validator: &Address,
+        _subnet: &SubnetID,
+        _epoch: ChainEpoch,
+        _validator: &Address,
     ) -> Result<bool> {
         todo!()
     }
 
-    async fn ipc_last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
+    async fn ipc_last_executed_epoch(&self, _subnet: &SubnetID) -> Result<ChainEpoch> {
         todo!()
     }
 }
@@ -298,7 +298,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
-    async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint> {
+    async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<BottomUpCheckpoint> {
         let r = self
             .client
             .request::<BottomUpCheckpointResponse>(
@@ -307,14 +307,14 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             )
             .await?;
 
-        Ok(Checkpoint::try_from(r)?)
+        Ok(BottomUpCheckpoint::try_from(r)?)
     }
 
     async fn ipc_get_checkpoint(
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
-    ) -> Result<Checkpoint> {
+    ) -> Result<BottomUpCheckpoint> {
         let params = json!([subnet_id.to_json(), epoch]);
         let r = self
             .client
@@ -329,7 +329,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
                 e
             })?;
 
-        Ok(Checkpoint::try_from(r)?)
+        Ok(BottomUpCheckpoint::try_from(r)?)
     }
 
     async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse> {
