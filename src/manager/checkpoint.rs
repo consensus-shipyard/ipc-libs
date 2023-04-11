@@ -31,7 +31,7 @@ use crate::jsonrpc::JsonRpcClient;
 use crate::lotus::client::LotusJsonRPCClient;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
-use crate::manager::policy::{CheckpointPolicy, OptimisticCheckpointPolicy};
+use crate::manager::policy::{CheckpointPolicy, SequentialCheckpointPolicy};
 use crate::manager::subnet::BottomUpCheckpointManager;
 use crate::manager::LotusSubnetManager;
 
@@ -150,6 +150,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
     let parent_client = LotusJsonRPCClient::from_subnet(&parent);
 
     let checkpoint_period = get_checkpoint_period(&parent, &parent_client).await?;
+
     let validators = get_validators(&child.accounts, &parent_client).await?;
     if validators.is_empty() {
         log::error!("no validator in subnet");
@@ -159,28 +160,39 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
     let child_manager = LotusSubnetManager::new(child_client);
     let parent_manager = LotusSubnetManager::new(parent_client);
 
-    let policy = OptimisticCheckpointPolicy::new(
+    let policy = SequentialCheckpointPolicy::new(
         child.id.clone(),
         &parent_manager,
         &child_manager,
         checkpoint_period,
     );
 
-    'outer: loop {
-        // validators not be empty at this stage
-        'inner: for validator in validators.iter() {
-            // now process the submission
-            select! {
-                next_epoch = policy.next_submission_epoch(validator) => {
-                    let checkpoint = child_manager.create_bu_checkpoint_template(&child, next_epoch).await?;
-                    policy.submit_checkpoint(validator.clone(), checkpoint).await?;
-                }
-                _ = stop_notify.notified() => { break 'outer; }
-
+    loop {
+        select! {
+            _ = submit_checkpoint(&child_manager, &policy, &validators) => {
+                tokio::time::sleep(Duration::from_secs(2)).await;
             }
+            _ = stop_notify.notified() => { break; }
         }
     }
 
+    Ok(())
+}
+
+async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
+    child_manager: &LotusSubnetManager<T>,
+    policy: &impl CheckpointPolicy,
+    validators: &[Address],
+) -> Result<()> {
+    // validators not be empty at this stage
+    for validator in validators.iter() {
+        while let Some(next_epoch) = policy.next_submission_epoch(validator) {
+            let checkpoint = child_manager.create_checkpoint(&child, next_epoch).await?;
+            policy
+                .submit_checkpoint(validator.clone(), checkpoint)
+                .await?;
+        }
+    }
     Ok(())
 }
 

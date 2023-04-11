@@ -1,6 +1,6 @@
 //! Submit checkpoint policies
 
-mod optimistic;
+mod sequential;
 
 use async_trait::async_trait;
 use fvm_shared::address::Address;
@@ -8,7 +8,7 @@ use fvm_shared::clock::ChainEpoch;
 use ipc_gateway::Checkpoint;
 use ipc_sdk::subnet_id::SubnetID;
 
-pub use optimistic::OptimisticCheckpointPolicy;
+pub use sequential::SequentialCheckpointPolicy;
 
 /// The different policies to submit checkpoints for each parent-child subnet pair
 #[async_trait]

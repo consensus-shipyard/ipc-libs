@@ -1,4 +1,4 @@
-//! The optimistic checkpoint policy. When the previous checkpoint is submitted, it will attempt to
+//! The sequential checkpoint policy. Only when the previous checkpoint is committed, it will attempt to
 //! submit the next submittable checkpoint.
 
 use crate::jsonrpc::JsonRpcClient;
@@ -16,7 +16,7 @@ use std::time::Duration;
 static SUBMIT_CHECKPOINT_TIMEOUT: Duration = Duration::new(90, 0);
 static PER_EPOCH_WAIT_SEC: u64 = 3;
 
-pub struct OptimisticCheckpointPolicy<T> {
+pub struct SequentialCheckpointPolicy<T> {
     parent_manager: T,
     /// The child subnet id
     child: SubnetID,
@@ -25,7 +25,7 @@ pub struct OptimisticCheckpointPolicy<T> {
     checkpoint_period: ChainEpoch,
 }
 
-impl<T> OptimisticCheckpointPolicy<T> {
+impl<T> SequentialCheckpointPolicy<T> {
     pub fn new(
         child: SubnetID,
         parent_manager: T,
@@ -42,47 +42,36 @@ impl<T> OptimisticCheckpointPolicy<T> {
 }
 
 impl<M: BottomUpCheckpointManager + Send + Sync, T: AsRef<M>> CheckpointPolicy
-    for OptimisticCheckpointPolicy<T>
+    for SequentialCheckpointPolicy<T>
 {
     fn subnet(&self) -> &SubnetID {
         &self.child
     }
 
-    async fn next_submission_epoch(&self, validator: &Address) -> anyhow::Result<ChainEpoch> {
+    async fn next_submission_epoch(
+        &self,
+        validator: &Address,
+    ) -> anyhow::Result<Option<ChainEpoch>> {
         let child_manager = self.child_manager.as_ref();
         let parent_manager = self.parent_manager.as_ref();
         let child = self.subnet();
 
-        let next_submission_epoch = loop {
-            let latest_epoch = child_manager.as_ref().current_epoch(child).await?;
-            let latest_executed = parent_manager.last_executed_epoch(child).await?;
+        let latest_epoch = child_manager.as_ref().current_epoch(child).await?;
+        let latest_executed = parent_manager.last_executed_epoch(child).await?;
 
-            let next_submission_epoch = latest_executed + self.checkpoint_period;
-            if latest_epoch < next_submission_epoch {
-                let timeout = PER_EPOCH_WAIT_SEC * (next_submission_epoch - latest_epoch);
+        let next_submission_epoch = latest_executed + self.checkpoint_period;
+        if latest_epoch < next_submission_epoch {
+            return Ok(None);
+        }
 
-                log::info!(
-                    "wait for next submission epoch in subnet {:?}, current epoch {:?}",
-                    self.subnet(),
-                    latest_epoch,
-                );
+        if parent_manager
+            .has_voted_in_epoch(child, next_submission_epoch, validator)
+            .await?
+        {
+            return Ok(None);
+        }
 
-                tokio::time::sleep(Duration::from_secs(timeout)).await;
-
-                continue;
-            }
-
-            if parent_manager
-                .has_voted_in_epoch(child, next_submission_epoch, validator)
-                .await?
-            {
-                continue;
-            }
-
-            break next_submission_epoch;
-        };
-
-        Ok(next_submission_epoch)
+        Ok(Some(next_submission_epoch))
     }
 
     /// Just push to subnet, wait for 90 seconds
@@ -96,7 +85,7 @@ impl<M: BottomUpCheckpointManager + Send + Sync, T: AsRef<M>> CheckpointPolicy
         match self
             .parent_manager
             .as_ref()
-            .try_submit_bu_checkpoint(
+            .try_submit_checkpoint(
                 self.parent.clone(),
                 validator,
                 checkpoint,

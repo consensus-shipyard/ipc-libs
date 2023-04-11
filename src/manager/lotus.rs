@@ -45,7 +45,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetChainInfo for LotusSubnetManager<T> {
 
 #[async_trait]
 impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetManager<T> {
-    async fn submit_bu_checkpoint(
+    async fn submit_checkpoint(
         &self,
         subnet: SubnetID,
         from: Address,
@@ -90,14 +90,14 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
         Ok(message_cid)
     }
 
-    async fn try_submit_bu_checkpoint(
+    async fn try_submit_checkpoint(
         &self,
         subnet: SubnetID,
         from: Address,
         ch: BottomUpCheckpoint,
         timeout: Duration,
     ) -> Result<Option<Cid>> {
-        let message_cid = self.submit_bu_checkpoint(subnet, from, ch).await?;
+        let message_cid = self.submit_checkpoint(subnet, from, ch).await?;
 
         let response = match tokio::time::timeout(
             timeout,
@@ -120,7 +120,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
         Ok(None)
     }
 
-    async fn create_bu_checkpoint_template(
+    async fn create_checkpoint(
         &self,
         subnet: &SubnetID,
         epoch: ChainEpoch,
