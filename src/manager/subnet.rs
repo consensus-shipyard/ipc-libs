@@ -112,7 +112,7 @@ pub trait SubnetManager: BottomUpCheckpointManager {
 /// The bottom up checkpoint manager
 pub trait BottomUpCheckpointManager: SubnetChainInfo {
     /// Submits a bottom up checkpoint for a subnet from a wallet address. Returns the message cid.
-    async fn submit_bu_checkpoint(
+    async fn submit_checkpoint(
         &self,
         subnet: SubnetID,
         from: Address,
@@ -122,7 +122,7 @@ pub trait BottomUpCheckpointManager: SubnetChainInfo {
     /// Try to submit a bottom up checkpoint for a subnet from a wallet address with a wait timeout.
     /// If the operation is successful within the timeout, returns Ok(None). If the operation timeouts
     /// returns the message cid. Other error returns error.
-    async fn try_submit_bu_checkpoint(
+    async fn try_submit_checkpoint(
         &self,
         subnet: SubnetID,
         from: Address,
@@ -131,7 +131,7 @@ pub trait BottomUpCheckpointManager: SubnetChainInfo {
     ) -> Result<Option<Cid>>;
 
     /// Create a bottom up checkpoint template
-    async fn create_bu_checkpoint_template(
+    async fn create_checkpoint(
         &self,
         subnet: &SubnetID,
         epoch: ChainEpoch,

@@ -2472,6 +2472,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipc-actor-common"
+version = "0.1.0"
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git#bcb5eb000f1b02e428f4d9e166af32291e65603d"
+dependencies = [
+ "anyhow",
+ "fil_actors_runtime",
+ "fvm_ipld_blockstore",
+ "fvm_ipld_encoding 0.3.3",
+ "fvm_shared 3.0.0-alpha.17",
+ "integer-encoding",
+ "ipc-sdk",
+ "lazy_static",
+ "log",
+ "num-traits",
+ "primitives",
+ "serde",
+ "serde_tuple",
+ "thiserror",
+]
+
+[[package]]
 name = "ipc-agent"
 version = "0.1.0"
 dependencies = [
@@ -2515,11 +2536,7 @@ dependencies = [
 [[package]]
 name = "ipc-gateway"
 version = "0.0.1"
-<<<<<<< HEAD
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git?tag=v0.1.0#186a7cb1e6b1745d9013b4556a14e5ffc0c09929"
-=======
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#bcb5eb000f1b02e428f4d9e166af32291e65603d"
->>>>>>> 05a67b5 (add skeleton)
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git#ae6e341b432fd9c3f8ede207ead86ee09b5287e6"
 dependencies = [
  "anyhow",
  "cid",
@@ -2531,6 +2548,7 @@ dependencies = [
  "fvm_shared 3.0.0-alpha.17",
  "indexmap",
  "integer-encoding",
+ "ipc-actor-common",
  "ipc-sdk",
  "lazy_static",
  "log",
@@ -2548,18 +2566,18 @@ dependencies = [
 [[package]]
 name = "ipc-sdk"
 version = "0.0.1"
-<<<<<<< HEAD
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git?tag=v0.1.0#186a7cb1e6b1745d9013b4556a14e5ffc0c09929"
-=======
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#bcb5eb000f1b02e428f4d9e166af32291e65603d"
->>>>>>> 05a67b5 (add skeleton)
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git#ae6e341b432fd9c3f8ede207ead86ee09b5287e6"
 dependencies = [
+ "anyhow",
  "fil_actors_runtime",
+ "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.3.3",
  "fvm_shared 3.0.0-alpha.17",
  "integer-encoding",
  "lazy_static",
+ "log",
  "num-traits",
+ "primitives",
  "serde",
  "serde_tuple",
  "thiserror",
@@ -2568,11 +2586,7 @@ dependencies = [
 [[package]]
 name = "ipc-subnet-actor"
 version = "0.0.1"
-<<<<<<< HEAD
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git?tag=v0.1.0#186a7cb1e6b1745d9013b4556a14e5ffc0c09929"
-=======
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#bcb5eb000f1b02e428f4d9e166af32291e65603d"
->>>>>>> 05a67b5 (add skeleton)
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git#ae6e341b432fd9c3f8ede207ead86ee09b5287e6"
 dependencies = [
  "anyhow",
  "cid",
@@ -2584,6 +2598,7 @@ dependencies = [
  "fvm_shared 3.0.0-alpha.17",
  "indexmap",
  "integer-encoding",
+ "ipc-actor-common",
  "ipc-gateway",
  "ipc-sdk",
  "lazy_static",
@@ -5035,9 +5050,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.159"
+version = "1.0.160"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c04e8343c3daeec41f58990b9d77068df31209f2af111e059e9fe9646693065"
+checksum = "bb2f3770c8bce3bcda7e149193a069a0f4365bda1fa5cd88e03bca26afc1216c"
 dependencies = [
  "serde_derive",
 ]
@@ -5062,9 +5077,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.159"
+version = "1.0.160"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c614d17805b093df4b147b51339e7e44bf05ef59fba1e45d83500bcfb4d8585"
+checksum = "291a097c63d8497e00160b166a967a4a79c64f3facdd01cbd7502231688d77df"
 dependencies = [
  "proc-macro2",
  "quote",

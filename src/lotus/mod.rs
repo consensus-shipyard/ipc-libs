@@ -127,8 +127,13 @@ pub trait LotusClient: LotusBottomUpCheckpointClient {
 #[async_trait]
 pub trait LotusBottomUpCheckpointClient {
     /// Checks if the validator has voted in the specified epoch
-    async fn ipc_has_voted_in_epoch(&self, epoch: ChainEpoch, validator: &Address) -> Result<bool>;
+    async fn ipc_has_voted_in_epoch(
+        &self,
+        subnet: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool>;
 
     /// Get the last executed epoch
-    async fn ipc_last_executed_epoch(&self) -> Result<ChainEpoch>;
+    async fn ipc_last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch>;
 }

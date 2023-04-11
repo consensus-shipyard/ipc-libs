@@ -97,11 +97,16 @@ impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
 
 #[async_trait]
 impl<T: JsonRpcClient + Send + Sync> LotusBottomUpCheckpointClient for LotusJsonRPCClient<T> {
-    async fn ipc_has_voted_in_epoch(&self, epoch: ChainEpoch, validator: &Address) -> Result<bool> {
+    async fn ipc_has_voted_in_epoch(
+        &self,
+        subnet: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool> {
         todo!()
     }
 
-    async fn ipc_last_executed_epoch(&self) -> Result<ChainEpoch> {
+    async fn ipc_last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
         todo!()
     }
 }
