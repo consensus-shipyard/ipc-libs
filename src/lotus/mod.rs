@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_gateway::Checkpoint;
+use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::de::DeserializeOwned;
 
@@ -85,14 +85,14 @@ pub trait LotusClient: LotusBottomUpCheckpointClient {
     ) -> Result<Option<CIDMap>>;
 
     /// Returns the checkpoint template at `epoch`.
-    async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<Checkpoint>;
+    async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<BottomUpCheckpoint>;
 
     /// Returns the checkpoint committed for an epoch in a child subnet.
     async fn ipc_get_checkpoint(
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
-    ) -> Result<Checkpoint>;
+    ) -> Result<BottomUpCheckpoint>;
 
     /// Returns the state of the gateway actor at `tip_set`.
     async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse>;

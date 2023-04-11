@@ -1,22 +1,23 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! The sequential checkpoint policy. Only when the previous checkpoint is committed, it will attempt to
 //! submit the next submittable checkpoint.
 
-use crate::jsonrpc::JsonRpcClient;
+use crate::manager::lotus::DefaultSubnetManager;
 use crate::manager::policy::CheckpointPolicy;
 use crate::manager::subnet::BottomUpCheckpointManager;
+use crate::manager::subnet::SubnetChainInfo;
 use async_trait::async_trait;
-use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_gateway::{BottomUpCheckpoint, Checkpoint};
+use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use std::thread::sleep;
 use std::time::Duration;
 
 static SUBMIT_CHECKPOINT_TIMEOUT: Duration = Duration::new(90, 0);
-static PER_EPOCH_WAIT_SEC: u64 = 3;
 
 pub struct SequentialCheckpointPolicy<T> {
+    parent: SubnetID,
     parent_manager: T,
     /// The child subnet id
     child: SubnetID,
@@ -25,14 +26,16 @@ pub struct SequentialCheckpointPolicy<T> {
     checkpoint_period: ChainEpoch,
 }
 
-impl<T> SequentialCheckpointPolicy<T> {
+impl<T: AsRef<DefaultSubnetManager>> SequentialCheckpointPolicy<T> {
     pub fn new(
+        parent: SubnetID,
         child: SubnetID,
         parent_manager: T,
         child_manager: T,
         checkpoint_period: ChainEpoch,
     ) -> Self {
         Self {
+            parent,
             parent_manager,
             child,
             child_manager,
@@ -41,7 +44,8 @@ impl<T> SequentialCheckpointPolicy<T> {
     }
 }
 
-impl<M: BottomUpCheckpointManager + Send + Sync, T: AsRef<M>> CheckpointPolicy
+#[async_trait]
+impl<T: AsRef<DefaultSubnetManager> + Send + Sync> CheckpointPolicy
     for SequentialCheckpointPolicy<T>
 {
     fn subnet(&self) -> &SubnetID {

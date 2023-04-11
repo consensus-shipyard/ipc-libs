@@ -110,6 +110,7 @@ pub trait SubnetManager: BottomUpCheckpointManager {
 }
 
 /// The bottom up checkpoint manager
+#[async_trait]
 pub trait BottomUpCheckpointManager: SubnetChainInfo {
     /// Submits a bottom up checkpoint for a subnet from a wallet address. Returns the message cid.
     async fn submit_checkpoint(
@@ -150,6 +151,7 @@ pub trait BottomUpCheckpointManager: SubnetChainInfo {
 }
 
 /// Obtains the latest subnet chain info
+#[async_trait]
 pub trait SubnetChainInfo {
     /// Gets the latest subnet chain epoch
     async fn current_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch>;
