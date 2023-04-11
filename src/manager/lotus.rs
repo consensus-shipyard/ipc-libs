@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::time::Duration;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -11,23 +12,182 @@ use fil_actors_runtime::{builtin::singletons::INIT_ACTOR_ADDR, cbor};
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::METHOD_SEND;
 use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
-use ipc_gateway::{Checkpoint, PropagateParams, WhitelistPropagatorParams};
+use ipc_gateway::{BottomUpCheckpoint, PropagateParams, WhitelistPropagatorParams};
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
 
 use crate::config::Subnet;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::lotus::client::LotusJsonRPCClient;
-use crate::lotus::message::ipc::{CheckpointResponse, SubnetInfo};
+use crate::lotus::message::ipc::{BottomUpCheckpointResponse, SubnetInfo};
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::message::state::StateWaitMsgResponse;
 use crate::lotus::message::wallet::WalletKeyType;
-use crate::lotus::LotusClient;
+use crate::lotus::{LotusBottomUpCheckpointClient, LotusClient};
+use crate::manager::subnet::{BottomUpCheckpointManager, SubnetChainInfo};
 
 use super::subnet::SubnetManager;
 
 pub struct LotusSubnetManager<T: JsonRpcClient> {
     lotus_client: LotusJsonRPCClient<T>,
+}
+
+impl<T: JsonRpcClient + Send + Sync> SubnetChainInfo for LotusSubnetManager<T> {
+    async fn current_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
+        if !self.is_network_match(subnet).await? {
+            return Err(anyhow!("subnet not matching"));
+        }
+
+        let chain_head = self.lotus_client.chain_head().await?;
+        Ok(chain_head.height as ChainEpoch)
+    }
+}
+
+#[async_trait]
+impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetManager<T> {
+    async fn submit_bu_checkpoint(
+        &self,
+        subnet: SubnetID,
+        from: Address,
+        ch: BottomUpCheckpoint,
+    ) -> Result<Cid> {
+        let parent = subnet
+            .parent()
+            .ok_or_else(|| anyhow!("cannot submit checkpoint to root"))?;
+        if !self.is_network_match(&parent).await? {
+            return Err(anyhow!("checkpoint submitted in the wrong parent network"));
+        }
+
+        log::debug!(
+            "Pushing checkpoint submission message for {:} in subnet: {:?}",
+            ch.data.epoch,
+            &child_subnet.id
+        );
+
+        let to = subnet.id.subnet_actor();
+        let message = MpoolPushMessage::new(
+            to,
+            from,
+            ipc_subnet_actor::Method::SubmitCheckpoint as MethodNum,
+            cbor::serialize(&ch, "checkpoint")?.to_vec(),
+        );
+        let mem_push_response = self
+            .lotus_client
+            .mpool_push_message(message)
+            .await
+            .map_err(|e| {
+                log::error!(
+                    "error submitting checkpoint for epoch {epoch:} in subnet: {:?}",
+                    &subnet.id
+                );
+                e
+            })?;
+
+        // wait for the checkpoint to be committed before moving on.
+        let message_cid = mem_push_response.cid()?;
+        log::debug!("checkpoint message published with cid: {message_cid:?}");
+
+        Ok(message_cid)
+    }
+
+    async fn try_submit_bu_checkpoint(
+        &self,
+        subnet: SubnetID,
+        from: Address,
+        ch: BottomUpCheckpoint,
+        timeout: Duration,
+    ) -> Result<Option<Cid>> {
+        let message_cid = self.submit_bu_checkpoint(subnet, from, ch).await?;
+
+        let response = match tokio::time::timeout(
+            timeout,
+            self.lotus_client.state_wait_msg(message_cid.clone()),
+        )
+        .await
+        {
+            Ok(r) => r?,
+            Err(_) => {
+                log::debug!("did not receive message response within timeout");
+                return Ok(Some(message_cid));
+            }
+        };
+
+        log::debug!(
+            "submit bottom up success with recipit: {:?}",
+            response.receipt
+        );
+
+        Ok(None)
+    }
+
+    async fn create_bu_checkpoint_template(
+        &self,
+        subnet: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<BottomUpCheckpoint> {
+        if !self.is_network_match(subnet).await? {
+            return Err(anyhow!("checkpoint subnet incorrect"));
+        }
+
+        let mut checkpoint = BottomUpCheckpoint::new(subnet.clone(), epoch);
+
+        // From the template on the gateway actor of the child subnet, we get the children checkpoints
+        // and the bottom-up cross-net messages.
+        log::debug!(
+            "Getting checkpoint template for {epoch:} in subnet: {:?}",
+            &child_subnet.id
+        );
+        let template = self
+            .lotus_client
+            .ipc_get_checkpoint_template(epoch)
+            .await
+            .map_err(|e| {
+                log::error!(
+                    "error getting checkpoint template for epoch:{epoch:} in subnet: {:?}",
+                    &child_subnet.id
+                );
+                e
+            })?;
+
+        checkpoint.data.children = template.data.children;
+        checkpoint.data.cross_msgs = template.data.cross_msgs;
+
+        // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
+        // subnet.
+        log::debug!(
+            "Getting previous checkpoint from parent gateway for {epoch:} in subnet: {:?}",
+            &child_subnet.id
+        );
+
+        Ok(checkpoint)
+    }
+
+    async fn has_voted_in_epoch(
+        &self,
+        subnet: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool> {
+        let parent = subnet
+            .parent()
+            .ok_or_else(|| anyhow!("cannot submit checkpoint to root"))?;
+        if !self.is_network_match(&parent).await? {
+            return Err(anyhow!("checking vote in the wrong parent network"));
+        }
+        self.lotus_client
+            .ipc_has_voted_in_epoch(epoch, validator)
+            .await
+    }
+
+    async fn last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
+        let parent = subnet
+            .parent()
+            .ok_or_else(|| anyhow!("cannot submit checkpoint to root"))?;
+        if !self.is_network_match(&parent).await? {
+            return Err(anyhow!("checking vote in the wrong parent network"));
+        }
+        self.lotus_client.last_executed_epoch().await
+    }
 }
 
 #[async_trait]
@@ -123,15 +283,6 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         log::info!("left subnet: {subnet:}");
 
         Ok(())
-    }
-
-    async fn submit_checkpoint(
-        &self,
-        _subnet: SubnetID,
-        _from: Address,
-        _ch: Checkpoint,
-    ) -> Result<()> {
-        panic!("not implemented")
     }
 
     async fn list_child_subnets(
@@ -320,7 +471,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<CheckpointResponse>> {
+    ) -> Result<Vec<BottomUpCheckpointResponse>> {
         let checkpoints = self
             .lotus_client
             .ipc_list_checkpoints(subnet_id, from_epoch, to_epoch)

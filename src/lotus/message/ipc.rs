@@ -1,11 +1,14 @@
 use cid::Cid;
+use fvm_ipld_encoding::RawBytes;
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::{Checkpoint, Status, CHECKPOINT_GENESIS_CID};
+use fvm_shared::MethodNum;
+use ipc_gateway::{BottomUpCheckpoint, Status, CHECKPOINT_GENESIS_CID};
+use ipc_sdk::address::IPCAddress;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
 use serde::{Deserialize, Serialize};
@@ -92,7 +95,7 @@ pub struct Validator {
 /// here because the Lotus API json serializes and the cbor tuple deserializer is not
 /// able to pick it up automatically
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CheckpointResponse {
+pub struct BottomUpCheckpointResponse {
     #[serde(rename(deserialize = "Data"))]
     pub data: CheckpointData,
     #[serde(rename(deserialize = "Sig"))]
@@ -119,17 +122,33 @@ pub struct CheckpointData {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug, Default, Deserialize, Serialize)]
-pub struct CrossMsgMetaWrapper {
-    #[serde(rename(deserialize = "MsgsCid"))]
-    pub msgs_cid: Option<CIDMap>,
-    #[serde(rename(deserialize = "Nonce"))]
-    pub nonce: u64,
-    #[serde(rename(deserialize = "Value"))]
-    #[serde(deserialize_with = "deserialize_token_amount_from_str")]
-    pub value: TokenAmount,
+pub struct BatchCrossMsgWrapper {
+    #[serde(rename(deserialize = "CrossMsgs"))]
+    pub cross_msgs: Option<Vec<CrossMsgsWrapper>>,
     #[serde(rename(deserialize = "Fee"))]
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
     pub fee: TokenAmount,
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct CrossMsgsWrapper {
+    pub msg: StorableMsgWrapper,
+    pub wrapped: bool,
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct StorableMsgsWrapper {
+    // TODO: @will,IPCAddress is currently serialized by default as a tuple,
+    // we need to implement its map counterpart so it can be deserialized
+    // using a map from Lotus.
+    pub from: IPCAddress,
+    pub to: IPCAddress,
+    pub method: MethodNum,
+    pub params: RawBytes,
+    pub value: TokenAmount,
+    pub nonce: u64,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -147,10 +166,10 @@ pub struct Votes {
     pub validators: Vec<Address>,
 }
 
-impl TryFrom<CheckpointResponse> for Checkpoint {
+impl TryFrom<BottomUpCheckpointResponse> for BottomUpCheckpoint {
     type Error = anyhow::Error;
 
-    fn try_from(checkpoint_response: CheckpointResponse) -> Result<Self, Self::Error> {
+    fn try_from(checkpoint_response: BottomUpCheckpointResponse) -> Result<Self, Self::Error> {
         let prev_check = if let Some(prev_check) = checkpoint_response.data.prev_check {
             TCid::from(Cid::try_from(prev_check)?)
         } else {
@@ -204,7 +223,7 @@ impl TryFrom<CheckpointResponse> for Checkpoint {
             children,
             cross_msgs,
         };
-        Ok(Checkpoint {
+        Ok(BottomUpCheckpoint {
             data,
             sig: checkpoint_response.sig.unwrap_or_default(),
         })
