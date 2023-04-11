@@ -2472,27 +2472,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ipc-actor-common"
-version = "0.1.0"
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#bcb5eb000f1b02e428f4d9e166af32291e65603d"
-dependencies = [
- "anyhow",
- "fil_actors_runtime",
- "fvm_ipld_blockstore",
- "fvm_ipld_encoding 0.3.3",
- "fvm_shared 3.0.0-alpha.17",
- "integer-encoding",
- "ipc-sdk",
- "lazy_static",
- "log",
- "num-traits",
- "primitives",
- "serde",
- "serde_tuple",
- "thiserror",
-]
-
-[[package]]
 name = "ipc-agent"
 version = "0.1.0"
 dependencies = [
@@ -2552,7 +2531,6 @@ dependencies = [
  "fvm_shared 3.0.0-alpha.17",
  "indexmap",
  "integer-encoding",
- "ipc-actor-common",
  "ipc-sdk",
  "lazy_static",
  "log",
@@ -2576,16 +2554,12 @@ source = "git+https://github.com/consensus-shipyard/ipc-actors.git?tag=v0.1.0#18
 source = "git+https://github.com/consensus-shipyard/ipc-actors.git#bcb5eb000f1b02e428f4d9e166af32291e65603d"
 >>>>>>> 05a67b5 (add skeleton)
 dependencies = [
- "anyhow",
  "fil_actors_runtime",
- "fvm_ipld_blockstore",
  "fvm_ipld_encoding 0.3.3",
  "fvm_shared 3.0.0-alpha.17",
  "integer-encoding",
  "lazy_static",
- "log",
  "num-traits",
- "primitives",
  "serde",
  "serde_tuple",
  "thiserror",
@@ -2610,7 +2584,6 @@ dependencies = [
  "fvm_shared 3.0.0-alpha.17",
  "indexmap",
  "integer-encoding",
- "ipc-actor-common",
  "ipc-gateway",
  "ipc-sdk",
  "lazy_static",
