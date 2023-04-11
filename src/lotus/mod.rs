@@ -130,5 +130,5 @@ pub trait LotusBottomUpCheckpointClient {
     async fn ipc_has_voted_in_epoch(&self, epoch: ChainEpoch, validator: &Address) -> Result<bool>;
 
     /// Get the last executed epoch
-    async fn last_executed_epoch(&self) -> Result<ChainEpoch>;
+    async fn ipc_last_executed_epoch(&self) -> Result<ChainEpoch>;
 }

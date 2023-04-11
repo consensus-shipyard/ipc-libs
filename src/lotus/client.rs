@@ -101,7 +101,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusBottomUpCheckpointClient for LotusJson
         todo!()
     }
 
-    async fn last_executed_epoch(&self) -> Result<ChainEpoch> {
+    async fn ipc_last_executed_epoch(&self) -> Result<ChainEpoch> {
         todo!()
     }
 }
