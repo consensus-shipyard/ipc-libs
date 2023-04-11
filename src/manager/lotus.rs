@@ -186,7 +186,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
         if !self.is_network_match(&parent).await? {
             return Err(anyhow!("checking vote in the wrong parent network"));
         }
-        self.lotus_client.last_executed_epoch().await
+        self.lotus_client.ipc_last_executed_epoch().await
     }
 }
 
