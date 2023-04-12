@@ -43,7 +43,7 @@ pub struct IPCReadGatewayStateResponse {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadSubnetActorStateResponse {
-    pub check_period: ChainEpoch,
+    pub bottomup_check_period: ChainEpoch,
     pub validator_set: ValidatorSet,
     pub min_validators: u64,
 }

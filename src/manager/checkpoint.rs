@@ -199,7 +199,7 @@ async fn get_checkpoint_period<T: JsonRpcClient + Send + Sync>(
     child: &SubnetID,
     client: &LotusJsonRPCClient<T>,
 ) -> Result<ChainEpoch> {
-    log::debug!("Getting parent tipset");
+    log::debug!("getting checkpoint period in subnet: {child:?}");
 
     let chain_head = client.chain_head().await?;
     let cid_map = chain_head.cids.first().unwrap().clone();
@@ -212,7 +212,7 @@ async fn get_checkpoint_period<T: JsonRpcClient + Send + Sync>(
             log::error!("error getting subnet actor state for {:?}", child);
             e
         })?;
-    Ok(state.check_period)
+    Ok(state.bottomup_check_period)
 }
 
 async fn get_validators<T: JsonRpcClient + Send + Sync>(
