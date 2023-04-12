@@ -37,7 +37,7 @@ pub type NetworkVersion = u32;
 
 /// The Lotus client api to interact with the Lotus node.
 #[async_trait]
-pub trait LotusClient: LotusBottomUpCheckpointClient {
+pub trait LotusClient {
     /// Push the message to memory pool, see: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpushmessage
     async fn mpool_push_message(
         &self,
@@ -121,19 +121,4 @@ pub trait LotusClient: LotusBottomUpCheckpointClient {
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>>;
-}
-
-/// Bottom up checkpoint client for the gateway
-#[async_trait]
-pub trait LotusBottomUpCheckpointClient {
-    /// Checks if the validator has voted in the specified epoch
-    async fn ipc_has_voted_in_epoch(
-        &self,
-        subnet: &SubnetID,
-        epoch: ChainEpoch,
-        validator: &Address,
-    ) -> Result<bool>;
-
-    /// Get the last executed epoch
-    async fn ipc_last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch>;
 }

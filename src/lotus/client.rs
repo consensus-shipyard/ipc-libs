@@ -31,7 +31,7 @@ use crate::lotus::message::mpool::{
 use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
-use crate::lotus::{LotusBottomUpCheckpointClient, LotusClient, NetworkVersion};
+use crate::lotus::{LotusClient, NetworkVersion};
 use crate::manager::SubnetInfo;
 
 // RPC methods
@@ -93,22 +93,6 @@ pub struct LotusJsonRPCClient<T: JsonRpcClient> {
 impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
     pub fn new(client: T) -> Self {
         Self { client }
-    }
-}
-
-#[async_trait]
-impl<T: JsonRpcClient + Send + Sync> LotusBottomUpCheckpointClient for LotusJsonRPCClient<T> {
-    async fn ipc_has_voted_in_epoch(
-        &self,
-        _subnet: &SubnetID,
-        _epoch: ChainEpoch,
-        _validator: &Address,
-    ) -> Result<bool> {
-        todo!()
-    }
-
-    async fn ipc_last_executed_epoch(&self, _subnet: &SubnetID) -> Result<ChainEpoch> {
-        todo!()
     }
 }
 

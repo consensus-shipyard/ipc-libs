@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::time::Duration;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -23,182 +22,12 @@ use crate::lotus::message::ipc::SubnetInfo;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::message::state::StateWaitMsgResponse;
 use crate::lotus::message::wallet::WalletKeyType;
-use crate::lotus::{LotusBottomUpCheckpointClient, LotusClient};
-use crate::manager::subnet::{BottomUpCheckpointManager, SubnetChainInfo};
+use crate::lotus::LotusClient;
 
 use super::subnet::SubnetManager;
 
 pub struct LotusSubnetManager<T: JsonRpcClient> {
     lotus_client: LotusJsonRPCClient<T>,
-}
-
-pub type DefaultSubnetManager = LotusSubnetManager<JsonRpcClientImpl>;
-
-impl AsRef<DefaultSubnetManager> for DefaultSubnetManager {
-    fn as_ref(&self) -> &DefaultSubnetManager {
-        self
-    }
-}
-
-#[async_trait]
-impl<T: JsonRpcClient + Send + Sync> SubnetChainInfo for LotusSubnetManager<T> {
-    async fn current_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
-        if !self.is_network_match(subnet).await? {
-            return Err(anyhow!("subnet not matching"));
-        }
-
-        let chain_head = self.lotus_client.chain_head().await?;
-        Ok(chain_head.height as ChainEpoch)
-    }
-}
-
-#[async_trait]
-impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetManager<T> {
-    async fn submit_checkpoint(
-        &self,
-        subnet: SubnetID,
-        from: Address,
-        ch: BottomUpCheckpoint,
-    ) -> Result<Cid> {
-        let parent = subnet
-            .parent()
-            .ok_or_else(|| anyhow!("cannot submit checkpoint to root"))?;
-        if !self.is_network_match(&parent).await? {
-            return Err(anyhow!("checkpoint submitted in the wrong parent network"));
-        }
-
-        let epoch = ch.data.epoch;
-
-        log::debug!(
-            "Pushing checkpoint submission message for {:} in subnet: {:?}",
-            epoch,
-            subnet
-        );
-
-        let to = subnet.subnet_actor();
-        let message = MpoolPushMessage::new(
-            to,
-            from,
-            ipc_subnet_actor::Method::SubmitCheckpoint as MethodNum,
-            cbor::serialize(&ch, "checkpoint")?.to_vec(),
-        );
-        let mem_push_response = self
-            .lotus_client
-            .mpool_push_message(message)
-            .await
-            .map_err(|e| {
-                log::error!(
-                    "error submitting checkpoint for epoch {epoch:} in subnet: {:?}",
-                    subnet
-                );
-                e
-            })?;
-
-        // wait for the checkpoint to be committed before moving on.
-        let message_cid = mem_push_response.cid()?;
-        log::debug!("checkpoint message published with cid: {message_cid:?}");
-
-        Ok(message_cid)
-    }
-
-    async fn try_submit_checkpoint(
-        &self,
-        subnet: SubnetID,
-        from: Address,
-        ch: BottomUpCheckpoint,
-        timeout: Duration,
-    ) -> Result<Option<Cid>> {
-        let message_cid = self.submit_checkpoint(subnet, from, ch).await?;
-
-        let response = match tokio::time::timeout(
-            timeout,
-            self.lotus_client.state_wait_msg(message_cid),
-        )
-        .await
-        {
-            Ok(r) => r?,
-            Err(_) => {
-                log::debug!("did not receive message response within timeout");
-                return Ok(Some(message_cid));
-            }
-        };
-
-        log::debug!(
-            "submit bottom up success with recipit: {:?}",
-            response.receipt
-        );
-
-        Ok(None)
-    }
-
-    async fn create_checkpoint(
-        &self,
-        subnet: &SubnetID,
-        epoch: ChainEpoch,
-    ) -> Result<BottomUpCheckpoint> {
-        if !self.is_network_match(subnet).await? {
-            return Err(anyhow!("checkpoint subnet incorrect"));
-        }
-
-        let mut checkpoint = BottomUpCheckpoint::new(subnet.clone(), epoch);
-
-        // From the template on the gateway actor of the child subnet, we get the children checkpoints
-        // and the bottom-up cross-net messages.
-        log::debug!(
-            "Getting checkpoint template for {epoch:} in subnet: {:?}",
-            subnet
-        );
-        let template = self
-            .lotus_client
-            .ipc_get_checkpoint_template(epoch)
-            .await
-            .map_err(|e| {
-                log::error!(
-                    "error getting checkpoint template for epoch:{epoch:} in subnet: {:?}",
-                    subnet
-                );
-                e
-            })?;
-
-        checkpoint.data.children = template.data.children;
-        checkpoint.data.cross_msgs = template.data.cross_msgs;
-
-        // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
-        // subnet.
-        log::debug!(
-            "Getting previous checkpoint from parent gateway for {epoch:} in subnet: {:?}",
-            subnet
-        );
-
-        Ok(checkpoint)
-    }
-
-    async fn has_voted_in_epoch(
-        &self,
-        subnet: &SubnetID,
-        epoch: ChainEpoch,
-        validator: &Address,
-    ) -> Result<bool> {
-        let parent = subnet
-            .parent()
-            .ok_or_else(|| anyhow!("cannot submit checkpoint to root"))?;
-        if !self.is_network_match(&parent).await? {
-            return Err(anyhow!("checking vote in the wrong parent network"));
-        }
-        self.lotus_client
-            .ipc_has_voted_in_epoch(subnet, epoch, validator)
-            .await
-    }
-
-    async fn last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
-        let parent = subnet
-            .parent()
-            .ok_or_else(|| anyhow!("cannot submit checkpoint to root"))?;
-        if !self.is_network_match(&parent).await? {
-            return Err(anyhow!("checking vote in the wrong parent network"));
-        }
-        self.lotus_client.ipc_last_executed_epoch(subnet).await
-    }
 }
 
 #[async_trait]
