@@ -212,7 +212,7 @@ async fn get_checkpoint_period<T: JsonRpcClient + Send + Sync>(
             log::error!("error getting subnet actor state for {:?} due to {e:?}", child);
             e
         })?;
-    Ok(state.topdown_check_period)
+    Ok(state.bottomup_check_period)
 }
 
 async fn get_validators<T: JsonRpcClient + Send + Sync>(

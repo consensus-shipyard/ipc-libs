@@ -357,11 +357,15 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
         let r = self
             .client
-            .request::<IPCReadSubnetActorStateResponse>(
+            .request::<serde_json::Value>(
                 methods::IPC_READ_SUBNET_ACTOR_STATE,
                 params,
             )
             .await?;
+
+        log::debug!("received value: {r:?}");
+
+        let r = serde_json::from_value(r)?;
         Ok(r)
     }
 
