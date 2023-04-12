@@ -209,7 +209,7 @@ async fn get_checkpoint_period<T: JsonRpcClient + Send + Sync>(
         .ipc_read_subnet_actor_state(child, parent_tip_set)
         .await
         .map_err(|e| {
-            log::error!("error getting subnet actor state for {:?}", child);
+            log::error!("error getting subnet actor state for {:?} due to {e:?}", child);
             e
         })?;
     Ok(state.bottomup_check_period)
