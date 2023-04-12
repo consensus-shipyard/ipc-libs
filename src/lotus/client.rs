@@ -13,12 +13,13 @@ use fvm_ipld_encoding::RawBytes;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::BottomUpCheckpoint;
+use ipc_gateway::{BottomUpCheckpoint, CrossMsg};
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
+use crate::constants::GATEWAY_ACTOR_ADDRESS;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
@@ -54,10 +55,9 @@ mod methods {
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
     pub const IPC_GET_VOTES_FOR_CHECKPOINT: &str = "Filecoin.IPCGetVotesForCheckpoint";
     pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpoints";
+    pub const IPC_GET_TOPDOWN_MSGS: &str = "Filecoin.IPCGetTopDownMsgs";
 }
 
-/// The default gateway actor address
-const GATEWAY_ACTOR_ADDRESS: &str = "t064";
 /// The default state wait confidence value
 /// TODO: we can afford 2 epochs confidence (and even one)
 /// with Mir, but with Filecoin mainnet this should be increased
@@ -408,6 +408,23 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .collect::<Result<_>>()?;
 
         Ok(checkpoints)
+    }
+
+    async fn ipc_get_topdown_msgs(
+        &self,
+        child_subnet_id: SubnetID,
+        start_nonce: u64,
+    ) -> Result<Vec<CrossMsg>> {
+        let params = json!([
+            GATEWAY_ACTOR_ADDRESS,
+            child_subnet_id.to_string(),
+            start_nonce
+        ]);
+        let r = self
+            .client
+            .request::<Vec<CrossMsg>>(methods::IPC_GET_TOPDOWN_MSGS, params)
+            .await?;
+        Ok(r)
     }
 }
 

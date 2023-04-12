@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_gateway::BottomUpCheckpoint;
+use ipc_gateway::{BottomUpCheckpoint, CrossMsg};
 use ipc_sdk::subnet_id::SubnetID;
 use serde::de::DeserializeOwned;
 
@@ -121,4 +121,12 @@ pub trait LotusClient {
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>>;
+
+    /// Returns the topdown messages starting from `start_nonce` on a gateway actor identified by
+    /// `gateway_addr` destined for a child subnet identified by `child_subnet_id`.
+    async fn ipc_get_topdown_msgs(
+        &self,
+        child_subnet_id: SubnetID,
+        start_nonce: u64,
+    ) -> Result<Vec<CrossMsg>>;
 }
