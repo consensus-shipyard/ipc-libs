@@ -160,7 +160,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                 log::error!("error getting subnet actor state for {:?}", &child.id);
                 e
             })?;
-        let period = state.check_period;
+        let period = state.bottom_up_check_period;
 
         // We can now start looping. In each loop we read the child subnet's chain head and check if
         // it is time to submit a new checkpoint. If it is, we construct and submit a checkpoint.

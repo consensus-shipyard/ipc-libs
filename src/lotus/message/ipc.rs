@@ -34,7 +34,7 @@ pub struct IPCGetPrevCheckpointForChildResponse {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadGatewayStateResponse {
-    pub check_period: ChainEpoch,
+    pub top_down_check_period: ChainEpoch,
 }
 
 /// The state of a subnet actor. The struct omits all fields that are not relevant for the
@@ -42,7 +42,7 @@ pub struct IPCReadGatewayStateResponse {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadSubnetActorStateResponse {
-    pub check_period: ChainEpoch,
+    pub bottom_up_check_period: ChainEpoch,
     pub validator_set: ValidatorSet,
     pub min_validators: u64,
     pub bottom_up_checkpoint_voting: Voting,
@@ -246,5 +246,20 @@ impl TryFrom<BottomUpCheckpointWrapper> for BottomUpCheckpoint {
             data,
             sig: checkpoint_response.sig.unwrap_or_default(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::lotus::message::ipc::IPCReadSubnetActorStateResponse;
+
+    #[test]
+    fn deserialize_ipc_subnet_state() {
+        let raw = r#"
+        {"Name":"test2","ParentID":{"Parent":"/root","Actor":"t00"},"IPCGatewayAddr":"t064","Consensus":3,"MinValidatorStake":"1000000000000000000","TotalStake":"10000000000000000000","Stake":{"/":"bafy2bzacebentzoqaapingrxwknlxqcusl23rqaa7cwb42u76fgvb25nxpmhq"},"Status":1,"Genesis":null,"BottomUpCheckPeriod":10,"TopDownCheckPeriod":10,"GenesisEpoch":0,"CommittedCheckpoints":{"/":"bafy2bzaceamp42wmmgr2g2ymg46euououzfyck7szknvfacqscohrvaikwfay"},"ValidatorSet":{"validators":[{"addr":"t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq","net_addr":"test","weight":"10000000000000000000"}],"configuration_number":1},"MinValidators":1,"PreviousExecutedCheckpoint":{"/":"bafy2bzacedkoa623kvi5gfis2yks7xxjl73vg7xwbojz4tpq63dd5jpfz757i"},"BottomUpCheckpointVoting":{"GenesisEpoch":0,"SubmissionPeriod":10,"LastVotingExecuted":0,"ExecutableEpochQueue":null,"EpochVoteSubmission":{"/":"bafy2bzaceamp42wmmgr2g2ymg46euououzfyck7szknvfacqscohrvaikwfay"},"Ratio":{"Num":2,"Denom":3}}}
+        "#;
+
+        let r = serde_json::from_str::<IPCReadSubnetActorStateResponse>(raw);
+        assert!(r.is_ok());
     }
 }
