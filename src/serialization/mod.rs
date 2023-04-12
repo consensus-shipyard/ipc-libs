@@ -6,8 +6,10 @@
 
 mod checkpoint;
 
-/// The trait to implement is we want to serialize directly to json. Most of the types should have no
-/// need to implement this trait. But some types that are shared between actor using cbor tuple serialization
-/// and json rpc response, we are using `AsJson` wrapper to handle convert to json instead.
+/// A helper struct to serialize struct to json.
+///
+/// Most of the types should have no need to use this struct. But some types that are shared between
+/// actor, which are using cbor tuple serialization and json rpc response. We are using this wrapper
+/// to handle convert to json instead.
 #[derive(Debug)]
-pub struct AsJson<T>(pub T);
+pub struct SerializeToJson<T>(pub T);

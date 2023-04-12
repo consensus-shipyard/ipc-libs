@@ -13,7 +13,7 @@ use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
 
 use crate::manager::SubnetManager;
-use crate::serialization::AsJson;
+use crate::serialization::SerializeToJson;
 use crate::server::handlers::manager::check_subnet;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
@@ -39,7 +39,7 @@ impl ListCheckpointsHandler {
 #[async_trait]
 impl JsonRPCRequestHandler for ListCheckpointsHandler {
     type Request = ListCheckpointsParams;
-    type Response = Vec<AsJson<BottomUpCheckpoint>>;
+    type Response = Vec<SerializeToJson<BottomUpCheckpoint>>;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
         let child_subnet_id = SubnetID::from_str(request.subnet_id.as_str())?;
@@ -60,7 +60,7 @@ impl JsonRPCRequestHandler for ListCheckpointsHandler {
             .list_checkpoints(child_subnet_id, request.from_epoch, request.to_epoch)
             .await?
             .into_iter()
-            .map(AsJson)
+            .map(SerializeToJson)
             .collect();
 
         Ok(checkpoints)

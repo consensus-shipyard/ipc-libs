@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 //! Json serialization of checkpoints
 
-use crate::serialization::AsJson;
+use crate::serialization::SerializeToJson;
 use base64::Engine;
 use ipc_gateway::checkpoint::{BatchCrossMsgs, CheckData};
 use ipc_gateway::BottomUpCheckpoint;
@@ -10,14 +10,14 @@ use num_traits::ToPrimitive;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 
-impl Serialize for AsJson<BottomUpCheckpoint> {
+impl Serialize for SerializeToJson<BottomUpCheckpoint> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let BottomUpCheckpoint { data, sig } = &self.0;
 
-        let data = AsJson(data);
+        let data = SerializeToJson(data);
         let sig = base64::engine::general_purpose::STANDARD.encode(sig);
 
         let mut state = serializer.serialize_struct("BottomUpCheckpoint", 2)?;
@@ -27,7 +27,7 @@ impl Serialize for AsJson<BottomUpCheckpoint> {
     }
 }
 
-impl<'a> Serialize for AsJson<&'a CheckData> {
+impl<'a> Serialize for SerializeToJson<&'a CheckData> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -59,7 +59,7 @@ impl<'a> Serialize for AsJson<&'a CheckData> {
                 })
             })
             .collect::<Vec<_>>();
-        let cross_msgs = AsJson(cross_msgs);
+        let cross_msgs = SerializeToJson(cross_msgs);
 
         let mut state = serializer.serialize_struct("CheckData", 6)?;
         state.serialize_field("source", &source)?;
@@ -73,7 +73,7 @@ impl<'a> Serialize for AsJson<&'a CheckData> {
     }
 }
 
-impl<'a> Serialize for AsJson<&'a BatchCrossMsgs> {
+impl<'a> Serialize for SerializeToJson<&'a BatchCrossMsgs> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -106,14 +106,14 @@ impl<'a> Serialize for AsJson<&'a BatchCrossMsgs> {
 
 #[cfg(test)]
 mod tests {
-    use crate::serialization::AsJson;
+    use crate::serialization::SerializeToJson;
     use ipc_gateway::BottomUpCheckpoint;
     use ipc_sdk::subnet_id::ROOTNET_ID;
 
     #[test]
     fn test_serialization() {
         let cp = BottomUpCheckpoint::new(ROOTNET_ID.clone(), 10);
-        let v = serde_json::to_string(&AsJson(cp)).unwrap();
+        let v = serde_json::to_string(&SerializeToJson(cp)).unwrap();
         println!("{v:}");
     }
 }
