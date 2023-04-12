@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 ///! IPC node-specific traits.
 use std::collections::HashMap;
-use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -17,7 +16,7 @@ use crate::lotus::message::{ipc::SubnetInfo, wallet::WalletKeyType};
 
 /// Trait to interact with a subnet and handle its lifecycle.
 #[async_trait]
-pub trait SubnetManager: BottomUpCheckpointManager {
+pub trait SubnetManager {
     /// Deploys a new subnet actor on the `parent` subnet and with the
     /// configuration passed in `ConstructParams`.
     /// The result of the function is the ID address for the subnet actor from which the final
@@ -106,52 +105,4 @@ pub trait SubnetManager: BottomUpCheckpointManager {
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>>;
-}
-
-/// The bottom up checkpoint manager
-#[async_trait]
-pub trait BottomUpCheckpointManager: SubnetChainInfo {
-    /// Submits a bottom up checkpoint for a subnet from a wallet address. Returns the message cid.
-    async fn submit_checkpoint(
-        &self,
-        subnet: SubnetID,
-        from: Address,
-        ch: BottomUpCheckpoint,
-    ) -> Result<Cid>;
-
-    /// Try to submit a bottom up checkpoint for a subnet from a wallet address with a wait timeout.
-    /// If the operation is successful within the timeout, returns Ok(None). If the operation timeouts
-    /// returns the message cid. Other error returns error.
-    async fn try_submit_checkpoint(
-        &self,
-        subnet: SubnetID,
-        from: Address,
-        ch: BottomUpCheckpoint,
-        timeout: Duration,
-    ) -> Result<Option<Cid>>;
-
-    /// Create a bottom up checkpoint template
-    async fn create_checkpoint(
-        &self,
-        subnet: &SubnetID,
-        epoch: ChainEpoch,
-    ) -> Result<BottomUpCheckpoint>;
-
-    /// Checks if the validator has voted in the specified epoch
-    async fn has_voted_in_epoch(
-        &self,
-        subnet: &SubnetID,
-        epoch: ChainEpoch,
-        validator: &Address,
-    ) -> Result<bool>;
-
-    /// Get the last executed epoch
-    async fn last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch>;
-}
-
-/// Obtains the latest subnet chain info
-#[async_trait]
-pub trait SubnetChainInfo {
-    /// Gets the latest subnet chain epoch
-    async fn current_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch>;
 }
