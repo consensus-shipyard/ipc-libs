@@ -35,7 +35,9 @@ pub struct IPCGetPrevCheckpointForChildResponse {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadGatewayStateResponse {
-    pub check_period: ChainEpoch,
+    pub check_period: ChainEpoch, // TODO: remove as it became obsolete
+    pub bottomup_check_period: ChainEpoch,
+    pub topdown_check_period: ChainEpoch,
     pub applied_topdown_nonce: u64,
 }
 
