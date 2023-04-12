@@ -16,7 +16,6 @@ use futures_util::StreamExt;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::MethodNum;
-use ipc_gateway::checkpoint::checkpoint_epoch;
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
@@ -169,6 +168,14 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
             let child_head = child_client.chain_head().await?;
             let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
 
+            // get parent chain head
+            let parent_head = parent_client.chain_head().await?;
+            // A key assumption we make now is that each block has exactly one tip set. We panic
+            // if this is not the case as it violates our assumption.
+            // TODO: update this logic once the assumption changes (i.e., mainnet)
+            assert_eq!(parent_head.cids.len(), 1);
+            let cid_map = parent_head.cids.first().unwrap().clone();
+            let parent_tip_set = Cid::try_from(cid_map)?;
             // get subnet actor state and last checkpoint executed
             let subnet_actor_state = parent_client
                 .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
@@ -181,14 +188,6 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
             if curr_epoch >= submission_epoch {
                 // First, we check which accounts are in the validator set. This is done by reading
                 // the parent's chain head and requesting the state at that tip set.
-                let parent_head = parent_client.chain_head().await?;
-                // A key assumption we make now is that each block has exactly one tip set. We panic
-                // if this is not the case as it violates our assumption.
-                // TODO: update this logic once the assumption changes (i.e., mainnet)
-                assert_eq!(parent_head.cids.len(), 1);
-                let cid_map = parent_head.cids.first().unwrap().clone();
-                let parent_tip_set = Cid::try_from(cid_map)?;
-
                 let mut validator_set: HashSet<Address, RandomState> = HashSet::new();
                 match subnet_actor_state.validator_set.validators {
                     None => {}
@@ -207,7 +206,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                     if validator_set.contains(account) {
                         // check if the validator already voted
                         let has_voted = parent_client
-                            .ipc_validator_has_voted_bottomup(&child.id, epoch, account)
+                            .ipc_validator_has_voted_bottomup(&child.id, submission_epoch, account)
                             .await
                             .map_err(|e| {
                                 log::error!(
