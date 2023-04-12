@@ -164,87 +164,93 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
         let period = state.check_period;
 
         // We can now start looping. In each loop we read the child subnet's chain head and check if
-        // it's a checkpoint epoch. If it is, we construct and submit a checkpoint.
+        // it is time to submit a new checkpoint. If it is, we construct and submit a checkpoint.
         loop {
             let child_head = child_client.chain_head().await?;
             let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
             // next epoch to submit.
             let epoch = checkpoint_epoch(curr_epoch, period);
 
-            // check if it has already been successfully committed.
-            // FIXME: We shouldn't just check if OK, but that the error
-            // received is that the checkpoint is not committed yet.
-            match parent_client.ipc_get_checkpoint(&child.id, epoch).await {
-                Ok(_) => {
-                    log::debug!(
-                        "checkpoint for epoch {epoch:} already committed. Nothing to do yet!"
-                    );
-                    // Sleep for an appropriate amount of time before checking the chain head again or return
-                    // if a stop notification is received.
-                    if !wait_next_iteration(&stop_notify).await? {
-                        return Ok(());
-                    }
-                    continue;
-                }
-                Err(e) => {
-                    log::debug!("tracking error from get_checkpoint: {}", e.to_string());
-                }
-            };
-
-            // It's a checkpointing epoch and we may have checkpoints to submit.
-            log::info!(
-                "Checkpointing epoch {} for subnet pair ({}, {})",
-                epoch,
-                child.id,
-                parent.id
-            );
-
-            // First, we check which accounts are in the validator set. This is done by reading
-            // the parent's chain head and requesting the state at that tip set.
-            let parent_head = parent_client.chain_head().await?;
-            // A key assumption we make now is that each block has exactly one tip set. We panic
-            // if this is not the case as it violates our assumption.
-            // TODO: update this logic once the assumption changes (i.e., mainnet)
-            assert_eq!(parent_head.cids.len(), 1);
-            let cid_map = parent_head.cids.first().unwrap().clone();
-            let parent_tip_set = Cid::try_from(cid_map)?;
-
+            // get subnet actor state and last checkpoint executed
             let subnet_actor_state = parent_client
                 .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
                 .await?;
+            let last_exec = subnet_actor_state
+                .bottom_up_checkpoint_voting
+                .last_voting_executed;
+            let submission_epoch = last_exec + period;
 
-            let mut validator_set: HashSet<Address, RandomState> = HashSet::new();
-            match subnet_actor_state.validator_set.validators {
-                None => {}
-                Some(validators) => {
-                    for v in validators {
-                        validator_set.insert(Address::from_str(v.addr.deref())?);
+            if curr_epoch >= submission_epoch {
+                // First, we check which accounts are in the validator set. This is done by reading
+                // the parent's chain head and requesting the state at that tip set.
+                let parent_head = parent_client.chain_head().await?;
+                // A key assumption we make now is that each block has exactly one tip set. We panic
+                // if this is not the case as it violates our assumption.
+                // TODO: update this logic once the assumption changes (i.e., mainnet)
+                assert_eq!(parent_head.cids.len(), 1);
+                let cid_map = parent_head.cids.first().unwrap().clone();
+                let parent_tip_set = Cid::try_from(cid_map)?;
+
+                let mut validator_set: HashSet<Address, RandomState> = HashSet::new();
+                match subnet_actor_state.validator_set.validators {
+                    None => {}
+                    Some(validators) => {
+                        for v in validators {
+                            validator_set.insert(Address::from_str(v.addr.deref())?);
+                        }
                     }
-                }
-            };
+                };
 
-            // Now, for each account defined in the `child` subnet that is in the validator set, we
-            // submit a checkpoint on its behalf.
-            assert_eq!(child_head.cids.len(), 1); // Again, check key assumption
-            let child_tip_set = Cid::try_from(child_head.cids.first().unwrap().clone())?;
-            for account in child.accounts.iter() {
-                if validator_set.contains(account) {
-                    log::info!(
-                        "Submitting checkpoint for account {} and epoch {} from child {} to parent {}",
-                        account,
-                        epoch,
-                        child.id,
-                        parent.id
-                    );
-                    submit_checkpoint(
-                        child_tip_set,
-                        epoch,
-                        account,
-                        &child,
-                        &child_client,
-                        &parent_client,
-                    )
-                    .await?;
+                // Now, for each account defined in the `child` subnet that is in the validator set, we
+                // submit a checkpoint on its behalf.
+                assert_eq!(child_head.cids.len(), 1); // Again, check key assumption
+                let child_tip_set = Cid::try_from(child_head.cids.first().unwrap().clone())?;
+                for account in child.accounts.iter() {
+                    if validator_set.contains(account) {
+                        // check if the validator already voted
+                        if !parent_client
+                            .ipc_validator_has_voted_bottomup(&child.id, epoch, account)
+                            .await
+                            .map_err(|e| {
+                                log::error!(
+                                    "error checking if validator has voted in subnet: {:?}",
+                                    &child.id
+                                );
+                                e
+                            })?
+                        {
+                            // submitting the checkpoint synchronously and waiting to be committed.
+                            submit_checkpoint(
+                                child_tip_set,
+                                submission_epoch,
+                                account,
+                                &child,
+                                &child_client,
+                                &parent_client,
+                            )
+                            .await?;
+                            // check if by any chance we have the opportunity to submit any oustanding checkpoint we may
+                            // missing in case the previous one was executed
+                            let subnet_actor_state = parent_client
+                                .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
+                                .await?;
+                            let last_exec = subnet_actor_state
+                                .bottom_up_checkpoint_voting
+                                .last_voting_executed;
+                            let submission_epoch = last_exec + period;
+                            if last_exec >= submission_epoch {
+                                submit_checkpoint(
+                                    child_tip_set,
+                                    submission_epoch,
+                                    account,
+                                    &child,
+                                    &child_client,
+                                    &parent_client,
+                                )
+                                .await?;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -280,6 +286,12 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     child_client: &LotusJsonRPCClient<T>,
     parent_client: &LotusJsonRPCClient<T>,
 ) -> Result<()> {
+    log::info!(
+        "Submitting checkpoint for account {} and epoch {} from child {}",
+        account,
+        epoch,
+        child_subnet.id,
+    );
     let mut checkpoint = BottomUpCheckpoint::new(child_subnet.id.clone(), epoch);
 
     // From the template on the gateway actor of the child subnet, we get the children checkpoints
@@ -325,21 +337,6 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     }
     checkpoint.data.proof = child_tip_set.to_bytes();
 
-    // The checkpoint is constructed. We now check if this validator already submitted a vote
-    // for this checkpoint. If so, we do not submit the checkpoint again.
-    let votes = parent_client
-        .ipc_get_votes_for_checkpoint(child_subnet.id.clone(), checkpoint.cid())
-        .await?;
-
-    if votes.validators.contains(account) {
-        log::info!(
-            "Checkpoint for {epoch:} in subnet: {:?} already submitted by validator: {:?}",
-            &child_subnet.id,
-            account
-        );
-        return Ok(());
-    }
-
     // The checkpoint is constructed. Now we call the `submit_checkpoint` method on the subnet actor
     // of the child subnet that is deployed on the parent subnet.
     log::debug!(
@@ -368,14 +365,9 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     // wait for the checkpoint to be committed before moving on.
     let message_cid = mem_push_response.cid()?;
     log::debug!("checkpoint message published with cid: {message_cid:?}");
-
-    // TODO: Waiting for checkpoints to be committed may take too long for slow parent,
-    // making the checkpoint manager to fall behind. For now we are not going to
-    // wait for commitment. We can check with list-checkpoints the commitment state.
-    // This may be refactored in the future.
-    // log::info!("waiting for checkpoint for epoch {epoch:} to be committed");
-    // parent_client.state_wait_msg(message_cid).await?;
-    // log::info!("successfully published checkpoint submission for epoch {epoch:}");
+    log::info!("waiting for checkpoint for epoch {epoch:} to be committed");
+    parent_client.state_wait_msg(message_cid).await?;
+    log::info!("successfully published checkpoint submission for epoch {epoch:}");
 
     Ok(())
 }

@@ -3,7 +3,6 @@
 
 use cid::Cid;
 use fvm_ipld_encoding::RawBytes;
-use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
@@ -46,6 +45,15 @@ pub struct IPCReadSubnetActorStateResponse {
     pub check_period: ChainEpoch,
     pub validator_set: ValidatorSet,
     pub min_validators: u64,
+    pub bottom_up_checkpoint_voting: Voting,
+}
+
+/// A subset of the voting structure with information
+/// about a checkpoint voting
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct Voting {
+    pub last_voting_executed: i64,
 }
 
 /// SubnetInfo is an auxiliary struct that collects relevant information about the state of a subnet
@@ -159,12 +167,6 @@ pub struct CheckData {
     pub source: SubnetID,
     #[serde(rename(deserialize = "Checks"))]
     pub checks: Vec<CIDMap>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "PascalCase")]
-pub struct Votes {
-    pub validators: Vec<Address>,
 }
 
 impl From<BatchCrossMsgsWrapper> for BatchCrossMsgs {

@@ -22,9 +22,7 @@ use serde_json::json;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
-use crate::lotus::message::ipc::{
-    IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse, Votes,
-};
+use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
 use crate::lotus::message::mpool::{
     MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
 };
@@ -47,13 +45,13 @@ mod methods {
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
     pub const CHAIN_HEAD: &str = "Filecoin.ChainHead";
     pub const IPC_GET_PREV_CHECKPOINT_FOR_CHILD: &str = "Filecoin.IPCGetPrevCheckpointForChild";
-    pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplate";
-    pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpoint";
+    pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplateSerialized";
+    pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpointSerialized";
     pub const IPC_READ_GATEWAY_STATE: &str = "Filecoin.IPCReadGatewayState";
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
-    pub const IPC_GET_VOTES_FOR_CHECKPOINT: &str = "Filecoin.IPCGetVotesForCheckpoint";
-    pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpoints";
+    pub const IPC_VALIDATOR_HAS_VOTED_BOTTOMUP: &str = "Filecoin.IPCHasVotedBottomUpCheckpoint";
+    pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpointsSerialized";
 }
 
 /// The default gateway actor address
@@ -358,15 +356,16 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r.unwrap_or_default())
     }
 
-    async fn ipc_get_votes_for_checkpoint(
+    async fn ipc_validator_has_voted_bottomup(
         &self,
-        subnet_id: SubnetID,
-        checkpoint_cid: Cid,
-    ) -> Result<Votes> {
-        let params = json!([subnet_id.to_json(), CIDMap::from(checkpoint_cid)]);
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool> {
+        let params = json!([subnet_id.to_json(), epoch, validator]);
         let r = self
             .client
-            .request::<Votes>(methods::IPC_GET_VOTES_FOR_CHECKPOINT, params)
+            .request::<bool>(methods::IPC_VALIDATOR_HAS_VOTED_BOTTOMUP, params)
             .await?;
         Ok(r)
     }
