@@ -13,7 +13,6 @@ use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
 
-use crate::lotus::message::ipc::BottomUpCheckpointWrapper;
 use crate::lotus::message::{ipc::SubnetInfo, wallet::WalletKeyType};
 
 /// Trait to interact with a subnet and handle its lifecycle.
@@ -106,7 +105,7 @@ pub trait SubnetManager: BottomUpCheckpointManager {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<BottomUpCheckpointWrapper>>;
+    ) -> Result<Vec<BottomUpCheckpoint>>;
 }
 
 /// The bottom up checkpoint manager
