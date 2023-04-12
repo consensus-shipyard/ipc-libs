@@ -19,6 +19,7 @@ use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
+use crate::constants::GATEWAY_ACTOR_ADDRESS;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
@@ -55,8 +56,6 @@ mod methods {
     pub const IPC_GET_TOPDOWN_MESSAGES: &str = "Filecoin.IPCGetTopDownMsgsSerialized";
 }
 
-/// The default gateway actor address
-const GATEWAY_ACTOR_ADDRESS: &str = "t064";
 /// The default state wait confidence value
 /// TODO: we can afford 2 epochs confidence (and even one)
 /// with Mir, but with Filecoin mainnet this should be increased
