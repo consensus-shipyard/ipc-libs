@@ -1,8 +1,8 @@
-use cid::Cid;
-use fvm_ipld_encoding::RawBytes;
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
+use cid::Cid;
+use fvm_ipld_encoding::RawBytes;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
@@ -15,7 +15,8 @@ use primitives::TCid;
 use serde::{Deserialize, Serialize};
 
 use crate::lotus::message::deserialize::{
-    deserialize_subnet_id_from_map, deserialize_token_amount_from_str,
+    deserialize_ipc_address_from_map, deserialize_subnet_id_from_map,
+    deserialize_token_amount_from_str,
 };
 use crate::lotus::message::serialize::{
     serialize_subnet_id_to_str, serialize_token_amount_to_atto,
@@ -92,20 +93,20 @@ pub struct Validator {
     pub weight: String,
 }
 
-/// This deserializes from the `gateway::Checkpoint`, we need to redefine
+/// This deserializes from the `gateway::BottomUpCheckpoint`, we need to redefine
 /// here because the Lotus API json serializes and the cbor tuple deserializer is not
 /// able to pick it up automatically
 #[derive(Deserialize, Serialize, Debug)]
-pub struct BottomUpCheckpointResponse {
+pub struct BottomUpCheckpointWrapper {
     #[serde(rename(deserialize = "Data"))]
-    pub data: CheckpointData,
+    pub data: CheckDataWrapper,
     #[serde(rename(deserialize = "Sig"))]
     #[serde(with = "serde_bytes")]
     pub sig: Option<Vec<u8>>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CheckpointData {
+pub struct CheckDataWrapper {
     #[serde(rename(deserialize = "Source"))]
     #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
     pub source: SubnetID,
@@ -114,16 +115,16 @@ pub struct CheckpointData {
     pub proof: Option<Vec<u8>>,
     #[serde(rename(deserialize = "Epoch"))]
     pub epoch: i64,
-    #[serde(rename(deserialize = "Children"))]
-    pub children: Option<Vec<CheckData>>,
     #[serde(rename(deserialize = "PrevCheck"))]
     pub prev_check: Option<CIDMap>,
+    #[serde(rename(deserialize = "Children"))]
+    pub children: Option<Vec<CheckData>>,
     #[serde(rename(deserialize = "CrossMsgs"))]
-    pub cross_msgs: Option<BatchCrossMsgWrapper>,
+    pub cross_msgs: Option<BatchCrossMsgsWrapper>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug, Default, Deserialize, Serialize)]
-pub struct BatchCrossMsgWrapper {
+pub struct BatchCrossMsgsWrapper {
     #[serde(rename(deserialize = "CrossMsgs"))]
     pub cross_msgs: Option<Vec<CrossMsgsWrapper>>,
     #[serde(rename(deserialize = "Fee"))]
@@ -131,8 +132,43 @@ pub struct BatchCrossMsgWrapper {
     pub fee: TokenAmount,
 }
 
-impl From<BatchCrossMsgWrapper> for BatchCrossMsgs {
-    fn from(wrapper: BatchCrossMsgWrapper) -> Self {
+#[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct CrossMsgsWrapper {
+    pub msg: StorableMsgsWrapper,
+    pub wrapped: bool,
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct StorableMsgsWrapper {
+    #[serde(deserialize_with = "deserialize_ipc_address_from_map")]
+    pub from: IPCAddress,
+    #[serde(deserialize_with = "deserialize_ipc_address_from_map")]
+    pub to: IPCAddress,
+    pub method: MethodNum,
+    pub params: RawBytes,
+    pub value: TokenAmount,
+    pub nonce: u64,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CheckData {
+    #[serde(rename(deserialize = "Source"))]
+    #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
+    pub source: SubnetID,
+    #[serde(rename(deserialize = "Checks"))]
+    pub checks: Vec<CIDMap>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct Votes {
+    pub validators: Vec<Address>,
+}
+
+impl From<BatchCrossMsgsWrapper> for BatchCrossMsgs {
+    fn from(wrapper: BatchCrossMsgsWrapper) -> Self {
         let cross_msgs = wrapper.cross_msgs.map(|cross_msgs| {
             cross_msgs
                 .into_iter()
@@ -157,46 +193,10 @@ impl From<BatchCrossMsgWrapper> for BatchCrossMsgs {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct CrossMsgsWrapper {
-    pub msg: StorableMsgsWrapper,
-    pub wrapped: bool,
-}
-
-#[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct StorableMsgsWrapper {
-    // TODO: @will,IPCAddress is currently serialized by default as a tuple,
-    // we need to implement its map counterpart so it can be deserialized
-    // using a map from Lotus.
-    pub from: IPCAddress,
-    pub to: IPCAddress,
-    pub method: MethodNum,
-    pub params: RawBytes,
-    pub value: TokenAmount,
-    pub nonce: u64,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct CheckData {
-    #[serde(rename(deserialize = "Source"))]
-    #[serde(deserialize_with = "deserialize_subnet_id_from_map")]
-    pub source: SubnetID,
-    #[serde(rename(deserialize = "Checks"))]
-    pub checks: Vec<CIDMap>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "PascalCase")]
-pub struct Votes {
-    pub validators: Vec<Address>,
-}
-
-impl TryFrom<BottomUpCheckpointResponse> for BottomUpCheckpoint {
+impl TryFrom<BottomUpCheckpointWrapper> for BottomUpCheckpoint {
     type Error = anyhow::Error;
 
-    fn try_from(checkpoint_response: BottomUpCheckpointResponse) -> Result<Self, Self::Error> {
+    fn try_from(checkpoint_response: BottomUpCheckpointWrapper) -> Result<Self, Self::Error> {
         let prev_check = if let Some(prev_check) = checkpoint_response.data.prev_check {
             TCid::from(Cid::try_from(prev_check)?)
         } else {
