@@ -31,7 +31,7 @@ use crate::lotus::message::CIDMap;
 use crate::lotus::{LotusBottomUpCheckpointClient, LotusClient, NetworkVersion};
 use crate::manager::SubnetInfo;
 
-use super::message::ipc::BottomUpCheckpointResponse;
+use super::message::ipc::BottomUpCheckpointWrapper;
 
 // RPC methods
 mod methods {
@@ -301,7 +301,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<BottomUpCheckpoint> {
         let r = self
             .client
-            .request::<BottomUpCheckpointResponse>(
+            .request::<BottomUpCheckpointWrapper>(
                 methods::IPC_GET_CHECKPOINT_TEMPLATE,
                 json!([GATEWAY_ACTOR_ADDRESS, epoch]),
             )
@@ -318,7 +318,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let params = json!([subnet_id.to_json(), epoch]);
         let r = self
             .client
-            .request::<BottomUpCheckpointResponse>(methods::IPC_GET_CHECKPOINT, params)
+            .request::<BottomUpCheckpointWrapper>(methods::IPC_GET_CHECKPOINT, params)
             .await
             .map_err(|e| {
                 log::debug!(
@@ -386,7 +386,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<BottomUpCheckpointResponse>> {
+    ) -> Result<Vec<BottomUpCheckpointWrapper>> {
         let parent = subnet_id
             .parent()
             .ok_or_else(|| anyhow!("no parent found"))?
@@ -402,7 +402,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         ]);
         let r = self
             .client
-            .request::<Vec<BottomUpCheckpointResponse>>(methods::IPC_LIST_CHECKPOINTS, params)
+            .request::<Vec<BottomUpCheckpointWrapper>>(methods::IPC_LIST_CHECKPOINTS, params)
             .await?;
         Ok(r)
     }

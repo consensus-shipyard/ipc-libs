@@ -11,7 +11,7 @@ use fvm_shared::clock::ChainEpoch;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
 
-use crate::lotus::message::ipc::BottomUpCheckpointResponse;
+use crate::lotus::message::ipc::BottomUpCheckpointWrapper;
 use crate::manager::SubnetManager;
 use crate::server::handlers::manager::check_subnet;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
@@ -38,7 +38,7 @@ impl ListCheckpointsHandler {
 #[async_trait]
 impl JsonRPCRequestHandler for ListCheckpointsHandler {
     type Request = ListCheckpointsParams;
-    type Response = Vec<BottomUpCheckpointResponse>;
+    type Response = Vec<BottomUpCheckpointWrapper>;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
         let child_subnet_id = SubnetID::from_str(request.subnet_id.as_str())?;
@@ -54,7 +54,7 @@ impl JsonRPCRequestHandler for ListCheckpointsHandler {
         let subnet_config = conn.subnet();
         check_subnet(subnet_config)?;
 
-        let checkpoints: Vec<BottomUpCheckpointResponse> = conn
+        let checkpoints: Vec<BottomUpCheckpointWrapper> = conn
             .manager()
             .list_checkpoints(child_subnet_id, request.from_epoch, request.to_epoch)
             .await?;
