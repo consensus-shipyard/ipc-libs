@@ -1,4 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
+// Copyright 2022-2023 Protocol Labs
 //! Handles the serialization of different types between actor cbor tuple serialization and json rpc
 //! json serialization.
 

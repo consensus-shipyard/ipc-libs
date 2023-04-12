@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Json serialization of checkpoints
 
 use crate::serialization::AsJson;
