@@ -6,4 +6,5 @@ pub mod config;
 pub mod jsonrpc;
 pub mod lotus;
 pub mod manager;
+mod serialization;
 pub mod server;

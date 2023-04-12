@@ -19,7 +19,7 @@ use message::state::{ReadStateResponse, StateWaitMsgResponse};
 use message::wallet::{WalletKeyType, WalletListResponse};
 
 use crate::lotus::message::ipc::{
-    BottomUpCheckpointWrapper, IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse, Votes,
+    IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse, Votes,
 };
 use crate::manager::SubnetInfo;
 
@@ -120,7 +120,7 @@ pub trait LotusClient: LotusBottomUpCheckpointClient {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<BottomUpCheckpointWrapper>>;
+    ) -> Result<Vec<BottomUpCheckpoint>>;
 }
 
 /// Bottom up checkpoint client for the gateway
