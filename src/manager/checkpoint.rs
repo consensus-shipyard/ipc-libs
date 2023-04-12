@@ -179,8 +179,15 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     // validators not be empty at this stage
     for validator in validators.iter() {
         while let Some(next_epoch) = policy.next_submission_epoch(validator).await? {
+            log::info!(
+                "next epoch to execute {next_epoch:} for validator {validator:} in subnet {child:}"
+            );
+
             let checkpoint = child_manager.create_checkpoint(child, next_epoch).await?;
+            log::info!("next epoch to execute {next_epoch:} for validator {validator:} in subnet {child:} with checkpoint {checkpoint:?}");
+
             policy.submit_checkpoint(*validator, checkpoint).await?;
+            log::info!("checkpoint at epoch {next_epoch:} submitted for validator {validator:} in subnet {child:}");
         }
     }
     Ok(())

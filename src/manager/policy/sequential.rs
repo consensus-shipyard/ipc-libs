@@ -65,6 +65,7 @@ impl<T: AsRef<DefaultSubnetManager> + Send + Sync> CheckpointPolicy
 
         let next_submission_epoch = latest_executed + self.checkpoint_period;
         if latest_epoch < next_submission_epoch {
+            log::info!("latest epoch {latest_epoch:} lagging next submission epoch {next_submission_epoch:}");
             return Ok(None);
         }
 
@@ -72,8 +73,11 @@ impl<T: AsRef<DefaultSubnetManager> + Send + Sync> CheckpointPolicy
             .has_voted_in_epoch(child, next_submission_epoch, validator)
             .await?
         {
+            log::info!("next submission epoch {next_submission_epoch:} already executed");
             return Ok(None);
         }
+
+        log::debug!("next submission epoch {next_submission_epoch:}");
 
         Ok(Some(next_submission_epoch))
     }
@@ -85,6 +89,11 @@ impl<T: AsRef<DefaultSubnetManager> + Send + Sync> CheckpointPolicy
         checkpoint: BottomUpCheckpoint,
     ) -> anyhow::Result<()> {
         let checkpoint_cid = checkpoint.cid();
+
+        log::debug!(
+            "submitting checkpoint {checkpoint_cid:} at epoch {:?} for validator {validator:?}",
+            checkpoint.epoch()
+        );
 
         match self
             .parent_manager
