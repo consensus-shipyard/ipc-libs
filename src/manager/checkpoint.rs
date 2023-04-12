@@ -168,8 +168,6 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
         loop {
             let child_head = child_client.chain_head().await?;
             let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
-            // next epoch to submit.
-            let epoch = checkpoint_epoch(curr_epoch, period);
 
             // get subnet actor state and last checkpoint executed
             let subnet_actor_state = parent_client
@@ -229,8 +227,19 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                                 &parent_client,
                             )
                             .await?;
-                            // check if by any chance we have the opportunity to submit any oustanding checkpoint we may
-                            // missing in case the previous one was executed
+                            // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
+                            // missing in case the previous one was executed successfully.
+                            // - we get the up to date head of the parent and the child.
+                            // - check the last executed checkpoint for the subnet
+                            // - And if we still have the info, submit a new checkpoint
+                            // TODO: We should definitely include this logic into its own function,
+                            // it is exactly the same as the one above, but trying to be explicit now
+                            // for review.
+                            let child_head = child_client.chain_head().await?;
+                            let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
+                            let parent_head = parent_client.chain_head().await?;
+                            let cid_map = parent_head.cids.first().unwrap().clone();
+                            let parent_tip_set = Cid::try_from(cid_map)?;
                             let subnet_actor_state = parent_client
                                 .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
                                 .await?;
@@ -238,7 +247,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                                 .bottom_up_checkpoint_voting
                                 .last_voting_executed;
                             let submission_epoch = last_exec + period;
-                            if last_exec >= submission_epoch {
+                            if curr_epoch >= submission_epoch {
                                 submit_checkpoint(
                                     child_tip_set,
                                     submission_epoch,
