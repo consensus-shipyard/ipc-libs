@@ -206,7 +206,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                 for account in child.accounts.iter() {
                     if validator_set.contains(account) {
                         // check if the validator already voted
-                        if !parent_client
+                        let has_voted = parent_client
                             .ipc_validator_has_voted_bottomup(&child.id, epoch, account)
                             .await
                             .map_err(|e| {
@@ -215,8 +215,8 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                                     &child.id
                                 );
                                 e
-                            })?
-                        {
+                            })?;
+                        if !has_voted {
                             // submitting the checkpoint synchronously and waiting to be committed.
                             submit_checkpoint(
                                 child_tip_set,
@@ -227,6 +227,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
                                 &parent_client,
                             )
                             .await?;
+
                             // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
                             // missing in case the previous one was executed successfully.
                             // - we get the up to date head of the parent and the child.
