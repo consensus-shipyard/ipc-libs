@@ -6,7 +6,10 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use base64::Engine;
 use cid::Cid;
+use fil_actors_runtime::cbor;
+use fvm_ipld_encoding::RawBytes;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
@@ -30,8 +33,6 @@ use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
 use crate::lotus::{LotusBottomUpCheckpointClient, LotusClient, NetworkVersion};
 use crate::manager::SubnetInfo;
-
-use super::message::ipc::BottomUpCheckpointWrapper;
 
 // RPC methods
 mod methods {
@@ -301,13 +302,16 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<BottomUpCheckpoint> {
         let r = self
             .client
-            .request::<BottomUpCheckpointWrapper>(
+            .request::<String>(
                 methods::IPC_GET_CHECKPOINT_TEMPLATE,
                 json!([GATEWAY_ACTOR_ADDRESS, epoch]),
             )
             .await?;
 
-        Ok(BottomUpCheckpoint::try_from(r)?)
+        let bytes = base64::engine::general_purpose::STANDARD.decode(r)?;
+        let checkpoint = cbor::deserialize(&RawBytes::new(bytes), "checkpoint")?;
+
+        Ok(checkpoint)
     }
 
     async fn ipc_get_checkpoint(
@@ -318,7 +322,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let params = json!([subnet_id.to_json(), epoch]);
         let r = self
             .client
-            .request::<BottomUpCheckpointWrapper>(methods::IPC_GET_CHECKPOINT, params)
+            .request::<String>(methods::IPC_GET_CHECKPOINT, params)
             .await
             .map_err(|e| {
                 log::debug!(
@@ -329,7 +333,9 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
                 e
             })?;
 
-        Ok(BottomUpCheckpoint::try_from(r)?)
+        let bytes = base64::engine::general_purpose::STANDARD.decode(r)?;
+        let checkpoint = cbor::deserialize(&RawBytes::new(bytes), "checkpoint")?;
+        Ok(checkpoint)
     }
 
     async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse> {
@@ -386,7 +392,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<BottomUpCheckpointWrapper>> {
+    ) -> Result<Vec<BottomUpCheckpoint>> {
         let parent = subnet_id
             .parent()
             .ok_or_else(|| anyhow!("no parent found"))?
@@ -402,9 +408,22 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         ]);
         let r = self
             .client
-            .request::<Vec<BottomUpCheckpointWrapper>>(methods::IPC_LIST_CHECKPOINTS, params)
+            .request::<Vec<String>>(methods::IPC_LIST_CHECKPOINTS, params)
             .await?;
-        Ok(r)
+
+        let checkpoints = r
+            .iter()
+            .map(|x| {
+                let bytes = base64::engine::general_purpose::STANDARD
+                    .decode(x)
+                    .map_err(|_| anyhow!("cannot decode checkpoint base64 string"))?;
+
+                cbor::deserialize::<BottomUpCheckpoint>(&RawBytes::new(bytes), "checkpoint")
+                    .map_err(|_| anyhow!("cannot decode checkpoint base64 string"))
+            })
+            .collect::<Result<_>>()?;
+
+        Ok(checkpoints)
     }
 }
 

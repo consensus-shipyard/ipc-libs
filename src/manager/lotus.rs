@@ -19,7 +19,7 @@ use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
 use crate::config::Subnet;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::lotus::client::LotusJsonRPCClient;
-use crate::lotus::message::ipc::{BottomUpCheckpointWrapper, SubnetInfo};
+use crate::lotus::message::ipc::SubnetInfo;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::message::state::StateWaitMsgResponse;
 use crate::lotus::message::wallet::WalletKeyType;
@@ -482,7 +482,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<BottomUpCheckpointWrapper>> {
+    ) -> Result<Vec<BottomUpCheckpoint>> {
         let checkpoints = self
             .lotus_client
             .ipc_list_checkpoints(subnet_id, from_epoch, to_epoch)
