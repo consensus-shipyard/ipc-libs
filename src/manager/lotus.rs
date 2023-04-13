@@ -135,7 +135,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
     async fn create_checkpoint(
         &self,
         subnet: &SubnetID,
-        previous_epoch: ChainEpoch,
+        previous_checkpoint: &BottomUpCheckpoint,
         epoch: ChainEpoch,
     ) -> Result<BottomUpCheckpoint> {
         if !self.is_network_match(subnet).await? {
@@ -162,11 +162,6 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
                 e
             })?;
 
-        let previous_checkpoint = self
-            .lotus_client
-            .ipc_get_checkpoint(subnet, previous_epoch)
-            .await?;
-
         checkpoint.data.children = template.data.children;
         checkpoint.data.cross_msgs = template.data.cross_msgs;
         checkpoint.data.prev_check = TCid::from(previous_checkpoint.cid());
@@ -178,6 +173,15 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
             subnet
         );
 
+        Ok(checkpoint)
+    }
+
+    async fn get_checkpoint(
+        &self,
+        subnet: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<BottomUpCheckpoint> {
+        let checkpoint = self.lotus_client.ipc_get_checkpoint(subnet, epoch).await?;
         Ok(checkpoint)
     }
 

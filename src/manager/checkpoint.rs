@@ -161,7 +161,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
     loop {
         select! {
-            r = submit_checkpoint(&child.id, &child_manager, &policy, &validators) => {
+            r = submit_checkpoint(&child.id, &child_manager, &parent_manager, &policy, &validators) => {
                 match r {
                     Ok(()) => {
                         log::info!("submission done for validators {validators:?} in subnet: {:?}", child.id);
@@ -182,6 +182,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     child: &SubnetID,
     child_manager: &LotusSubnetManager<T>,
+    parent_manager: &LotusSubnetManager<T>,
     policy: &impl CheckpointPolicy,
     validators: &[Address],
 ) -> Result<()> {
@@ -193,8 +194,9 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
             );
 
             let previous_epoch = next_epoch - policy.submission_period();
+            let previous_checkpoint = parent_manager.get_checkpoint(child, previous_epoch).await?;
             let checkpoint = child_manager
-                .create_checkpoint(child, previous_epoch, next_epoch)
+                .create_checkpoint(child, &previous_checkpoint, next_epoch)
                 .await?;
             log::info!("next epoch to execute {next_epoch:} for validator {validator:} in subnet {child:} with checkpoint {checkpoint:?}");
 
