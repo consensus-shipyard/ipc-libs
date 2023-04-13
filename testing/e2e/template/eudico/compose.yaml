@@ -7,7 +7,7 @@ networks:
 # Cross mounting volumes: https://github.com/docker/compose/issues/3211
 volumes:
   # Volume through which the daemon and the validator will communicate.
-  socketvolume: {}
+  repo_directory: {}
 
 services:
 
@@ -26,8 +26,8 @@ services:
       # libp2p port
       # - 134${IPC_NODE_NR}:1347
     volumes:
-      # Volume for a socket to be created and shared with the validator
-      - socketvolume:/var/lib/lotus
+      # Volume to be shared with the validator
+      - repo_directory:/var/lib/lotus
       # Apparently these are part of the eudico image, but for transparentcy let's mount them.
       - ${IPC_PROJECT_ROOT}/bin/ipc-infra:/scripts/ipc
     networks:
@@ -48,8 +48,8 @@ services:
     # whereas with the current setup the node number is unique on its own. Look at the image to tell what kind we are talking to.
     container_name: ipc-node-${IPC_NODE_NR}-eudico-validator
     volumes:
-      # Volume for a socket to be created and shared with the daemon
-      - socketvolume:/var/lib/lotus
+      # Volume to be shared with the daemon. Has to be the same, a config is not enough.
+      - repo_directory:/var/lib/lotus
       # Apparently these are part of the eudico image, but for transparentcy let's mount them.
       - ${IPC_PROJECT_ROOT}/bin/ipc-infra:/scripts/ipc
       # TODO: The key will have to come from a different place for non-root validators.
@@ -60,6 +60,7 @@ services:
     environment:
       HOME: /root
       LOTUS_PATH: /var/lib/lotus
+      DAEMON_HOSTNAME: ${IPC_NODE_TYPE}-${IPC_NODE_NR}
     env_file:
       - .env
     entrypoint:
