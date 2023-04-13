@@ -2510,6 +2510,7 @@ dependencies = [
  "fvm_ipld_encoding 0.3.3",
  "fvm_shared 3.0.0-alpha.17",
  "indoc",
+ "ipc-actor-common",
  "ipc-gateway",
  "ipc-sdk",
  "ipc-subnet-actor",

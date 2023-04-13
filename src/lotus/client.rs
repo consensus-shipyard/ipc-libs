@@ -47,13 +47,17 @@ mod methods {
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
     pub const CHAIN_HEAD: &str = "Filecoin.ChainHead";
     pub const IPC_GET_PREV_CHECKPOINT_FOR_CHILD: &str = "Filecoin.IPCGetPrevCheckpointForChild";
-    pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplate";
-    pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpoint";
     pub const IPC_READ_GATEWAY_STATE: &str = "Filecoin.IPCReadGatewayState";
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
     pub const IPC_GET_VOTES_FOR_CHECKPOINT: &str = "Filecoin.IPCGetVotesForCheckpoint";
-    pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpoints";
+    pub const IPC_HAS_VOTED_BOTTOM_UP_CHECKPOINT: &str = "Filecoin.IPCHasVotedBottomUpCheckpoint";
+
+    // serialized checkpoint endpoint that returns raw bytes as responses
+    pub const IPC_GET_CHECKPOINT_TEMPLATE_SERIALIZED: &str =
+        "Filecoin.IPCGetCheckpointTemplateSerialized";
+    pub const IPC_GET_CHECKPOINT_SERIALIZED: &str = "Filecoin.IPCGetCheckpointSerialized";
+    pub const IPC_LIST_CHECKPOINTS_SERIALIZED: &str = "Filecoin.IPCListCheckpointsSerialized";
 }
 
 /// The default gateway actor address
@@ -100,15 +104,38 @@ impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
 impl<T: JsonRpcClient + Send + Sync> LotusBottomUpCheckpointClient for LotusJsonRPCClient<T> {
     async fn ipc_has_voted_in_epoch(
         &self,
-        _subnet: &SubnetID,
-        _epoch: ChainEpoch,
-        _validator: &Address,
+        subnet: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
     ) -> Result<bool> {
-        todo!()
+        let params = json!([subnet.to_json(), epoch, validator]);
+        log::debug!("sending {params:?}");
+
+        let r = self
+            .client
+            .request::<bool>(methods::IPC_HAS_VOTED_BOTTOM_UP_CHECKPOINT, params)
+            .await?;
+
+        Ok(r)
     }
 
-    async fn ipc_last_executed_epoch(&self, _subnet: &SubnetID) -> Result<ChainEpoch> {
-        todo!()
+    async fn ipc_last_executed_epoch(&self, subnet: &SubnetID) -> Result<ChainEpoch> {
+        let chain_head = self.chain_head().await?;
+        let cid_map = chain_head.cids.first().unwrap().clone();
+        let parent_tip_set = Cid::try_from(cid_map)?;
+
+        let state = self
+            .ipc_read_subnet_actor_state(subnet, parent_tip_set)
+            .await
+            .map_err(|e| {
+                log::error!(
+                    "error getting subnet actor state for {:?} due to {e:?}",
+                    subnet
+                );
+                e
+            })?;
+
+        Ok(state.bottom_up_checkpoint_voting.last_voting_executed_epoch)
     }
 }
 
@@ -303,7 +330,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let r = self
             .client
             .request::<String>(
-                methods::IPC_GET_CHECKPOINT_TEMPLATE,
+                methods::IPC_GET_CHECKPOINT_TEMPLATE_SERIALIZED,
                 json!([GATEWAY_ACTOR_ADDRESS, epoch]),
             )
             .await?;
@@ -322,7 +349,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let params = json!([subnet_id.to_json(), epoch]);
         let r = self
             .client
-            .request::<String>(methods::IPC_GET_CHECKPOINT, params)
+            .request::<String>(methods::IPC_GET_CHECKPOINT_SERIALIZED, params)
             .await
             .map_err(|e| {
                 log::debug!(
@@ -357,15 +384,12 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
         let r = self
             .client
-            .request::<serde_json::Value>(
+            .request::<IPCReadSubnetActorStateResponse>(
                 methods::IPC_READ_SUBNET_ACTOR_STATE,
                 params,
             )
             .await?;
 
-        log::debug!("received value: {r:?}");
-
-        let r = serde_json::from_value(r)?;
         Ok(r)
     }
 
@@ -412,7 +436,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         ]);
         let r = self
             .client
-            .request::<Vec<String>>(methods::IPC_LIST_CHECKPOINTS, params)
+            .request::<Vec<String>>(methods::IPC_LIST_CHECKPOINTS_SERIALIZED, params)
             .await?;
 
         let checkpoints = r

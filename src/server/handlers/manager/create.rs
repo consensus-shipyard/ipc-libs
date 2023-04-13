@@ -70,7 +70,7 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
             topdown_check_period: request.topdown_check_period,
             genesis: vec![],
         };
-        log::debug!("create subnet params: {constructor_params:?}" );
+        log::debug!("create subnet params: {constructor_params:?}");
 
         let from = parse_from(subnet_config, request.from)?;
 

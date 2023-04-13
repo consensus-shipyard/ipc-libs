@@ -150,6 +150,7 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
     let child_manager = LotusSubnetManager::new(child_client);
     let parent_manager = LotusSubnetManager::new(parent_client);
 
+    // sequential checkpoint submission policy that determines when to submit checkpoint
     let policy = SequentialCheckpointPolicy::new(
         parent.id.clone(),
         child.id.clone(),
@@ -209,7 +210,10 @@ async fn get_checkpoint_period<T: JsonRpcClient + Send + Sync>(
         .ipc_read_subnet_actor_state(child, parent_tip_set)
         .await
         .map_err(|e| {
-            log::error!("error getting subnet actor state for {:?} due to {e:?}", child);
+            log::error!(
+                "error getting subnet actor state for {:?} due to {e:?}",
+                child
+            );
             e
         })?;
     Ok(state.bottom_up_check_period)

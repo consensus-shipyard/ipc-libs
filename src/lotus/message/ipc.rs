@@ -7,6 +7,7 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
+use ipc_actor_common::vote::Voting;
 use ipc_gateway::checkpoint::BatchCrossMsgs;
 use ipc_gateway::{BottomUpCheckpoint, CrossMsg, Status, StorableMsg};
 use ipc_sdk::address::IPCAddress;
@@ -22,6 +23,7 @@ use crate::lotus::message::serialize::{
     serialize_subnet_id_to_str, serialize_token_amount_to_atto,
 };
 use crate::lotus::message::CIDMap;
+use crate::serialization::DeserializeFromJson;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -46,6 +48,9 @@ pub struct IPCReadSubnetActorStateResponse {
     pub bottom_up_check_period: ChainEpoch,
     pub validator_set: ValidatorSet,
     pub min_validators: u64,
+    /// Voting is deserialized as tuple for go client. Use `DeserializeFromJson` to wrap it
+    /// to indicate we are deserializing from json.
+    pub bottom_up_checkpoint_voting: DeserializeFromJson<Voting<BottomUpCheckpoint>>,
 }
 
 /// SubnetInfo is an auxiliary struct that collects relevant information about the state of a subnet
