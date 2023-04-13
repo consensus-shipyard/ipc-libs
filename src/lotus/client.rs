@@ -108,7 +108,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusBottomUpCheckpointClient for LotusJson
         epoch: ChainEpoch,
         validator: &Address,
     ) -> Result<bool> {
-        let params = json!([subnet.to_json(), epoch, validator]);
+        let params = json!([subnet.to_json(), epoch, validator.to_string()]);
         log::debug!("sending {params:?}");
 
         let r = self
