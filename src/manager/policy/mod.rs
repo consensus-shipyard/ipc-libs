@@ -30,4 +30,7 @@ pub trait CheckpointPolicy {
         validator: Address,
         checkpoint: BottomUpCheckpoint,
     ) -> anyhow::Result<()>;
+
+    /// The checkpoint submission period
+    fn submission_period(&self) -> ChainEpoch;
 }

@@ -134,6 +134,7 @@ pub trait BottomUpCheckpointManager: SubnetChainInfo {
     async fn create_checkpoint(
         &self,
         subnet: &SubnetID,
+        previous_epoch: ChainEpoch,
         epoch: ChainEpoch,
     ) -> Result<BottomUpCheckpoint>;
 

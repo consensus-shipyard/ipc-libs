@@ -15,6 +15,7 @@ use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
 use ipc_gateway::{BottomUpCheckpoint, PropagateParams, WhitelistPropagatorParams};
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
+use primitives::TCid;
 
 use crate::config::Subnet;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
@@ -134,6 +135,7 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
     async fn create_checkpoint(
         &self,
         subnet: &SubnetID,
+        previous_epoch: ChainEpoch,
         epoch: ChainEpoch,
     ) -> Result<BottomUpCheckpoint> {
         if !self.is_network_match(subnet).await? {
@@ -160,9 +162,14 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
                 e
             })?;
 
+        let previous_checkpoint = self
+            .lotus_client
+            .ipc_get_checkpoint(subnet, previous_epoch)
+            .await?;
+
         checkpoint.data.children = template.data.children;
         checkpoint.data.cross_msgs = template.data.cross_msgs;
-        checkpoint.data.prev_check = template.data.prev_check;
+        checkpoint.data.prev_check = TCid::from(previous_checkpoint.cid());
 
         // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
         // subnet.

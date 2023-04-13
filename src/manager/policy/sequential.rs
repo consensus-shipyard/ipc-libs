@@ -115,4 +115,8 @@ impl<T: AsRef<DefaultSubnetManager> + Send + Sync> CheckpointPolicy
         }
         Ok(())
     }
+
+    fn submission_period(&self) -> ChainEpoch {
+        self.checkpoint_period
+    }
 }
