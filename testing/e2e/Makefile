@@ -66,7 +66,7 @@ node/up: node .make/docker/network
 # Stop a node and remove its configuration, as if it never existed.
 node/down:
 	if [ -d $(IPC_NODE_DIR) ]; then \
-		cd $(IPC_NODE_DIR) && docker-compose -p $(IPC_PROJECT) down && cd - && rm -rf $(IPC_NODE_DIR); \
+		cd $(IPC_NODE_DIR) && docker-compose -p $(IPC_PROJECT) down -v && cd - && rm -rf $(IPC_NODE_DIR); \
 	fi
 
 
