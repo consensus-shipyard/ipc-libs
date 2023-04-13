@@ -10,7 +10,7 @@ services:
 
   # IPC Agent daemon service
   agent:
-    image: ipc-agent
+    image: ipc-agent:${IPC_VERSION}
     container_name: ipc-agent-${IPC_AGENT_NR}
     hostname: agent-${IPC_AGENT_NR}
     ports:

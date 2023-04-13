@@ -3,10 +3,12 @@
 # Parameters that can be set when calling make to act like named arguments.
 # e.g. `make <target> IPC_AGENT_NR=1`
 IPC_AGENT_NR     := 0
-IPC_PARENT_ID    := root
-IPC_CHILD_ID     := subnet-0
+IPC_NODE_NR      := 0
+IPC_NODE_TYPE    := eudico
+IPC_SUBNET_ID    := /root
 
-PROJECT_ROOT     := $(PWD)/../..
+PROJECT_ROOT     := ../..
+IPC_INFRA_DIR    := $(PROJECT_ROOT)/bin/ipc-infra
 IPC_SRC					 := $(shell find $(PROJECT_ROOT) -type f \( -name "*.rs" \) | grep -v target)
 IPC_AGENT        := $(PROJECT_ROOT)/bin/ipc-agent
 
@@ -16,11 +18,13 @@ IPC_NETWORK      := $(IPC_PROJECT)
 IPC_VERSION      := latest
 
 # Location of artifacts derived from input parameters.
-IPC_AGENT_DIR    := $(PWD)/.ipc/agents/agent-$(IPC_AGENT_NR)
+IPC_AGENT_DIR    := .ipc/agents/agent-$(IPC_AGENT_NR)
 IPC_AGENT_CONFIG := $(IPC_AGENT_DIR)/config.toml
+IPC_NODE_DIR     := .ipc/nodes/node-$(IPC_NODE_NR)
 
 # Find created agents and nodes
-IPC_AGENTS       := $(shell find .ipc -type d -name "agent-*" | awk -F '/' '{print $$3}')
+IPC_AGENTS       := $(shell find . -type d -wholename ".ipc/agents/agent-*" | awk -F '/' '{print $$3}')
+IPC_NODES        := $(shell find . -type d -wholename ".ipc/agents/node-*" | awk -F '/' '{print $$3}')
 
 .PHONY: clean
 clean: \
@@ -33,26 +37,51 @@ clean: \
 agent: $(IPC_AGENT_DIR) $(IPC_AGENT_CONFIG)
 
 
-# Start the agent daemon.
+# Start an agent daemon.
 agent/up: agent .make/docker/network .make/docker/images/ipc-agent
 	cd $(IPC_AGENT_DIR) && docker-compose -p $(IPC_PROJECT) up -d
 
 
-# Stop the agent daemon and remove its configuration, as if it never existed.
+# Stop an agent daemon and remove its configuration, as if it never existed.
 agent/down:
 	if [ -d $(IPC_AGENT_DIR) ]; then \
-		cd $(IPC_AGENT_DIR) && docker-compose -p $(IPC_PROJECT) down && rm -rf $(IPC_AGENT_DIR); \
+		cd $(IPC_AGENT_DIR) && docker-compose -p $(IPC_PROJECT) down && cd - && rm -rf $(IPC_AGENT_DIR); \
 	fi
-
 
 # Stop a specific agent.
 agent-%/down:
 	$(MAKE) agent/down IPC_AGENT_NR=$*
 
 
+# Create composition directory node-$(IPC_NODE_NR)
+node: $(IPC_NODE_DIR)
+
+
+# Start a node.
+node/up: node .make/docker/network
+	cd $(IPC_NODE_DIR) && docker-compose -p $(IPC_PROJECT) up -d
+
+
+# Stop a node and remove its configuration, as if it never existed.
+node/down:
+	if [ -d $(IPC_NODE_DIR) ]; then \
+		cd $(IPC_NODE_DIR) && docker-compose -p $(IPC_PROJECT) down && cd - && rm -rf $(IPC_NODE_DIR); \
+	fi
+
+
+# Stop a specific node.
+node-%/down:
+	$(MAKE) node/down IPC_NODE_NR=$*
+
+
 # Build the IPC agent binary.
 $(IPC_AGENT): $(IPC_SRC)
 	$(MAKE) -C $(PROJECT_ROOT) build
+
+
+# Make sure the eudico docker image is built.
+$(IPC_INFRA_DIR):
+	$(MAKE) -C $(PROJECT_ROOT) install-infra
 
 
 # Initialize the agent directory.
@@ -77,6 +106,21 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR)
 	# TODO: Find all subnets and append their config to the output.
 
 
+# Initialize the node directory based on the active node type.
+$(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
+	mkdir -p $@
+	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/compose.yaml
+	cp template/$(IPC_NODE_TYPE)/entrypoint.sh $@/entrypoint.sh
+
+	@# Create .env file with overrides taken from the environment.
+	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT) ; \
+	export IPC_NETWORK=$(IPC_NETWORK) ; \
+	export IPC_NODE_NR=$(IPC_NODE_NR) ; \
+	export IPC_NODE_TYPE=$(IPC_NODE_TYPE) ; \
+	export IPC_SUBNET_ID=$(IPC_SUBNET_ID) ; \
+	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
+
+
 # Create the docker network every container connects to.
 .make/docker/network:
 	docker network create $(IPC_NETWORK)
@@ -89,23 +133,5 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR)
 	mkdir -p $(dir $@) && touch $@
 
 
-# Make sure the IPC agent has been built.
-.PHONY: ipc-agent
-ipc-agent: $(IPC_AGENT) .make/docker/images/ipc-agent
-
-
-# Make sure the eudico docker image is built.
-.PHONY: eudico
-eudico:
-	@if [ -z "$(shell docker images | grep eudico)" ]; then \
-		$(MAKE) -C $(PROJECT_ROOT) install-infra; \
-	fi
-
-
-# Check that jq is installed.
-.PHONY: jq
-jq:
-	@if [ -z "$(shell which jq)" ]; then \
-		echo "Please install jq. See https://stedolan.github.io/jq/"; \
-		exit 1; \
-	fi
+# Build eudico specific artifacts
+.make/eudico: $(IPC_INFRA_DIR)

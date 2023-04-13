@@ -1,0 +1,40 @@
+networks:
+  # Network created externally so individual containers can be destroyed without the network being removed.
+  ipc:
+    external: true
+    name: ${IPC_NETWORK}
+
+# See https://docs.docker.com/compose/extends/ for reusing and overriding definitions.
+
+services:
+
+  eudico:
+    image: eudico:latest
+    # The container name could contain the ${IPC_NODE_TYPE} but that would suggest that type and number are unique together,
+    # whereas with the current setup the node number is unique on its own. Look at the image to tell what kind we are talking to.
+    container_name: ipc-node-${IPC_NODE_NR}
+    # Indicate the type in the host name, makes URLs more intuitive.
+    hostname: ${IPC_NODE_TYPE}-${IPC_NODE_NR}
+    # Ports don't really need to be exposed as all containers should just talk to each other.
+    ports:
+      # Lotus port
+      - 123${IPC_NODE_NR}:1234
+      # libp2p port
+      - 134${IPC_NODE_NR}:1347
+    volumes:
+      # Apparently these are part of the eudico image, but for transparentcy let's mount them.
+      - ${IPC_PROJECT_ROOT}/bin/ipc-infra:/scripts/ipc
+      # Common entry point to handle the case of root or subnet.
+      - $PWD/entrypoint.sh:/scripts/ipc/entrypoint.sh
+    networks:
+      - ipc
+    environment:
+      HOME: /root
+    env_file:
+      - .env
+    # The entrypoints use `tmux` which only works if we run as a terminal.
+    # In `run-root-docker-1val.sh` this is achieved with `docker run -dit`
+    stdin_open: true
+    tty: true
+    entrypoint:
+      - /scripts/ipc/entrypoint.sh
