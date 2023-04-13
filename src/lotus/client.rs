@@ -13,7 +13,7 @@ use fvm_ipld_encoding::RawBytes;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::BottomUpCheckpoint;
+use ipc_gateway::{BottomUpCheckpoint, CrossMsg};
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
@@ -22,9 +22,7 @@ use serde_json::json;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
-use crate::lotus::message::ipc::{
-    IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse, Votes,
-};
+use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
 use crate::lotus::message::mpool::{
     MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
 };
@@ -47,13 +45,14 @@ mod methods {
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
     pub const CHAIN_HEAD: &str = "Filecoin.ChainHead";
     pub const IPC_GET_PREV_CHECKPOINT_FOR_CHILD: &str = "Filecoin.IPCGetPrevCheckpointForChild";
-    pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplate";
-    pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpoint";
+    pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplateSerialized";
+    pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpointSerialized";
     pub const IPC_READ_GATEWAY_STATE: &str = "Filecoin.IPCReadGatewayState";
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
-    pub const IPC_GET_VOTES_FOR_CHECKPOINT: &str = "Filecoin.IPCGetVotesForCheckpoint";
-    pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpoints";
+    pub const IPC_VALIDATOR_HAS_VOTED_BOTTOMUP: &str = "Filecoin.IPCHasVotedBottomUpCheckpoint";
+    pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpointsSerialized";
+    pub const IPC_GET_TOPDOWN_MESSAGES: &str = "Filecoin.IPCGetTopDownMsgsSerialized";
 }
 
 /// The default gateway actor address
@@ -358,17 +357,57 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r.unwrap_or_default())
     }
 
-    async fn ipc_get_votes_for_checkpoint(
+    async fn ipc_validator_has_voted_bottomup(
         &self,
-        subnet_id: SubnetID,
-        checkpoint_cid: Cid,
-    ) -> Result<Votes> {
-        let params = json!([subnet_id.to_json(), CIDMap::from(checkpoint_cid)]);
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool> {
+        let params = json!([subnet_id.to_json(), epoch, validator.to_string()]);
         let r = self
             .client
-            .request::<Votes>(methods::IPC_GET_VOTES_FOR_CHECKPOINT, params)
+            .request::<bool>(methods::IPC_VALIDATOR_HAS_VOTED_BOTTOMUP, params)
             .await?;
         Ok(r)
+    }
+
+    async fn ipc_get_topdown_msgs(
+        &self,
+        subnet_id: &SubnetID,
+        gateway_addr: Address,
+        nonce: u64,
+    ) -> Result<Vec<CrossMsg>> {
+        let parent = subnet_id
+            .parent()
+            .ok_or_else(|| anyhow!("no parent found"))?
+            .to_string();
+        let actor = subnet_id.subnet_actor().to_string();
+        let params = json!([
+            gateway_addr.to_string(),
+            {
+                "Parent": parent,
+                "Actor": actor
+            },
+            nonce,
+        ]);
+        let r = self
+            .client
+            .request::<Vec<String>>(methods::IPC_GET_TOPDOWN_MESSAGES, params)
+            .await?;
+
+        let msgs = r
+            .iter()
+            .map(|x| {
+                let bytes = base64::engine::general_purpose::STANDARD
+                    .decode(x)
+                    .map_err(|_| anyhow!("cannot decode cross-msgs base64 string"))?;
+
+                cbor::deserialize::<CrossMsg>(&RawBytes::new(bytes), "checkpoint")
+                    .map_err(|_| anyhow!("cannot decode cross-msgs base64 string"))
+            })
+            .collect::<Result<_>>()?;
+
+        Ok(msgs)
     }
 
     async fn ipc_list_checkpoints(
