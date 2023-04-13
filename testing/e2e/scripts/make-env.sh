@@ -25,6 +25,9 @@ while read kv; do
   fi
 done < ${ENV_IN}
 
+# Clean out any pre-existing content.
+rm -f ${ENV_OUT}
+
 # Write key=value pairs for all env vars starting with the prefix.
 for k in $(compgen -v ${ENV_PREFIX}); do
   echo ${k}=${!k} >> ${ENV_OUT}

@@ -109,8 +109,7 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR)
 # Initialize the node directory based on the active node type.
 $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	mkdir -p $@
-	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/compose.yaml
-	cp template/$(IPC_NODE_TYPE)/entrypoint.sh $@/entrypoint.sh
+	cp template/$(IPC_NODE_TYPE)/* $@/
 
 	@# Create .env file with overrides taken from the environment.
 	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT) ; \
