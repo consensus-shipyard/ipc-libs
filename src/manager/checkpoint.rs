@@ -198,6 +198,8 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
             policy.submit_checkpoint(*validator, checkpoint).await?;
             log::info!("checkpoint at epoch {next_epoch:} submitted for validator {validator:} in subnet {child:}");
         }
+
+        log::debug!("no more epoch to submit for {validator:} in subnet {child:}");
     }
     Ok(())
 }
