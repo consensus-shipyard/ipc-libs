@@ -152,7 +152,6 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
     // sequential checkpoint submission policy that determines when to submit checkpoint
     let policy = SequentialCheckpointPolicy::new(
-        parent.id.clone(),
         child.id.clone(),
         &parent_manager,
         &child_manager,

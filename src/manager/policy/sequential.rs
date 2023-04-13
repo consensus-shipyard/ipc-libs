@@ -17,7 +17,6 @@ use std::time::Duration;
 static SUBMIT_CHECKPOINT_TIMEOUT: Duration = Duration::new(90, 0);
 
 pub struct SequentialCheckpointPolicy<T> {
-    parent: SubnetID,
     parent_manager: T,
     /// The child subnet id
     child: SubnetID,
@@ -28,14 +27,12 @@ pub struct SequentialCheckpointPolicy<T> {
 
 impl<T: AsRef<DefaultSubnetManager>> SequentialCheckpointPolicy<T> {
     pub fn new(
-        parent: SubnetID,
         child: SubnetID,
         parent_manager: T,
         child_manager: T,
         checkpoint_period: ChainEpoch,
     ) -> Self {
         Self {
-            parent,
             parent_manager,
             child,
             child_manager,
