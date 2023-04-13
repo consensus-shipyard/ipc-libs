@@ -26,13 +26,19 @@ make agent/up
 All artifacts created during the procedure are stored under the `.ipc` directory, which has the following structure:
 
 ```console
-❯ tree .ipc
+❯ tree -a .ipc
 .ipc
-└── agents
-    └── agent-0
+├── agents
+│   └── agent-0
+│       ├── compose.yaml
+│       ├── config.toml
+│       ├── config.toml.orig
+│       └── .env
+└── nodes
+    └── node-0
         ├── compose.yaml
-        ├── config.toml
-        └── config.toml.orig
+        ├── .env
+        └── validator-entry.sh
 ```
 
 There can be multiple agents, and their corresponding `config.toml` files will be generated as we create more nodes and subnets. To create another agent, we would run `make agent IPC_AGENT_NR=1`.
@@ -42,4 +48,5 @@ The main targets of the `Makefile` are:
 * `make agent`: create a configuration directory for `$IPC_AGENT_NR`; the container isn't started yet, so we could make some modifications if necessary
 * `make agent/up`: start the docker container for `$IPC_AGENT_NR`; if necessary build the `ipc-agent` docker image, the configuration directory, etc.
 * `make agent/down`: remove the docker container for `$IPC_AGENT_NR` and the agent configuration directory
+* `make node`, `make node/up`, `make node/down`: same as for the agent
 * `make clean`: remove everything including the `.ipc` directory

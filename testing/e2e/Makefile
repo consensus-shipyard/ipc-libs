@@ -28,7 +28,8 @@ IPC_NODES        := $(shell find . -type d -wholename ".ipc/agents/node-*" | awk
 
 .PHONY: clean
 clean: \
-		$(patsubst %, %/down, $(IPC_AGENTS))
+		$(patsubst %, %/down, $(IPC_AGENTS)) \
+		$(patsubst %, %/down, $(IPC_NODES))
 	docker network rm $(IPC_NETWORK) || exit 0
 	rm -rf .ipc .make
 
