@@ -99,7 +99,7 @@ impl<T: AsRef<DefaultSubnetManager> + Send + Sync> CheckpointPolicy
             .parent_manager
             .as_ref()
             .try_submit_checkpoint(
-                self.parent.clone(),
+                self.child.clone(),
                 validator,
                 checkpoint,
                 SUBMIT_CHECKPOINT_TIMEOUT,
