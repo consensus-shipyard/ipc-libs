@@ -19,9 +19,12 @@ IPC_VERSION      := latest
 IPC_AGENT_DIR    := $(PWD)/.ipc/agents/agent-$(IPC_AGENT_NR)
 IPC_AGENT_CONFIG := $(IPC_AGENT_DIR)/config.toml
 
+# Find created agents and nodes
+IPC_AGENTS       := $(shell find .ipc -type d -name "agent-*" | awk -F '/' '{print $$3}')
 
 .PHONY: clean
-clean:
+clean: \
+		$(patsubst %, %/down, $(IPC_AGENTS))
 	docker network rm $(IPC_NETWORK) || exit 0
 	rm -rf .ipc .make
 
@@ -35,11 +38,16 @@ agent/up: agent .make/docker/network .make/docker/images/ipc-agent
 	cd $(IPC_AGENT_DIR) && docker-compose -p $(IPC_PROJECT) up -d
 
 
-# Stop the agent daemon and remove the agent directory.
+# Stop the agent daemon and remove its configuration, as if it never existed.
 agent/down:
 	if [ -d $(IPC_AGENT_DIR) ]; then \
-		cd $(IPC_AGENT_DIR) && docker-compose down && rm -rf $(IPC_AGENT_DIR); \
+		cd $(IPC_AGENT_DIR) && docker-compose -p $(IPC_PROJECT) down && rm -rf $(IPC_AGENT_DIR); \
 	fi
+
+
+# Stop a specific agent.
+agent-%/down:
+	$(MAKE) agent/down IPC_AGENT_NR=$*
 
 
 # Build the IPC agent binary.
