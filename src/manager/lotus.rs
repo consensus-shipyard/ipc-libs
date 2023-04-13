@@ -162,11 +162,12 @@ impl<T: JsonRpcClient + Send + Sync> BottomUpCheckpointManager for LotusSubnetMa
 
         checkpoint.data.children = template.data.children;
         checkpoint.data.cross_msgs = template.data.cross_msgs;
+        checkpoint.data.prev_check = template.data.prev_check;
 
         // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
         // subnet.
         log::debug!(
-            "Getting previous checkpoint from parent gateway for {epoch:} in subnet: {:?}",
+            "got previous checkpoint: {checkpoint:?} from parent gateway for {epoch:} in subnet: {:?}",
             subnet
         );
 
