@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! The deserialization of Voting struct from lotus json rpc server
 
 use crate::serialization::DeserializeFromJson;

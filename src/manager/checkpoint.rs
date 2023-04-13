@@ -161,8 +161,15 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
 
     loop {
         select! {
-            _ = submit_checkpoint(&child.id, &child_manager, &policy, &validators) => {
-                log::debug!("submission done for validators {validators:?} in subnet: {:?}", child.id);
+            r = submit_checkpoint(&child.id, &child_manager, &policy, &validators) => {
+                match r {
+                    Ok(()) => {
+                        log::info!("submission done for validators {validators:?} in subnet: {:?}", child.id);
+                    },
+                    Err(e) => {
+                        log::error!("submission failed for validators {validators:?} in subnet: {:?} due to {e:?}", child.id);
+                    }
+                }
                 tokio::time::sleep(SUBMIT_PERIOD).await;
             }
             _ = stop_notify.notified() => { break; }
