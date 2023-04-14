@@ -56,6 +56,7 @@ if [ "${IPC_NODE_TYPE}" == "eudico" ]; then
 
   echo "[*] Waiting for the daemon to start"
   docker exec -it $DAEMON_ID eudico wait-api --timeout 350s
+  sleep 5
 
   TOKEN=$(docker exec -it $DAEMON_ID eudico auth create-token --perm admin)
   WALLET=$(docker exec -it $DAEMON_ID  eudico wallet default)

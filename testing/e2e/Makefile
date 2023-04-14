@@ -19,7 +19,7 @@ IPC_VERSION      := latest
 # Location of artifacts derived from input parameters.
 IPC_AGENT_DIR    := .ipc/agents/agent-$(IPC_AGENT_NR)
 IPC_AGENT_CONFIG := $(IPC_AGENT_DIR)/config.toml
-IPC_AGENT_SUBNETS:= $(shell find $(IPC_AGENT_DIR) -type f -wholename "**/subnets/node-*")
+IPC_AGENT_SUBNETS:= $(shell find . -type f -wholename "./$(IPC_AGENT_DIR)/subnets/node-*")
 IPC_NODE_DIR     := .ipc/nodes/node-$(IPC_NODE_NR)
 
 # Find created agents and nodes
@@ -123,7 +123,7 @@ $(IPC_AGENT_DIR):
 $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 	echo "# DO NOT EDIT! Any changes will be overwritten as subnets are added. Add changes to config.toml.orig instead." > $@
 	cat $(IPC_AGENT_DIR)/config.toml.orig >> $@
-	cat $(IPC_AGENT_SUBNETS) >> $@
+	for subnet in $(IPC_AGENT_SUBNETS); do cat $$subnet >> $@; done
 
 
 # Initialize the node directory based on the active node type.
