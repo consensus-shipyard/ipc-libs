@@ -5,8 +5,8 @@ pub use subnet::SubnetManager;
 
 pub use crate::lotus::message::ipc::SubnetInfo;
 
+pub(crate) mod bottomup;
 pub mod checkpoint;
 mod lotus;
 mod subnet;
-mod topdown;
-mod bottomup;
+pub(crate) mod topdown;
