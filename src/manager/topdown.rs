@@ -50,7 +50,7 @@ pub async fn manage_topdown_checkpoints(
 
         // Read the parent's chain head and obtain the topdown checkpoint period.
         let state = parent_client.ipc_read_gateway_state(parent_tip_set).await?;
-        let period = state.topdown_check_period;
+        let period = state.top_down_check_period;
 
         loop {
             let parent_head = parent_client.chain_head().await?;
