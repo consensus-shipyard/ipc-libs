@@ -58,8 +58,12 @@ if [ "${IPC_NODE_TYPE}" == "eudico" ]; then
   docker exec -it $DAEMON_ID eudico wait-api --timeout 350s
   sleep 5
 
+  echo "[*] Creating admin token"
   TOKEN=$(docker exec -it $DAEMON_ID eudico auth create-token --perm admin)
+
+  echo "[*] Getting default wallet"
   WALLET=$(docker exec -it $DAEMON_ID  eudico wallet default)
+
   write_subnet_config $TOKEN $WALLET
 
 else

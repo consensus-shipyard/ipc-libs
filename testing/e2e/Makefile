@@ -62,7 +62,7 @@ agent-%/down:
 
 # Reload the configuration of an agent.
 agent/reload: agent/up
-	$(IPC_AGENT) --config-path $(IPC_AGENT_CONFIG) config reload --ipc-agent-url http://127.0.0.1:303$(IPC_AGENT_NR)/json_rpc
+	$(IPC_AGENT) config reload --ipc-agent-url http://127.0.0.1:303$(IPC_AGENT_NR)/json_rpc
 
 
 # Create composition directory node-$(IPC_NODE_NR)
