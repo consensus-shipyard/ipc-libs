@@ -32,7 +32,7 @@ pub async fn manage_bottomup_checkpoints(
     stop_notify: Arc<Notify>,
 ) -> Result<()> {
     log::info!(
-        "Starting bottom-up checkpoint manager for (child, parent) subnet pair ({}, {})",
+        "Starting checkpoint manager for (child, parent) subnet pair ({}, {})",
         child.id,
         parent.id
     );
@@ -166,9 +166,8 @@ pub async fn manage_bottomup_checkpoints(
             }
         }
     };
-
     result.context(format!(
-        "error in manage_topdown_checkpoints() for subnet pair ({}, {})",
+        "error in subnet pair ({}, {})",
         parent.id, child.id
     ))
 }
