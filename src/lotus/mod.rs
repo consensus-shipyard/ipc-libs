@@ -77,6 +77,13 @@ pub trait LotusClient {
     /// See: https://lotus.filecoin.io/reference/lotus/chain/#chainhead
     async fn chain_head(&self) -> Result<ChainHeadResponse>;
 
+    /// GetTipsetByHeight from the underlying chain
+    async fn get_tipset_by_height(
+        &self,
+        epoch: ChainEpoch,
+        tip_set: Cid,
+    ) -> Result<ChainHeadResponse>;
+
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
         child_subnet_id: SubnetID,

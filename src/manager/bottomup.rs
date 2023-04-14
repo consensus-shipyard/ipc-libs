@@ -15,16 +15,14 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::MethodNum;
 use ipc_gateway::BottomUpCheckpoint;
 use primitives::TCid;
-use tokio::select;
 use tokio::sync::Notify;
-use tokio::time::sleep;
 
 use crate::config::Subnet;
 use crate::jsonrpc::JsonRpcClient;
 use crate::lotus::client::LotusJsonRPCClient;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
-use crate::manager::checkpoint::CHAIN_HEAD_REQUEST_PERIOD;
+use crate::manager::checkpoint::{wait_next_iteration, CHAIN_HEAD_REQUEST_PERIOD};
 
 /// Monitors a subnet `child` for checkpoint blocks. It emits an event for every new checkpoint block.
 pub async fn manage_bottomup_checkpoints(
@@ -161,7 +159,7 @@ pub async fn manage_bottomup_checkpoints(
 
             // Sleep for an appropriate amount of time before checking the chain head again or return
             // if a stop notification is received.
-            if !wait_next_iteration(&stop_notify).await? {
+            if !wait_next_iteration(&stop_notify, CHAIN_HEAD_REQUEST_PERIOD).await? {
                 return Ok(());
             }
         }
@@ -170,15 +168,6 @@ pub async fn manage_bottomup_checkpoints(
         "error in subnet pair ({}, {})",
         parent.id, child.id
     ))
-}
-
-/// Sleeps for some time if stop_notify is not fired. It returns true to flag that we should move to the
-/// next iteration of the loop, while false informs that the loop should return.
-async fn wait_next_iteration(stop_notify: &Arc<Notify>) -> Result<bool> {
-    select! {
-        _ = sleep(CHAIN_HEAD_REQUEST_PERIOD) => {Ok(true)}
-        _ = stop_notify.notified() => {Ok(false)}
-    }
 }
 
 /// Submits a checkpoint for `epoch` on behalf of `account` to the subnet actor of `child_subnet`

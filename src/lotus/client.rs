@@ -45,6 +45,7 @@ mod methods {
     pub const WALLET_DEFAULT_ADDRESS: &str = "Filecoin.WalletDefaultAddress";
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
     pub const CHAIN_HEAD: &str = "Filecoin.ChainHead";
+    pub const GET_TIPSET_BY_HEIGHT: &str = "Filecoin.ChainGetTipSetByHeight";
     pub const IPC_GET_PREV_CHECKPOINT_FOR_CHILD: &str = "Filecoin.IPCGetPrevCheckpointForChild";
     pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplateSerialized";
     pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpointSerialized";
@@ -262,6 +263,22 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .request::<ChainHeadResponse>(methods::CHAIN_HEAD, NO_PARAMS)
             .await?;
         log::debug!("received chain_head response: {r:?}");
+        Ok(r)
+    }
+    // (context.Context, abi.ChainEpoch, types.TipSetKey) (*types.TipSet, error) //perm:read
+    async fn get_tipset_by_height(
+        &self,
+        epoch: ChainEpoch,
+        tip_set: Cid,
+    ) -> Result<ChainHeadResponse> {
+        let r = self
+            .client
+            .request::<ChainHeadResponse>(
+                methods::GET_TIPSET_BY_HEIGHT,
+                json!([epoch, [CIDMap::from(tip_set)]]),
+            )
+            .await?;
+        log::debug!("received get_tipset_by_height response: {r:?}");
         Ok(r)
     }
 

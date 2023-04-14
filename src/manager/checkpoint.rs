@@ -11,6 +11,7 @@ use futures_util::stream::FuturesUnordered;
 use futures_util::StreamExt;
 use ipc_sdk::subnet_id::SubnetID;
 use tokio::sync::Notify;
+use tokio::time::sleep;
 use tokio::{select, try_join};
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
@@ -138,4 +139,13 @@ async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notif
     topdown_result?;
     bottom_result?;
     Ok(())
+}
+
+/// Sleeps for some time if stop_notify is not fired. It returns true to flag that we should move to the
+/// next iteration of the loop, while false informs that the loop should return.
+pub async fn wait_next_iteration(stop_notify: &Arc<Notify>, timeout: Duration) -> Result<bool> {
+    select! {
+        _ = sleep(timeout) => {Ok(true)}
+        _ = stop_notify.notified() => {Ok(false)}
+    }
 }
