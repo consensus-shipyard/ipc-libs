@@ -49,4 +49,5 @@ The main targets of the `Makefile` are:
 * `make agent/up`: start the docker container for `$IPC_AGENT_NR`; if necessary build the `ipc-agent` docker image, the configuration directory, etc.
 * `make agent/down`: remove the docker container for `$IPC_AGENT_NR` and the agent configuration directory
 * `make node`, `make node/up`, `make node/down`: same as for the agent
-* `make clean`: remove everything including the `.ipc` directory
+* `make down`: stop and remove all agents and nodes
+* `make connect`: connect `$IPC_AGENT_NR` to `$IPC_NODE_NR`

@@ -6,15 +6,14 @@ IPC_AGENT_NR     := 0
 IPC_NODE_NR      := 0
 IPC_NODE_TYPE    := eudico
 IPC_SUBNET_ID    := /root
+IPC_SUBNET_NAME  := ""
 
 PROJECT_ROOT     := ../..
 IPC_INFRA_DIR    := $(PROJECT_ROOT)/bin/ipc-infra
 IPC_SRC					 := $(shell find $(PROJECT_ROOT) -type f \( -name "*.rs" \) | grep -v target)
 IPC_AGENT        := $(PROJECT_ROOT)/bin/ipc-agent
 
-# Name of the docker-compose project and network.
-IPC_PROJECT      := ipc
-IPC_NETWORK      := $(IPC_PROJECT)
+IPC_NETWORK      := ipc
 IPC_VERSION      := latest
 
 # Location of artifacts derived from input parameters.
@@ -23,15 +22,19 @@ IPC_AGENT_CONFIG := $(IPC_AGENT_DIR)/config.toml
 IPC_NODE_DIR     := .ipc/nodes/node-$(IPC_NODE_NR)
 
 # Find created agents and nodes
-IPC_AGENTS       := $(shell find . -type d -wholename ".ipc/agents/agent-*" | awk -F '/' '{print $$3}')
-IPC_NODES        := $(shell find . -type d -wholename ".ipc/agents/node-*" | awk -F '/' '{print $$3}')
+IPC_AGENTS       := $(shell find . -type d -wholename "./.ipc/agents/agent-*" | awk -F '/' '{print $$4}')
+IPC_NODES        := $(shell find . -type d -wholename "./.ipc/nodes/node-*" | awk -F '/' '{print $$4}')
 
 .PHONY: clean
-clean: \
-		$(patsubst %, %/down, $(IPC_AGENTS)) \
-		$(patsubst %, %/down, $(IPC_NODES))
+clean: down
 	docker network rm $(IPC_NETWORK) || exit 0
 	rm -rf .ipc .make
+
+
+# Stop and remove all nodes and agents.
+down: \
+		$(patsubst %, %/down, $(IPC_AGENTS)) \
+		$(patsubst %, %/down, $(IPC_NODES))
 
 
 # Create composition directory agent-$(IPC_AGENT_NR)
@@ -40,17 +43,17 @@ agent: $(IPC_AGENT_DIR) $(IPC_AGENT_CONFIG)
 
 # Start an agent daemon.
 agent/up: agent .make/docker/network .make/docker/images/ipc-agent
-	cd $(IPC_AGENT_DIR) && docker-compose -p $(IPC_PROJECT) up -d
+	cd $(IPC_AGENT_DIR) && docker-compose up -d
 
 
 # Stop an agent daemon and remove its configuration, as if it never existed.
 agent/down:
 	if [ -d $(IPC_AGENT_DIR) ]; then \
-		cd $(IPC_AGENT_DIR) && docker-compose -p $(IPC_PROJECT) down && cd - && rm -rf $(IPC_AGENT_DIR); \
+		cd $(IPC_AGENT_DIR) && docker-compose down && cd - && rm -rf $(IPC_AGENT_DIR); \
 	fi
 
 
-# Stop a specific agent.
+# Stop and remove specific agent.
 agent-%/down:
 	$(MAKE) agent/down IPC_AGENT_NR=$*
 
@@ -61,19 +64,26 @@ node: $(IPC_NODE_DIR)
 
 # Start a node.
 node/up: node .make/docker/network
-	cd $(IPC_NODE_DIR) && docker-compose -p $(IPC_PROJECT) up -d
+	cd $(IPC_NODE_DIR) && docker-compose up -d
 
 
 # Stop a node and remove its configuration, as if it never existed.
 node/down:
 	if [ -d $(IPC_NODE_DIR) ]; then \
-		cd $(IPC_NODE_DIR) && docker-compose -p $(IPC_PROJECT) down -v && cd - && rm -rf $(IPC_NODE_DIR); \
+		cd $(IPC_NODE_DIR) && docker-compose down -v && cd - && rm -rf $(IPC_NODE_DIR); \
 	fi
 
 
-# Stop a specific node.
+# Stop and remove a specific node.
 node-%/down:
 	$(MAKE) node/down IPC_NODE_NR=$*
+
+
+# Connect an agent to a node.
+# A node will always be participating in a specific subnet, so this means exactly one entry in the agent's config.
+# Example: `make connect IPC_AGENT_NR=0 IPC_NODE_NR=0`
+connect: node/up agent/up
+	./scripts/connect.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR)
 
 
 # Build the IPC agent binary.
@@ -119,6 +129,7 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	export IPC_NODE_NR=$(IPC_NODE_NR) ; \
 	export IPC_NODE_TYPE=$(IPC_NODE_TYPE) ; \
 	export IPC_SUBNET_ID=$(IPC_SUBNET_ID) ; \
+	export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
 
 
