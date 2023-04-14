@@ -16,7 +16,7 @@ services:
     image: eudico:latest
     # The container name could contain the ${IPC_NODE_TYPE} but that would suggest that type and number are unique together,
     # whereas with the current setup the node number is unique on its own. Look at the image to tell what kind we are talking to.
-    container_name: ipc-node-${IPC_NODE_NR}-eudico-daemon
+    container_name: ipc-node-${IPC_NODE_NR}-daemon
     # Indicate the type in the host name, makes URLs more intuitive.
     hostname: ${IPC_NODE_TYPE}-${IPC_NODE_NR}
     # Ports don't really need to be exposed as all containers should just talk to each other.
@@ -26,10 +26,10 @@ services:
       # libp2p port
       # - 134${IPC_NODE_NR}:1347
     volumes:
-      # Volume to be shared with the validator
+      # Volume to be shared with the validator.
       - repo_directory:/var/lib/lotus
-      # Apparently these are part of the eudico image, but for transparentcy let's mount them.
-      - ${IPC_PROJECT_ROOT}/bin/ipc-infra:/scripts/ipc
+      # Modified versions of the infra scripts. Mounted from templates so they can be edited between restarts.
+      - ${IPC_PROJECT_ROOT}/testing/e2e/template/${IPC_NODE_TYPE}/scripts:/scripts
     networks:
       - ipc
     environment:
@@ -38,7 +38,7 @@ services:
     env_file:
       - .env
     entrypoint:
-      - /scripts/ipc/src/subnet-daemon.sh
+      - /scripts/subnet-daemon.sh
       - ${IPC_SUBNET_ID}
 
   # Run the validator, which the `eudico-root-single.sh` script ran in the second tmux window.
@@ -46,15 +46,14 @@ services:
     image: eudico:latest
     # The container name could contain the ${IPC_NODE_TYPE} but that would suggest that type and number are unique together,
     # whereas with the current setup the node number is unique on its own. Look at the image to tell what kind we are talking to.
-    container_name: ipc-node-${IPC_NODE_NR}-eudico-validator
+    container_name: ipc-node-${IPC_NODE_NR}-validator
     volumes:
       # Volume to be shared with the daemon. Has to be the same, a config is not enough.
       - repo_directory:/var/lib/lotus
-      # Apparently these are part of the eudico image, but for transparentcy let's mount them.
-      - ${IPC_PROJECT_ROOT}/bin/ipc-infra:/scripts/ipc
+      # Modified versions of the infra scripts. Mounted from templates so they can be edited between restarts.
+      - ${IPC_PROJECT_ROOT}/testing/e2e/template/${IPC_NODE_TYPE}/scripts:/scripts
       # TODO: The key will have to come from a different place for non-root validators.
       - ${IPC_PROJECT_ROOT}/bin/ipc-infra/src/wallet.key:/wallet.key
-      - ${PWD}/validator-entry.sh:/validator-entry.sh
     networks:
       - ipc
     environment:
@@ -64,7 +63,7 @@ services:
     env_file:
       - .env
     entrypoint:
-      - /validator-entry.sh
+      - /scripts/validator-entry.sh
     depends_on:
-      # Need the socket file to be created before we start.
+      # The daemon will produce the API token under the shared LOTUS_PATH
       - daemon
