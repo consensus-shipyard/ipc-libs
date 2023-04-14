@@ -3,6 +3,7 @@
 # Parameters that can be set when calling make to act like named arguments.
 # e.g. `make <target> IPC_AGENT_NR=1`
 IPC_AGENT_NR     := 0
+IPC_WALLET_NR    := 0
 IPC_NODE_NR      := 0
 IPC_NODE_TYPE    := eudico
 IPC_SUBNET_ID    := /root
@@ -20,6 +21,7 @@ IPC_VERSION      := latest
 IPC_AGENT_DIR    := .ipc/agents/agent-$(IPC_AGENT_NR)
 IPC_AGENT_CONFIG := $(IPC_AGENT_DIR)/config.toml
 IPC_AGENT_SUBNETS:= $(shell find . -type f -wholename "./$(IPC_AGENT_DIR)/subnets/node-*")
+IPC_AGENT_URL    := http://127.0.0.1:303$(IPC_AGENT_NR)/json_rpc
 IPC_NODE_DIR     := .ipc/nodes/node-$(IPC_NODE_NR)
 
 # Find created agents and nodes
@@ -62,7 +64,7 @@ agent-%/down:
 
 # Reload the configuration of an agent.
 agent/reload: agent/up
-	$(IPC_AGENT) config reload --ipc-agent-url http://127.0.0.1:303$(IPC_AGENT_NR)/json_rpc
+	$(IPC_AGENT) config reload --ipc-agent-url $(IPC_AGENT_URL)
 
 
 # Create composition directory node-$(IPC_NODE_NR)
@@ -92,6 +94,10 @@ node-%/down:
 connect: node/up agent/up
 	./scripts/connect.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR)
 	$(MAKE) agent/reload
+
+
+# Create a wallet on the active node.
+wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
 
 
 # Build the IPC agent binary.
@@ -139,6 +145,17 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	export IPC_SUBNET_ID=$(IPC_SUBNET_ID) ; \
 	export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
+
+
+# Dependency check to ensure we are only asking agents to perform actions on nodes they have been connected to.
+$(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR):
+	@echo ERROR: agent-$(IPC_AGENT_NR) has not been connected to node-$(IPC_NODE_NR) yet; use `make connect` first
+	@exit 1
+
+
+# Tell an agent to create a wallet on a node and save it to a file.
+$(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
+	./scripts/new-wallet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
 # Create the docker network every container connects to.

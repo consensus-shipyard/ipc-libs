@@ -67,6 +67,6 @@ if [ "${IPC_NODE_TYPE}" == "eudico" ]; then
   write_subnet_config $TOKEN $WALLET
 
 else
-  echo "Don't know how to connect node type $IPC_NODE_TYPE";
+  echo "Don't know how to connect node type: $IPC_NODE_TYPE";
   exit 1;
 fi
