@@ -33,14 +33,19 @@ write_subnet_config() {
   SUBNET_CONFIG=$SUBNETS_DIR/node-$IPC_NODE_NR
   echo "[*] Writing subnet config to $SUBNET_CONFIG"
 
+  # The JSON-API URL is from the perspective of one container connecting to another,
+  # e.g. the agent container to the eudico daemon. It needs to mach the settings in
+  # the compose file.
   cat <<EOF > $SUBNET_CONFIG
+
 [[subnets]]
 id = "${IPC_SUBNET_ID}"
 gateway_addr = "t064"
 network_name = "${IPC_SUBNET_NAME}"
-jsonrpc_api_http = "http://127.0.0.1:123${IPC_NODE_NR}/rpc/v1"
+jsonrpc_api_http = "http://${IPC_NODE_TYPE}-${IPC_NODE_NR}:1234/rpc/v1"
 auth_token = "${TOKEN}"
 accounts = ["${WALLET}"]
+
 EOF
 }
 

@@ -19,11 +19,13 @@ IPC_VERSION      := latest
 # Location of artifacts derived from input parameters.
 IPC_AGENT_DIR    := .ipc/agents/agent-$(IPC_AGENT_NR)
 IPC_AGENT_CONFIG := $(IPC_AGENT_DIR)/config.toml
+IPC_AGENT_SUBNETS:= $(shell find $(IPC_AGENT_DIR) -type f -wholename "**/subnets/node-*")
 IPC_NODE_DIR     := .ipc/nodes/node-$(IPC_NODE_NR)
 
 # Find created agents and nodes
 IPC_AGENTS       := $(shell find . -type d -wholename "./.ipc/agents/agent-*" | awk -F '/' '{print $$4}')
 IPC_NODES        := $(shell find . -type d -wholename "./.ipc/nodes/node-*" | awk -F '/' '{print $$4}')
+
 
 .PHONY: clean
 clean: down
@@ -58,6 +60,11 @@ agent-%/down:
 	$(MAKE) agent/down IPC_AGENT_NR=$*
 
 
+# Reload the configuration of an agent.
+agent/reload: $(IPC_AGENT_CONFIG)
+	$(IPC_AGENT) --config-path $(IPC_AGENT_CONFIG) config reload --ipc-agent-url http://127.0.0.1:303$(IPC_AGENT_NR)/json_rpc
+
+
 # Create composition directory node-$(IPC_NODE_NR)
 node: $(IPC_NODE_DIR)
 
@@ -84,6 +91,7 @@ node-%/down:
 # Example: `make connect IPC_AGENT_NR=0 IPC_NODE_NR=0`
 connect: node/up agent/up
 	./scripts/connect.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR)
+	$(MAKE) agent/reload
 
 
 # Build the IPC agent binary.
@@ -112,10 +120,10 @@ $(IPC_AGENT_DIR):
 
 
 # Initialize the agent config.
-$(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR)
+$(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 	echo "# DO NOT EDIT! Any changes will be overwritten as subnets are added. Add changes to config.toml.orig instead." > $@
 	cat $(IPC_AGENT_DIR)/config.toml.orig >> $@
-	# TODO: Find all subnets and append their config to the output.
+	cat $(IPC_AGENT_SUBNETS) >> $@
 
 
 # Initialize the node directory based on the active node type.
