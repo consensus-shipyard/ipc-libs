@@ -53,6 +53,7 @@ mod methods {
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
     pub const IPC_VALIDATOR_HAS_VOTED_BOTTOMUP: &str = "Filecoin.IPCHasVotedBottomUpCheckpoint";
+    pub const IPC_VALIDATOR_HAS_VOTED_TOPDOWN: &str = "Filecoin.IPCHasVotedTopDownCheckpoint";
     pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpointsSerialized";
     pub const IPC_GET_TOPDOWN_MESSAGES: &str = "Filecoin.IPCGetTopDownMsgsSerialized";
 }
@@ -387,10 +388,25 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
+    async fn ipc_validator_has_voted_topdown(
+        &self,
+        gateway_addr: &Address,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool> {
+        let params = json!([gateway_addr.to_string(), epoch, validator.to_string()]);
+        let r = self
+            .client
+            .request::<bool>(methods::IPC_VALIDATOR_HAS_VOTED_TOPDOWN, params)
+            .await?;
+        Ok(r)
+    }
+
     async fn ipc_get_topdown_msgs(
         &self,
         subnet_id: &SubnetID,
         gateway_addr: Address,
+        tip_set: Cid,
         nonce: u64,
     ) -> Result<Vec<CrossMsg>> {
         let parent = subnet_id
@@ -404,6 +420,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
                 "Parent": parent,
                 "Actor": actor
             },
+            [CIDMap::from(tip_set)],
             nonce,
         ]);
         let r = self

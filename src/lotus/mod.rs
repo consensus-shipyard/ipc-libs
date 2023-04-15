@@ -121,12 +121,22 @@ pub trait LotusClient {
         validator: &Address,
     ) -> Result<bool>;
 
+    /// Determines if a validator has already voted for a topdown checkpoint
+    /// at certain epoch
+    async fn ipc_validator_has_voted_topdown(
+        &self,
+        gateway_addr: &Address,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool>;
+
     /// Returns the top-down messages committed for propagation from
-    /// a specific `nonce`
+    /// a specific `nonce` at a specific tipset
     async fn ipc_get_topdown_msgs(
         &self,
         subnet_id: &SubnetID,
         gateway_addr: Address,
+        tip_set: Cid,
         nonce: u64,
     ) -> Result<Vec<CrossMsg>>;
 

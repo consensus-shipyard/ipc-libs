@@ -15,9 +15,7 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::MethodNum;
 use ipc_gateway::TopDownCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use tokio::select;
 use tokio::sync::Notify;
-use tokio::time::sleep;
 
 use crate::config::Subnet;
 use crate::constants::GATEWAY_ACTOR_ADDRESS;
@@ -25,7 +23,7 @@ use crate::jsonrpc::JsonRpcClient;
 use crate::lotus::client::LotusJsonRPCClient;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
-use crate::manager::checkpoint::CHAIN_HEAD_REQUEST_PERIOD;
+use crate::manager::checkpoint::{wait_next_iteration, CHAIN_HEAD_REQUEST_PERIOD};
 
 pub async fn manage_topdown_checkpoints(
     (child, parent): (Subnet, Subnet),
@@ -42,8 +40,8 @@ pub async fn manage_topdown_checkpoints(
 
     let result: Result<()> = try {
         // Read the child's chain head and obtain the tip set CID.
-        log::debug!("Getting child tipset");
-        let child_head = parent_client.chain_head().await?;
+        log::debug!("Getting child tipset and starting top-down checkpointing manager");
+        let child_head = child_client.chain_head().await?;
         let cid_map = child_head.cids.first().unwrap().clone();
         let child_tip_set = Cid::try_from(cid_map)?;
 
@@ -53,11 +51,14 @@ pub async fn manage_topdown_checkpoints(
         let period = state.top_down_check_period;
 
         loop {
+            // get current epoch in the parent and tipset
             let parent_head = parent_client.chain_head().await?;
             let curr_epoch: ChainEpoch = ChainEpoch::try_from(parent_head.height)?;
+            let cid_map = parent_head.cids.first().unwrap().clone();
+            let parent_tip_set = Cid::try_from(cid_map)?;
 
-            // Read the child's chain head and obtain the topdown checkpoint period
-            // and genesis epoch.
+            // get child gateway state to determine the last executed checkpoint
+            // and compute the submission epoch
             let child_head = child_client.chain_head().await?;
             let cid_map = child_head.cids.first().unwrap().clone();
             let child_tip_set = Cid::try_from(cid_map)?;
@@ -68,14 +69,12 @@ pub async fn manage_topdown_checkpoints(
             let submission_epoch = last_exec + period;
 
             // if it is time to execute a checkpoint
+            // FIXME: We should make this a while loop that while there is a
+            // checkpoint to be committed I don't need to wait for a new iteration
+            // to submit my checkpoint and I can submit it immediately
             if curr_epoch >= submission_epoch {
                 // We check which accounts are in the validator set. This is done by reading
                 // the parent's chain head and requesting the state at that tip set.
-                let parent_head = parent_client.chain_head().await?;
-                assert_eq!(parent_head.cids.len(), 1);
-                let cid_map = parent_head.cids.first().unwrap().clone();
-                let parent_tip_set = Cid::try_from(cid_map)?;
-
                 let subnet_actor_state = parent_client
                     .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
                     .await?;
@@ -94,26 +93,31 @@ pub async fn manage_topdown_checkpoints(
                 // checkpoint.
                 for account in child.accounts.iter() {
                     if validator_set.contains(account) {
-                        // check if the validator already voted
-                        // TODO: @will, we don't have this endpoint yet in Lotus, it's late Friday night,
-                        // so I will implement it first thing in the morning, but I guess we can test
-                        // it even without this for now.
-                        // let has_voted = parent_client
-                        //     .ipc_validator_has_voted_bottomup(&child.id, submission_epoch, account)
-                        //     .await
-                        //     .map_err(|e| {
-                        //         log::error!(
-                        //             "error checking if validator has voted in subnet: {:?}",
-                        //             &child.id
-                        //         );
-                        //         e
-                        //     })?;
-                        let has_voted = true;
+                        // check if the validator already voted the top-down checkpoint
+                        // in the child.
+                        let has_voted = child_client
+                            .ipc_validator_has_voted_topdown(
+                                // FIXME: Do not use the default, use the one configured
+                                // for the subnet
+                                &Address::from_str(GATEWAY_ACTOR_ADDRESS)?,
+                                submission_epoch,
+                                account,
+                            )
+                            .await
+                            .map_err(|e| {
+                                log::error!(
+                                    "error checking if validator has voted in subnet: {:?}",
+                                    &child.id
+                                );
+                                e
+                            })?;
+
                         if !has_voted {
                             // submitting the checkpoint synchronously and waiting to be committed.
                             submit_topdown_checkpoint(
                                 submission_epoch,
-                                last_exec,
+                                parent_tip_set,
+                                child_tip_set,
                                 account,
                                 child.id.clone(),
                                 &child_client,
@@ -126,11 +130,10 @@ pub async fn manage_topdown_checkpoints(
                             // - we get the up to date head of the parent and the child.
                             // - check the last executed checkpoint for the subnet
                             // - And if we still have the info, submit a new checkpoint
-                            // TODO: We should definitely include this logic into its own function,
-                            // it is exactly the same as the one above, but trying to be explicit now
-                            // for review.
                             let parent_head = parent_client.chain_head().await?;
                             let curr_epoch: ChainEpoch = ChainEpoch::try_from(parent_head.height)?;
+                            let cid_map = parent_head.cids.first().unwrap().clone();
+                            let parent_tip_set = Cid::try_from(cid_map)?;
                             let child_head = child_client.chain_head().await?;
                             let cid_map = child_head.cids.first().unwrap().clone();
                             let child_tip_set = Cid::try_from(cid_map)?;
@@ -143,7 +146,8 @@ pub async fn manage_topdown_checkpoints(
                             if curr_epoch >= submission_epoch {
                                 submit_topdown_checkpoint(
                                     submission_epoch,
-                                    last_exec,
+                                    parent_tip_set,
+                                    child_tip_set,
                                     account,
                                     child.id.clone(),
                                     &child_client,
@@ -158,9 +162,8 @@ pub async fn manage_topdown_checkpoints(
 
             // Sleep for an appropriate amount of time before checking the chain head again or return
             // if a stop notification is received.
-            select! {
-                _ = sleep(CHAIN_HEAD_REQUEST_PERIOD) => { continue }
-                _ = stop_notify.notified() => { break }
+            if !wait_next_iteration(&stop_notify, CHAIN_HEAD_REQUEST_PERIOD).await? {
+                return Ok(());
             }
         }
     };
@@ -176,7 +179,8 @@ pub async fn manage_topdown_checkpoints(
 // them to the child subnet.
 async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
     submission_epoch: ChainEpoch,
-    last_executed: ChainEpoch,
+    curr_parent_tip_set: Cid,
+    curr_child_tip_set: Cid,
     account: &Address,
     child_subnet: SubnetID,
     child_client: &LotusJsonRPCClient<T>,
@@ -187,28 +191,24 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
     // after the last executed checkpoint. We
     // increment the result by one to obtain the nonce of the first topdown message we want to
     // submit to the child subnet.
-    let child_head = child_client.chain_head().await?;
-    let cid_map = child_head.cids.first().unwrap().clone();
-    let child_head = Cid::try_from(cid_map)?;
-    let submission_tip_set = child_client
-        .get_tipset_by_height(last_executed + 2, child_head)
-        .await?;
-    let cid_map = submission_tip_set.cids.first().unwrap().clone();
-    let submission_tip_set = Cid::try_from(cid_map)?;
-
     let state = child_client
-        .ipc_read_gateway_state(submission_tip_set)
+        .ipc_read_gateway_state(curr_child_tip_set)
         .await?;
     let nonce = state.applied_topdown_nonce + 1;
 
-    // Then, we read from the parent subnet the topdown messages with nonce greater than or equal
-    // to the nonce we just obtained for the submission tip_set.
+    // Then, we get the top-down messages from the latest nonce at the specific submission epoch.
+    // This ensures that all validators will provide deterministically the top-down messages
+    // to be included in all checkpoints.
+    // FIXME: We probably shouldn't use the default one here and use the one
+    // deployed in the subnet
     let gateway_addr = Address::from_str(GATEWAY_ACTOR_ADDRESS)?;
-    // TODO: @adlrocha to add a new top-down-messages for a specific
-    // tipset, as we need all checkpoints to include the same
-    // exact top-down messages in order.
+    let submission_tip_set = parent_client
+        .get_tipset_by_height(submission_epoch, curr_parent_tip_set)
+        .await?;
+    let cid_map = submission_tip_set.cids.first().unwrap().clone();
+    let submission_tip_set = Cid::try_from(cid_map)?;
     let top_down_msgs = parent_client
-        .ipc_get_topdown_msgs(&child_subnet, gateway_addr, nonce)
+        .ipc_get_topdown_msgs(&child_subnet, gateway_addr, submission_tip_set, nonce)
         .await?;
 
     // Finally, we submit the topdown messages to the child subnet.
@@ -224,7 +224,24 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
         ipc_gateway::Method::SubmitTopDownCheckpoint as MethodNum,
         cbor::serialize(&topdown_checkpoint, "topdown_checkpoint")?.to_vec(),
     );
-    parent_client.mpool_push_message(message).await?;
+    let mem_push_response = child_client.mpool_push_message(message)
+        .await
+        .map_err(|e| {
+            log::error!(
+                "error submitting top-down checkpoint for epoch {submission_epoch:} in subnet: {:?}",
+                &child_subnet
+            );
+            e
+        })?;
+
+    // wait for the checkpoint to be committed before moving on.
+    let message_cid = mem_push_response.cid()?;
+    log::debug!("top-down checkpoint message published with cid: {message_cid:?}");
+    log::info!("waiting for top-down checkpoint for epoch {submission_epoch:} to be committed");
+    parent_client.state_wait_msg(message_cid).await?;
+    log::info!(
+        "successfully published top-down checkpoint submission for epoch {submission_epoch:}"
+    );
 
     Ok(())
 }

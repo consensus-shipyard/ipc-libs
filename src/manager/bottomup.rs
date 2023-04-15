@@ -126,9 +126,9 @@ pub async fn manage_bottomup_checkpoints(
                             // - we get the up to date head of the parent and the child.
                             // - check the last executed checkpoint for the subnet
                             // - And if we still have the info, submit a new checkpoint
-                            // TODO: We should definitely include this logic into its own function,
-                            // it is exactly the same as the one above, but trying to be explicit now
-                            // for review.
+                            // FIXME: We should make this a while loop that while there is a
+                            // checkpoint to be committed I don't need to wait for a new iteration
+                            // to submit my checkpoint and I can submit it immediately
                             let child_head = child_client.chain_head().await?;
                             let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
                             let parent_head = parent_client.chain_head().await?;
@@ -181,7 +181,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     parent_client: &LotusJsonRPCClient<T>,
 ) -> Result<()> {
     log::info!(
-        "Submitting checkpoint for account {} and epoch {} from child {}",
+        "Submitting checkpoint bottom-up for account {} and epoch {} from child {}",
         account,
         epoch,
         child_subnet.id,
@@ -191,7 +191,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     // From the template on the gateway actor of the child subnet, we get the children checkpoints
     // and the bottom-up cross-net messages.
     log::debug!(
-        "Getting checkpoint template for {epoch:} in subnet: {:?}",
+        "Getting checkpoint bottom-up template for {epoch:} in subnet: {:?}",
         &child_subnet.id
     );
     let template = child_client
@@ -199,7 +199,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
         .await
         .map_err(|e| {
             log::error!(
-                "error getting checkpoint template for epoch:{epoch:} in subnet: {:?}",
+                "error getting bottom-up checkpoint template for epoch:{epoch:} in subnet: {:?}",
                 &child_subnet.id
             );
             e
@@ -210,7 +210,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
     // subnet.
     log::debug!(
-        "Getting previous checkpoint from parent gateway for {epoch:} in subnet: {:?}",
+        "Getting previous checkpoint bottom-up from parent gateway for {epoch:} in subnet: {:?}",
         &child_subnet.id
     );
     let response = parent_client
@@ -218,7 +218,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
         .await
         .map_err(|e| {
             log::error!(
-                "error getting previous checkpoint for epoch:{epoch:} in subnet: {:?}",
+                "error getting previous bottom-up checkpoint for epoch:{epoch:} in subnet: {:?}",
                 &child_subnet.id
             );
             e
@@ -234,7 +234,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     // The checkpoint is constructed. Now we call the `submit_checkpoint` method on the subnet actor
     // of the child subnet that is deployed on the parent subnet.
     log::debug!(
-        "Pushing checkpoint submission message for {epoch:} in subnet: {:?}",
+        "Pushing bottom-up checkpoint submission message for {epoch:} in subnet: {:?}",
         &child_subnet.id
     );
     let to = child_subnet.id.subnet_actor();
@@ -250,7 +250,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
         .await
         .map_err(|e| {
             log::error!(
-                "error submitting checkpoint for epoch {epoch:} in subnet: {:?}",
+                "error submitting bottom-up checkpoint for epoch {epoch:} in subnet: {:?}",
                 &child_subnet.id
             );
             e
@@ -258,10 +258,10 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
 
     // wait for the checkpoint to be committed before moving on.
     let message_cid = mem_push_response.cid()?;
-    log::debug!("checkpoint message published with cid: {message_cid:?}");
-    log::info!("waiting for checkpoint for epoch {epoch:} to be committed");
+    log::debug!("bottom-up checkpoint message published with cid: {message_cid:?}");
+    log::info!("waiting bottom-up for checkpoint for epoch {epoch:} to be committed");
     parent_client.state_wait_msg(message_cid).await?;
-    log::info!("successfully published checkpoint submission for epoch {epoch:}");
+    log::info!("successfully published bottom-up checkpoint submission for epoch {epoch:}");
 
     Ok(())
 }
