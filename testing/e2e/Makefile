@@ -157,6 +157,7 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 
 # Initialize the node directory based on the active node type.
 # If the node has a parent, make a wallet and a subnet on the parent node.
+# The agent used must be one connected to the parent node.
 $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	mkdir -p $@
 	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/
@@ -178,6 +179,7 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	export IPC_WALLET_NR=$(IPC_WALLET_NR); \
 	export IPC_NODE_NR=$(IPC_NODE_NR); \
 	export IPC_NODE_TYPE=$(IPC_NODE_TYPE); \
+	unset  IPC_AGENT_NR; \
 	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
 
 
@@ -188,13 +190,13 @@ $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR):
 
 
 # Tell an agent to create a wallet on a node and save it to a file.
-# The agent has to be connected to that node to issue the commands.
+# The agent has to be connected to the node to issue the commands.
 $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
 	./scripts/new-wallet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
 # Create a new subnet on a node.
-# The agent has to be connected to that node to issue the commands.
+# The agent has to be connected to the node to issue the commands.
 $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
 	./scripts/new-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL)
 
