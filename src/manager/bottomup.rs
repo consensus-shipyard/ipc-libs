@@ -119,7 +119,11 @@ pub async fn manage_bottomup_checkpoints(
                                 &child_client,
                                 &parent_client,
                             )
-                            .await?;
+                            .await
+                            .map_err(|e| {
+                                log::error!("cannot submit checkpoint due to {:?}", e);
+                                e
+                            })?;
 
                             // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
                             // missing in case the previous one was executed successfully.
@@ -150,7 +154,11 @@ pub async fn manage_bottomup_checkpoints(
                                     &child_client,
                                     &parent_client,
                                 )
-                                .await?;
+                                .await
+                                .map_err(|e| {
+                                    log::error!("cannot submit checkpoint due to {:?}", e);
+                                    e
+                                })?;
                             }
                         }
                     }
