@@ -1,4 +1,6 @@
+#!/usr/bin/env bash
 # Topology compiled from topology/example.yaml
+set -e
 # Create the agent(s)
 make agent/up IPC_AGENT_NR=0
 make agent/up IPC_AGENT_NR=1

@@ -16,7 +16,9 @@ echo "[*] Compiling $TOPO_YAML to $TOPO_SH"
 
 yq -Poj $TOPO_YAML > $TOPO_JSON
 
-echo "# Topology compiled from $TOPO_YAML" > $TOPO_SH
+echo "#!/usr/bin/env bash" > $TOPO_SH
+echo "# Topology compiled from $TOPO_YAML" >> $TOPO_SH
+echo "set -e" >> $TOPO_SH
 
 echo "# Create the agent(s)" >> $TOPO_SH
 cat $TOPO_JSON | jq -r '

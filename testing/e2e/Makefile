@@ -29,6 +29,8 @@ IPC_NODE_DIR     := .ipc/nodes/node-$(IPC_NODE_NR)
 IPC_AGENTS       := $(shell find . -type d -wholename "./.ipc/agents/agent-*" | awk -F '/' '{print $$4}')
 IPC_NODES        := $(shell find . -type d -wholename "./.ipc/nodes/node-*" | awk -F '/' '{print $$4}')
 
+# Don't remove artifacts created as dependencies.
+.SECONDARY:
 
 .PHONY: clean
 clean: down
@@ -116,6 +118,11 @@ topology/%.sh: topology/%.yaml | jq yq
 	./scripts/topology.sh $<
 
 
+# Compile and execute a topology.
+setup/%: topology/%.sh
+	bash $<
+
+
 # Build the IPC agent binary.
 $(IPC_AGENT): $(IPC_SRC)
 	$(MAKE) -C $(PROJECT_ROOT) build
@@ -156,7 +163,7 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 
 	@# Create .env file with overrides taken from the environment.
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
-		export IPC_WALLET_KEY=$(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key; \
+		export IPC_WALLET_KEY=${PWD}/$(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key; \
 		export IPC_SUBNET_ID=/root; \
 		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
 	else \
