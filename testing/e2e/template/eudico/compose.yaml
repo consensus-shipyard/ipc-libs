@@ -30,6 +30,7 @@ services:
       - repo_directory:/var/lib/lotus
       # Modified versions of the infra scripts. Mounted from templates so they can be edited between restarts.
       - ${IPC_PROJECT_ROOT}/testing/e2e/template/${IPC_NODE_TYPE}/scripts:/scripts
+      - ${PWD}/wallet.key:/wallet.key
     networks:
       - ipc
     environment:
@@ -52,8 +53,7 @@ services:
       - repo_directory:/var/lib/lotus
       # Modified versions of the infra scripts. Mounted from templates so they can be edited between restarts.
       - ${IPC_PROJECT_ROOT}/testing/e2e/template/${IPC_NODE_TYPE}/scripts:/scripts
-      # TODO: The key will have to come from a different place for non-root validators.
-      - ${IPC_PROJECT_ROOT}/bin/ipc-infra/src/wallet.key:/wallet.key
+      - ${PWD}/wallet.key:/wallet.key
     networks:
       - ipc
     environment:

@@ -4,6 +4,7 @@
 # e.g. `make <target> IPC_AGENT_NR=1`
 IPC_AGENT_NR     := 0
 IPC_WALLET_NR    := 0
+IPC_PARENT_NR    := 0
 IPC_NODE_NR      := 0
 IPC_NODE_TYPE    := eudico
 IPC_SUBNET_ID    := /root
@@ -47,7 +48,7 @@ agent: $(IPC_AGENT_DIR) $(IPC_AGENT_CONFIG)
 
 # Start an agent daemon.
 agent/up: agent .make/docker/network .make/docker/images/ipc-agent
-	cd $(IPC_AGENT_DIR) && docker-compose up -d
+	@cd $(IPC_AGENT_DIR) && docker-compose up -d
 
 
 # Stop an agent daemon and remove its configuration, as if it never existed.
@@ -68,12 +69,12 @@ agent/reload: agent/up
 
 
 # Create composition directory node-$(IPC_NODE_NR)
-node: $(IPC_NODE_DIR)
+node: $(IPC_NODE_DIR) $(IPC_NODE_DIR)/wallet.key
 
 
 # Start a node.
 node/up: node .make/docker/network
-	cd $(IPC_NODE_DIR) && docker-compose up -d
+	@cd $(IPC_NODE_DIR) && docker-compose up -d
 
 
 # Stop a node and remove its configuration, as if it never existed.
@@ -119,9 +120,9 @@ $(IPC_AGENT_DIR):
 	cp template/agent/config.toml  $@/config.toml.orig
 
 	@# Create .env file with overrides taken from the environment.
-	export IPC_VERSION=$(IPC_VERSION) ; \
-	export IPC_NETWORK=$(IPC_NETWORK) ; \
-	export IPC_AGENT_NR=$(IPC_AGENT_NR) ; \
+	export IPC_VERSION=$(IPC_VERSION); \
+	export IPC_NETWORK=$(IPC_NETWORK); \
+	export IPC_AGENT_NR=$(IPC_AGENT_NR); \
 	./scripts/make-env.sh template/agent/.env $@/.env IPC_
 
 
@@ -138,13 +139,26 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/
 
 	@# Create .env file with overrides taken from the environment.
-	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT) ; \
-	export IPC_NETWORK=$(IPC_NETWORK) ; \
-	export IPC_NODE_NR=$(IPC_NODE_NR) ; \
-	export IPC_NODE_TYPE=$(IPC_NODE_TYPE) ; \
-	export IPC_SUBNET_ID=$(IPC_SUBNET_ID) ; \
-	export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
+	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT); \
+	export IPC_PARENT_NR=$(IPC_PARENT_NR); \
+	export IPC_WALLET_NR=$(IPC_WALLET_NR); \
+	export IPC_NETWORK=$(IPC_NETWORK); \
+	export IPC_NODE_NR=$(IPC_NODE_NR); \
+	export IPC_NODE_TYPE=$(IPC_NODE_TYPE); \
+	export IPC_SUBNET_ID=$(IPC_SUBNET_ID); \
+	export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
 	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
+
+
+# Make a wallet for the node. If it's the root node, use the one in the infra scripts,
+# otherwise make the parent node create a wallet and copy that.
+$(IPC_NODE_DIR)/wallet.key: $(IPC_NODE_DIR)
+	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
+		cp $(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key $@; \
+	else \
+		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR) IPC_SUBNET_NAME=""; \
+		cp .ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key $@; \
+	fi
 
 
 # Dependency check to ensure we are only asking agents to perform actions on nodes they have been connected to.
