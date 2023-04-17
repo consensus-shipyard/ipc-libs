@@ -222,6 +222,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
             .data
             .cross_msgs
             .cross_msgs
+            .as_ref()
             .map(|s| s.len())
             .unwrap_or_default()
     );
