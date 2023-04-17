@@ -140,6 +140,13 @@ pub trait LotusClient {
         nonce: u64,
     ) -> Result<Vec<CrossMsg>>;
 
+    /// Gets the genesis epoch at which a subnet was registered in the parent
+    async fn ipc_get_genesis_epoch_for_subnet(
+        &self,
+        subnet_id: &SubnetID,
+        gateway_addr: Address,
+    ) -> Result<ChainEpoch>;
+
     /// Returns the list of checkpoints from a subnet actor for the given epoch range.
     async fn ipc_list_checkpoints(
         &self,

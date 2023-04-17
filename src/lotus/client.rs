@@ -56,6 +56,7 @@ mod methods {
     pub const IPC_VALIDATOR_HAS_VOTED_TOPDOWN: &str = "Filecoin.IPCHasVotedTopDownCheckpoint";
     pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpointsSerialized";
     pub const IPC_GET_TOPDOWN_MESSAGES: &str = "Filecoin.IPCGetTopDownMsgsSerialized";
+    pub const IPC_GENESIS_EPOCH_FOR_SUBNET: &str = "Filecoin.IPCGetGenesisEpochForSubnet";
 }
 
 /// The default state wait confidence value
@@ -409,19 +410,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         tip_set: Cid,
         nonce: u64,
     ) -> Result<Vec<CrossMsg>> {
-        let parent = subnet_id
-            .parent()
-            .ok_or_else(|| anyhow!("no parent found"))?
-            .to_string();
-        let actor = subnet_id.subnet_actor().to_string();
         let params = json!([
             gateway_addr.to_string(),
-            {
-                "Parent": parent,
-                "Actor": actor
-            },
+            subnet_id.to_json(),
             [CIDMap::from(tip_set)],
-            nonce,
+            nonce
         ]);
         let r = self
             .client
@@ -443,25 +436,26 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(msgs)
     }
 
+    async fn ipc_get_genesis_epoch_for_subnet(
+        &self,
+        subnet_id: &SubnetID,
+        gateway_addr: Address,
+    ) -> Result<ChainEpoch> {
+        let params = json!([gateway_addr.to_string(), subnet_id.to_json()]);
+        let r = self
+            .client
+            .request::<ChainEpoch>(methods::IPC_GENESIS_EPOCH_FOR_SUBNET, params)
+            .await?;
+        Ok(r)
+    }
+
     async fn ipc_list_checkpoints(
         &self,
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>> {
-        let parent = subnet_id
-            .parent()
-            .ok_or_else(|| anyhow!("no parent found"))?
-            .to_string();
-        let actor = subnet_id.subnet_actor().to_string();
-        let params = json!([
-            {
-                "Parent": parent,
-                "Actor": actor
-            },
-            from_epoch,
-            to_epoch
-        ]);
+        let params = json!([subnet_id.to_json(), from_epoch, to_epoch]);
         let r = self
             .client
             .request::<Vec<String>>(methods::IPC_LIST_CHECKPOINTS, params)
