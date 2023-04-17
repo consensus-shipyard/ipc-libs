@@ -111,6 +111,11 @@ wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
 subnet: $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME)
 
 
+# Turn a topology YAML file into a script
+topology/%.sh: topology/%.yaml | jq yq
+	./scripts/topology.sh $<
+
+
 # Build the IPC agent binary.
 $(IPC_AGENT): $(IPC_SRC)
 	$(MAKE) -C $(PROJECT_ROOT) build
@@ -153,7 +158,7 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
 		export IPC_WALLET_KEY=$(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key; \
 		export IPC_SUBNET_ID=/root; \
-		export IPC_SUBNET_NAME=root; \
+		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
 	else \
 		$(MAKE) subnet IPC_NODE_NR=$(IPC_PARENT_NR); \
 		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR); \
@@ -208,5 +213,14 @@ $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME): | $(IPC_AGENT_DIR)/subnets/node-$(IP
 jq:
 	@if [ -z "$(shell which jq)" ]; then \
 		echo "Please install jq. See https://stedolan.github.io/jq/"; \
+		exit 1; \
+	fi
+
+
+# Make sure `yq` is installed. Use this with the `| yq` prerequisite so it doesn't cause re-run of tasks.
+.PHONY: yq
+yq:
+	@if [ -z "$(shell which yq)" ]; then \
+		echo "Please install yq. See https://github.com/mikefarah/yq"; \
 		exit 1; \
 	fi

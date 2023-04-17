@@ -1,0 +1,46 @@
+# SUBNET_NAME           NODE_NR
+# -----------------------------
+# vertebrates           (0)
+#   |- warm-blooded     (1, 5)
+#   |  |- mammals       (3)
+#   |  |- birds         (4)
+#   |- cold-blooded     (2)
+
+nodes:
+  - nr: 0
+    subnet_name: vertebrates
+
+  - nr: 1
+    subnet_name: warm-blooded
+    parent_node: 0
+    wallet: 0
+
+  - nr: 2
+    subnet_name: cold-blooded
+    parent_node: 0
+    wallet: 1
+
+  - nr: 3
+    subnet_name: mammals
+    parent_node: 1
+    wallet: 0
+
+  - nr: 4
+    subnet_name: birds
+    parent_node: 1
+    wallet: 1
+
+  - nr: 5
+    subnet_name: warm-blooded
+    parent_node: 0
+    wallet: 1
+
+agents:
+  - nr: 0
+    connections:
+    - node: 0
+    - node: 5
+
+  - nr: 1
+    connections:
+    - node: 1
