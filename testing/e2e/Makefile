@@ -5,7 +5,6 @@
 IPC_AGENT_NR     := 0
 IPC_WALLET_NR    := 0
 IPC_PARENT_NR    := 0
-IPC_SUBNET_NR    := 0
 IPC_NODE_NR      := 0
 IPC_NODE_TYPE    := eudico
 IPC_SUBNET_ID    := /root
@@ -103,7 +102,7 @@ wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
 
 
 # Create a subnet on the active node.
-subnet: $(IPC_NODE_DIR)/subnets/subnet-$(IPC_SUBNET_NR)
+subnet: $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME)
 
 
 # Build the IPC agent binary.
@@ -146,21 +145,19 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 
 	@# Create .env file with overrides taken from the environment.
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
-		cp $(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key $@; \
-		export IPC_SUBNET_ID=$(IPC_SUBNET_ID); \
-		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
+		export IPC_WALLET_KEY=$(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key; \
+		export IPC_SUBNET_ID=/root; \
+		export IPC_SUBNET_NAME=root; \
 	else \
 		$(MAKE) subnet IPC_NODE_NR=$(IPC_PARENT_NR); \
 		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR); \
-		cp .ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key $@; \
-		export IPC_SUBNET_ID=$$(  cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/subnet-$(IPC_SUBNET_NR)/id); \
-		export IPC_SUBNET_NAME=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/subnet-$(IPC_SUBNET_NR)/name); \
+		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key; \
+		export IPC_SUBNET_ID=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id); \
 	fi; \
 	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT); \
 	export IPC_NETWORK=$(IPC_NETWORK); \
 	export IPC_PARENT_NR=$(IPC_PARENT_NR); \
 	export IPC_WALLET_NR=$(IPC_WALLET_NR); \
-	export IPC_SUBNET_NR=$(IPC_SUBNET_NR); \
 	export IPC_NODE_NR=$(IPC_NODE_NR); \
 	export IPC_NODE_TYPE=$(IPC_NODE_TYPE); \
 	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
@@ -180,8 +177,8 @@ $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR): | $(IPC_AGENT_DIR)/subnets/node
 
 # Create a new subnet on a node.
 # The agent has to be connected to that node to issue the commands.
-$(IPC_NODE_DIR)/subnets/subnet-$(IPC_SUBNET_NR): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
-	./scripts/new-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL) $(IPC_SUBNET_NAME)
+$(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
+	./scripts/new-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
 # Create the docker network every container connects to.

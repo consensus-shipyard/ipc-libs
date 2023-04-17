@@ -55,4 +55,4 @@ The main targets of the `Makefile` are:
 * `make down`: stop and remove all agents and nodes
 * `make connect`: connect `$IPC_AGENT_NR` to `$IPC_NODE_NR` and reload the agent configuration
 * `make wallet`: creates a new wallet for `$IPC_WALLET_NR` under `$IPC_NODE_NR` which we are then free to assign to anyone
-* `make subnet`: creates a new subnet `$IPC_SUBNET_NR` named `$IPC_SUBNET_NAME` under `$IPC_NODE_NR` which we can then create nodes to run
+* `make subnet`: creates a new subnet named `$IPC_SUBNET_NAME` under `$IPC_NODE_NR` which we can then create nodes to run
