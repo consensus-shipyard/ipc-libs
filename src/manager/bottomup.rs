@@ -119,7 +119,11 @@ pub async fn manage_bottomup_checkpoints(
                                 &child_client,
                                 &parent_client,
                             )
-                            .await?;
+                            .await
+                            .map_err(|e| {
+                                log::error!("cannot submit checkpoint due to {:?}", e);
+                                e
+                            })?;
 
                             // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
                             // missing in case the previous one was executed successfully.
@@ -150,7 +154,11 @@ pub async fn manage_bottomup_checkpoints(
                                     &child_client,
                                     &parent_client,
                                 )
-                                .await?;
+                                .await
+                                .map_err(|e| {
+                                    log::error!("cannot submit checkpoint due to {:?}", e);
+                                    e
+                                })?;
                             }
                         }
                     }
@@ -206,6 +214,18 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
         })?;
     checkpoint.data.children = template.data.children;
     checkpoint.data.cross_msgs = template.data.cross_msgs;
+
+    log::info!(
+        "checkpoint at epoch {:} contains {:} number of cross messages",
+        checkpoint.data.epoch,
+        checkpoint
+            .data
+            .cross_msgs
+            .cross_msgs
+            .as_ref()
+            .map(|s| s.len())
+            .unwrap_or_default()
+    );
 
     // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
     // subnet.
