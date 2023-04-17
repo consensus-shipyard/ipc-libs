@@ -57,6 +57,9 @@ agent/down:
 		cd $(IPC_AGENT_DIR) && docker-compose down && cd - && rm -rf $(IPC_AGENT_DIR); \
 	fi
 
+# Start an agent.
+agent-%/down:
+	$(MAKE) agent/up IPC_AGENT_NR=$*
 
 # Stop and remove specific agent.
 agent-%/down:
@@ -83,6 +86,9 @@ node/down:
 		cd $(IPC_NODE_DIR) && docker-compose down -v && cd - && rm -rf $(IPC_NODE_DIR); \
 	fi
 
+# Start a node.
+node-1/up:
+	$(MAKE) node/up IPC_NODE_NR=$*
 
 # Stop and remove a specific node.
 node-%/down:
