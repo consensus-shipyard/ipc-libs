@@ -10,9 +10,9 @@ use async_trait::async_trait;
 use futures_util::stream::FuturesUnordered;
 use futures_util::StreamExt;
 use ipc_sdk::subnet_id::SubnetID;
+use tokio::select;
 use tokio::sync::Notify;
 use tokio::time::sleep;
-use tokio::{select, try_join};
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
 use crate::config::{ReloadableConfig, Subnet};
@@ -49,24 +49,35 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
             // Load the latest config.
             let config = self.config.get_config();
 
-            // Create a `manage_subnet` future for each (child, parent) subnet pair under management
-            // and collect them in a `FuturesUnordered` set.
+            // Create a top-down and a bottom-up checkpoint manager future for each (child, parent)
+            // subnet pair under and collect them in a `FuturesUnordered` set.
             let mut manage_subnet_futures = FuturesUnordered::new();
             let stop_subnet_managers = Arc::new(Notify::new());
-            for (child, parent) in subnets_to_manage(&config.subnets) {
-                manage_subnet_futures
-                    .push(manage_subnet((child, parent), stop_subnet_managers.clone()));
-            }
+            let subnets_to_manage = subnets_to_manage(&config.subnets);
+            log::debug!("We have {} subnets to manage", subnets_to_manage.len());
 
-            log::debug!("We have {} subnets to manage", manage_subnet_futures.len());
+            for (child, parent) in subnets_to_manage {
+                manage_subnet_futures.push(tokio::spawn(manage_bottomup_checkpoints(
+                    (child.clone(), parent.clone()),
+                    stop_subnet_managers.clone(),
+                )));
+                manage_subnet_futures.push(tokio::spawn(manage_topdown_checkpoints(
+                    (child.clone(), parent.clone()),
+                    stop_subnet_managers.clone(),
+                )));
+            }
 
             // Spawn a task to drive the `manage_subnet` futures.
             let manage_subnets_task = tokio::spawn(async move {
                 loop {
                     match manage_subnet_futures.next().await {
-                        Some(Ok(())) => {}
                         Some(Err(e)) => {
-                            log::error!("Error in manage_subnet: {}", e);
+                            panic!("Panic in manage_subnet: {}", e);
+                        }
+                        Some(Ok(r)) => {
+                            if let Err(e) = r {
+                                log::error!("Error in manage_subnet: {}", e);
+                            }
                         }
                         None => {
                             log::debug!("All manage_subnet futures have finished");
@@ -120,25 +131,6 @@ fn subnets_to_manage(subnets_by_id: &HashMap<SubnetID, Subnet>) -> Vec<(Subnet, 
         .filter(|s| s.id.parent().is_some() && subnets_by_id.contains_key(&s.id.parent().unwrap()))
         .map(|s| (s.clone(), subnets_by_id[&s.id.parent().unwrap()].clone()))
         .collect()
-}
-
-/// Launches tasks to monitor topdown and bottomup checkpoints for a given (child, parent) subnet
-/// pair.
-async fn manage_subnet((child, parent): (Subnet, Subnet), stop_notify: Arc<Notify>) -> Result<()> {
-    let topdown_handle = tokio::spawn(manage_topdown_checkpoints(
-        (child.clone(), parent.clone()),
-        stop_notify.clone(),
-    ));
-    let bottomup_handle = tokio::spawn(manage_bottomup_checkpoints(
-        (child, parent),
-        stop_notify.clone(),
-    ));
-
-    let (topdown_result, bottom_result) = try_join!(topdown_handle, bottomup_handle)?;
-
-    topdown_result?;
-    bottom_result?;
-    Ok(())
 }
 
 /// Sleeps for some time if stop_notify is not fired. It returns true to flag that we should move to the
