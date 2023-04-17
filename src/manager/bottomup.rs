@@ -133,32 +133,37 @@ pub async fn manage_bottomup_checkpoints(
                             // FIXME: We should make this a while loop that while there is a
                             // checkpoint to be committed I don't need to wait for a new iteration
                             // to submit my checkpoint and I can submit it immediately
-                            let child_head = child_client.chain_head().await?;
-                            let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
-                            let parent_head = parent_client.chain_head().await?;
-                            let cid_map = parent_head.cids.first().unwrap().clone();
-                            let parent_tip_set = Cid::try_from(cid_map)?;
-                            let subnet_actor_state = parent_client
-                                .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
-                                .await?;
-                            let last_exec = subnet_actor_state
-                                .bottom_up_checkpoint_voting
-                                .last_voting_executed;
-                            let submission_epoch = last_exec + period;
-                            if curr_epoch >= submission_epoch {
-                                submit_checkpoint(
-                                    child_tip_set,
-                                    submission_epoch,
-                                    account,
-                                    &child,
-                                    &child_client,
-                                    &parent_client,
-                                )
-                                .await
-                                .map_err(|e| {
-                                    log::error!("cannot submit checkpoint due to {:?}", e);
-                                    e
-                                })?;
+
+                            loop {
+                                let child_head = child_client.chain_head().await?;
+                                let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
+                                let parent_head = parent_client.chain_head().await?;
+                                let cid_map = parent_head.cids.first().unwrap().clone();
+                                let parent_tip_set = Cid::try_from(cid_map)?;
+                                let subnet_actor_state = parent_client
+                                    .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
+                                    .await?;
+                                let last_exec = subnet_actor_state
+                                    .bottom_up_checkpoint_voting
+                                    .last_voting_executed;
+                                let submission_epoch = last_exec + period;
+                                if curr_epoch >= submission_epoch {
+                                    submit_checkpoint(
+                                        child_tip_set,
+                                        submission_epoch,
+                                        account,
+                                        &child,
+                                        &child_client,
+                                        &parent_client,
+                                    )
+                                        .await
+                                        .map_err(|e| {
+                                            log::error!("cannot submit checkpoint due to {:?}", e);
+                                            e
+                                        })?;
+                                } else {
+                                    break;
+                                }
                             }
                         }
                     }
