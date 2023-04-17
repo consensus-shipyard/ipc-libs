@@ -215,6 +215,17 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
     checkpoint.data.children = template.data.children;
     checkpoint.data.cross_msgs = template.data.cross_msgs;
 
+    log::info!(
+        "checkpoint at epoch {:} contains {:} number of cross messages",
+        checkpoint.data.epoch,
+        checkpoint
+            .data
+            .cross_msgs
+            .cross_msgs
+            .map(|s| s.len())
+            .unwrap_or_default()
+    );
+
     // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
     // subnet.
     log::debug!(
