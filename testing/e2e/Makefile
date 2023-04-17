@@ -5,6 +5,7 @@
 IPC_AGENT_NR     := 0
 IPC_WALLET_NR    := 0
 IPC_PARENT_NR    := 0
+IPC_SUBNET_NR    := 0
 IPC_NODE_NR      := 0
 IPC_NODE_TYPE    := eudico
 IPC_SUBNET_ID    := /root
@@ -69,7 +70,7 @@ agent/reload: agent/up
 
 
 # Create composition directory node-$(IPC_NODE_NR)
-node: $(IPC_NODE_DIR) $(IPC_NODE_DIR)/wallet.key
+node: $(IPC_NODE_DIR)
 
 
 # Start a node.
@@ -99,6 +100,10 @@ connect: node/up agent/up
 
 # Create a wallet on the active node.
 wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
+
+
+# Create a subnet on the active node.
+subnet: $(IPC_NODE_DIR)/subnets/subnet-$(IPC_SUBNET_NR)
 
 
 # Build the IPC agent binary.
@@ -134,31 +139,31 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 
 
 # Initialize the node directory based on the active node type.
+# If the node has a parent, make a wallet and a subnet on the parent node.
 $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	mkdir -p $@
 	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/
 
 	@# Create .env file with overrides taken from the environment.
-	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT); \
-	export IPC_PARENT_NR=$(IPC_PARENT_NR); \
-	export IPC_WALLET_NR=$(IPC_WALLET_NR); \
-	export IPC_NETWORK=$(IPC_NETWORK); \
-	export IPC_NODE_NR=$(IPC_NODE_NR); \
-	export IPC_NODE_TYPE=$(IPC_NODE_TYPE); \
-	export IPC_SUBNET_ID=$(IPC_SUBNET_ID); \
-	export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
-	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
-
-
-# Make a wallet for the node. If it's the root node, use the one in the infra scripts,
-# otherwise make the parent node create a wallet and copy that.
-$(IPC_NODE_DIR)/wallet.key: $(IPC_NODE_DIR)
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
 		cp $(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key $@; \
+		export IPC_SUBNET_ID=$(IPC_SUBNET_ID); \
+		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
 	else \
-		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR) IPC_SUBNET_NAME=""; \
+		$(MAKE) subnet IPC_NODE_NR=$(IPC_PARENT_NR); \
+		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR); \
 		cp .ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key $@; \
-	fi
+		export IPC_SUBNET_ID=$$(  cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/subnet-$(IPC_SUBNET_NR)/id); \
+		export IPC_SUBNET_NAME=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/subnet-$(IPC_SUBNET_NR)/name); \
+	fi; \
+	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT); \
+	export IPC_NETWORK=$(IPC_NETWORK); \
+	export IPC_PARENT_NR=$(IPC_PARENT_NR); \
+	export IPC_WALLET_NR=$(IPC_WALLET_NR); \
+	export IPC_SUBNET_NR=$(IPC_SUBNET_NR); \
+	export IPC_NODE_NR=$(IPC_NODE_NR); \
+	export IPC_NODE_TYPE=$(IPC_NODE_TYPE); \
+	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
 
 
 # Dependency check to ensure we are only asking agents to perform actions on nodes they have been connected to.
@@ -168,8 +173,15 @@ $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR):
 
 
 # Tell an agent to create a wallet on a node and save it to a file.
+# The agent has to be connected to that node to issue the commands.
 $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
 	./scripts/new-wallet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL)
+
+
+# Create a new subnet on a node.
+# The agent has to be connected to that node to issue the commands.
+$(IPC_NODE_DIR)/subnets/subnet-$(IPC_SUBNET_NR): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
+	./scripts/new-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL) $(IPC_SUBNET_NAME)
 
 
 # Create the docker network every container connects to.
@@ -186,3 +198,12 @@ $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR): | $(IPC_AGENT_DIR)/subnets/node
 
 # Build eudico specific artifacts
 .make/eudico: $(IPC_INFRA_DIR)
+
+
+# Make sure `jq` is installed. Use this with the `| jq` prerequisite so it doesn't cause re-run of tasks.
+.PHONY: jq
+jq:
+	@if [ -z "$(shell which jq)" ]; then \
+		echo "Please install jq. See https://stedolan.github.io/jq/"; \
+		exit 1; \
+	fi
