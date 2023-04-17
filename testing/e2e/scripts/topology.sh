@@ -57,11 +57,11 @@ cat $TOPO_JSON | jq -r '
         | select(has("parent_node") and (.parent_node != .nr))
         | {
             sort_key: ((.parent_node | tostring) + "/b"),
-            cmd: ("make subnet IPC_AGENT_NR="    + ($node_agent_map[.parent_node | tostring])
-                           + " IPC_NODE_NR="     + (.nr | tostring)
-                           + " IPC_PARENT_NR="   + (.parent_node | tostring)
-                           + " IPC_WALLET_NR="   + (.wallet | tostring)
-                           + " IPC_SUBNET_NAME=" + (.subnet_name))
+            cmd: ("make node/up IPC_AGENT_NR="    + ($node_agent_map[.parent_node | tostring])
+                            + " IPC_NODE_NR="     + (.nr | tostring)
+                            + " IPC_PARENT_NR="   + (.parent_node | tostring)
+                            + " IPC_WALLET_NR="   + (.wallet | tostring)
+                            + " IPC_SUBNET_NAME=" + (.subnet_name))
           }
       ] as $subnets
     | [
