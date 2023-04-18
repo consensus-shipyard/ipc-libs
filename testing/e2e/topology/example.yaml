@@ -6,20 +6,30 @@
 #   |  |- birds         (4)
 #   |- cold-blooded     (2)
 
+# Every node must either have no parent, or a parent with a lower
+# number than itself, so they can be created in the order of appearance.
 nodes:
+  # The root net on node-0, with no parent.
   - nr: 0
     subnet_name: vertebrates
 
+  # A subnet under the root; its parent is node-0,
+  # where a wallet-0 will be created, serving as
+  # the default wallet of node-1.
   - nr: 1
     subnet_name: warm-blooded
     parent_node: 0
     wallet: 0
 
+  # Another subnet under the root running on node-0,
+  # with a different wallet than used for the previous node.
   - nr: 2
     subnet_name: cold-blooded
     parent_node: 0
     wallet: 1
 
+  # A sub-subnet /vertebrates/warm-blooded/mammals,
+  # running on node-3, using wallet-0 created on node-1.
   - nr: 3
     subnet_name: mammals
     parent_node: 1
@@ -37,10 +47,13 @@ nodes:
 
 agents:
   - nr: 0
+    # agent-0 can issue commands to node-0 and node-5,
+    # using their default wallets.
     connections:
     - node: 0
     - node: 5
 
   - nr: 1
+    # agent-1 issues commands to node-1
     connections:
     - node: 1
