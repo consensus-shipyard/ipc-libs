@@ -136,7 +136,8 @@ pub async fn manage_bottomup_checkpoints(
 
                             loop {
                                 let child_head = child_client.chain_head().await?;
-                                let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
+                                let curr_epoch: ChainEpoch =
+                                    ChainEpoch::try_from(child_head.height)?;
                                 let parent_head = parent_client.chain_head().await?;
                                 let cid_map = parent_head.cids.first().unwrap().clone();
                                 let parent_tip_set = Cid::try_from(cid_map)?;
@@ -156,11 +157,11 @@ pub async fn manage_bottomup_checkpoints(
                                         &child_client,
                                         &parent_client,
                                     )
-                                        .await
-                                        .map_err(|e| {
-                                            log::error!("cannot submit checkpoint due to {:?}", e);
-                                            e
-                                        })?;
+                                    .await
+                                    .map_err(|e| {
+                                        log::error!("cannot submit checkpoint due to {:?}", e);
+                                        e
+                                    })?;
                                 } else {
                                     break;
                                 }
