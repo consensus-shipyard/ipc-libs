@@ -80,19 +80,7 @@ $ ./bin/ipc-agent checkpoint list --from-epoch=10000 --to-epoch=16000 --subnet=/
 
 > TODO: Add a note on how `wallet list` can be used to check your funds in a subnet. This should be implemented tomorrow (if things go well).
 
-## Leaving a subnet
-
-To leave a subnet, the following agent command can be used:
-```bash
-$ ./bin/ipc-agent subnet leave --subnet <subnet-id>
-
-# Example execution
-$ ./bin/ipc-agent subnet leave --subnet /root/t01002
-```
-Leaving a subnet will release the collateral for the validator and remove all the validation rights from its account. This means that if you have a validator running in that subnet, its validation process will immediately terminate.
-
-
-### Listing checkpoints from a subnet
+## Listing checkpoints from a subnet
 
 Subnets are periodically committing checkpoints to their parent every `check-period` (parameter defined when creating the subnet). If you want to inspect the information of a range of checkpoints committed in the parent for a subnet, you can use the `checkpoint list` command provided by the agent as follows: 
 ```bash
@@ -106,7 +94,7 @@ $ ./bin/ipc-agent checkpoint list --from-epoch 0 --to-epoch 100 --subnet root/t0
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 30 - prev_check={"/":"bafy2bzaceauzdx22hna4e4cqf55jqmd64a4fx72sxprzj72qhrwuxhdl7zexu"}, cross_msgs=null, child_checks=null
 ```
 
-### Checking the health of top-down checkpoints
+## Checking the health of top-down checkpoints
 In order to check the health of top-down checkpointing in a subnet, the following command can be run:
 ```bash
 $./bin/ipc-agent checkpoint last-td-exec --subnet=<subnet-id>
@@ -117,3 +105,15 @@ $./bin/ipc-agent checkpoint last-td-exec --subnet /root/t01002
 ```
 
 This command return the epoch of the last top-down checkpoint executed in the child. If you see that this epoch is way below the current epoch of the parent of the child subnet, it means that the top-down checkpoint may be lagging, that validators need to catch-up, and that the forwarding of top-down messages (from parent to child) may take longer to be committed.
+
+
+## Leaving a subnet
+
+To leave a subnet, the following agent command can be used:
+```bash
+$ ./bin/ipc-agent subnet leave --subnet <subnet-id>
+
+# Example execution
+$ ./bin/ipc-agent subnet leave --subnet /root/t01002
+```
+Leaving a subnet will release the collateral for the validator and remove all the validation rights from its account. This means that if you have a validator running in that subnet, its validation process will immediately terminate.
