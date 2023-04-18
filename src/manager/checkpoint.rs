@@ -72,11 +72,11 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
                 loop {
                     match manage_subnet_futures.next().await {
                         Some(Err(e)) => {
-                            panic!("Panic in manage_subnet: {}", e);
+                            panic!("Panic in manage_subnet: {:#}", e);
                         }
                         Some(Ok(r)) => {
                             if let Err(e) = r {
-                                log::error!("Error in manage_subnet: {}", e);
+                                log::error!("Error in manage_subnet: {:#}", e);
                             }
                         }
                         None => {
