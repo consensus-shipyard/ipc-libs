@@ -267,7 +267,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         log::debug!("received chain_head response: {r:?}");
         Ok(r)
     }
-    // (context.Context, abi.ChainEpoch, types.TipSetKey) (*types.TipSet, error) //perm:read
+
     async fn get_tipset_by_height(
         &self,
         epoch: ChainEpoch,
