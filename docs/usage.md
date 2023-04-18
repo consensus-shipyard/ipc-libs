@@ -46,7 +46,7 @@ At the moment, the IPC agent only expose commands to perform the basic IPC inter
 - `fund`, which sends FIL from one public key address, to the same public key address in the child.
 - `release` that moves FIL from one account in a child subnet to its counter-part in the parent.
 
-Through this basic primitives, complex behavior can be implemented: sending value to a user in another subnet can be implemented a set of `release/fund` and `sendValue` operations. Calling  smart contract from one subnet to another works by providing funds to one account in the destination subnet, and then calling the contract. The agent doesn't currently include abstractions for this complex operations, but it will in the future. That being said, users can still leverage the agent's API to easily compose the basic primitives into complex functionality.
+Complex behavior can be implemented using these primitives: sending value to a user in another subnet can be implemented a set of `release/fund` and `sendValue` operations. Calling  smart contract from one subnet to another works by providing funds to one account in the destination subnet, and then calling the contract. The agent doesn't currently include abstractions for this complex operations, but it will in the future. That being said, users can still leverage the agent's API to easily compose the basic primitives into complex functionality.
 
 >💡 All cross-net operations need to pay an additional cross-msg fee (apart from the gas cost of the message). This is reason why even if you sent `X FIL` you may see `X - fee FIL` arriving to you account at destination. This fee is used to reward subnet validators for their work committing the checkpoint that carries the message.
 
