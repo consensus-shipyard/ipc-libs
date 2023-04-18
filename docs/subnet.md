@@ -67,12 +67,7 @@ This command deploys a subnet actor for a new subnet from the `root`, with a hum
 
 ### Exporting your wallet
 
-Let's export the default wallet (or other wallet you'd like to use) for use in the subnet validator.
-```bash
-$ ./eudico wallet export --lotus-json `./eudico wallet default` > ~/.ipc-agent/wallet.key
-```
-
-Make sure that your wallet has enough funds to put up the collateral to join the subnet.
+We will need to export the wallet key from our root node so that we can import them to our validators. Depending on how you are running your rootnet node you'll have to make a call to the docker container, or your nodes API. More information about exporting keys from your node can be found under [this section](#Exporting-wallet-keys). Make sure that the wallet holds enough funds to meet the subnet collateral requirements.
 
 ### Deploying a subnet node
 
