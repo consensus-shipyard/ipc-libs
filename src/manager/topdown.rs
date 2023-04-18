@@ -210,7 +210,8 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
     let state = child_client
         .ipc_read_gateway_state(curr_child_tip_set)
         .await?;
-    let nonce = state.applied_topdown_nonce + 1;
+
+    let nonce = state.applied_topdown_nonce;
 
     // Then, we get the top-down messages from the latest nonce at the specific submission epoch.
     // This ensures that all validators will provide deterministically the top-down messages
@@ -260,7 +261,7 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
     let message_cid = mem_push_response.cid()?;
     log::debug!("top-down checkpoint message published with cid: {message_cid:?}");
     log::info!("waiting for top-down checkpoint for epoch {submission_epoch:} to be committed");
-    parent_client.state_wait_msg(message_cid).await?;
+    child_client.state_wait_msg(message_cid).await?;
     log::info!(
         "successfully published top-down checkpoint submission for epoch {submission_epoch:}"
     );
