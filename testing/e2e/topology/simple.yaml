@@ -1,0 +1,26 @@
+# SUBNET_NAME     NODE_NR
+# -----------------------------
+# head           (0)
+# |- thorax      (1)
+#    |- abdomen  (2)
+
+nodes:
+  - nr: 0
+    subnet_name: head
+
+  - nr: 1
+    subnet_name: thorax
+    parent_node: 0
+    wallet: 0
+
+  - nr: 2
+    subnet_name: abdomen
+    parent_node: 1
+    wallet: 0
+
+agents:
+  - nr: 0
+    connections:
+    - node: 0
+    - node: 1
+    - node: 2
