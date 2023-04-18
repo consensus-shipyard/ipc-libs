@@ -27,6 +27,9 @@ $ ./bin/ipc-agent subnet join --subnet /root/t01002 --collateral 2 --validator-n
 ```
 This command specifies the subnet to join, the amount of collateral to provide and the validator net address used by other validators to dial them.
 
+## Listing your balance in a subnet 
+> TODO: Add a note on how `wallet list` can be used to check your funds in a subnet. This should be implemented tomorrow (if things go well).
+
 ## Sending funds in a subnet
 
 The agent provides a command to conveniently exchange funds between addresses of the same subnet. This can be achieved through the following command:
@@ -42,9 +45,10 @@ $ ./bin/ipc-agent subnet send-value --subnet /root/t01002 --to t1xbevqterae2tanm
 At the moment, the IPC agent only expose commands to perform the basic IPC interoperability primitives for cross-net communication, which is the exchange of FIL (the native token for IPC) between the same address of a subnet. Mainly:
 - `fund`, which sends FIL from one public key address, to the same public key address in the child.
 - `release` that moves FIL from one account in a child subnet to its counter-part in the parent.
-Through this basic primitives, any complex behavior can be implemented. Sending value to some other account in another subnet can be implemented a set of `fund/release` and `sendValue` operations. Calling  smart contract from one subnet to another works by providing funds to one account in the destination subnet, and then calling the contract. The agent doesn't currently include abstractions for this complex operations (although it will in the future). That being said, users can still leverage the agent's API to easily compose the basic primitives into complex functionality (the docs will be extended soon).
 
-> Note: All cross-net operations need to pay an additional cross-msg fee (apart from the gas cost of the message). This is reason why even if you sent `X FIL` you may see `X - fee FIL` arriving to you account at destination. This fee is used to reward subnet validator for their work committing the checkpoints that forwarded the message to its destination.
+Through this basic primitives, complex behavior can be implemented: sending value to a user in another subnet can be implemented a set of `release/fund` and `sendValue` operations. Calling  smart contract from one subnet to another works by providing funds to one account in the destination subnet, and then calling the contract. The agent doesn't currently include abstractions for this complex operations, but it will in the future. That being said, users can still leverage the agent's API to easily compose the basic primitives into complex functionality.
+
+>💡 All cross-net operations need to pay an additional cross-msg fee (apart from the gas cost of the message). This is reason why even if you sent `X FIL` you may see `X - fee FIL` arriving to you account at destination. This fee is used to reward subnet validators for their work committing the checkpoint that carries the message.
 
 ### Fund
 Funding a subnet can be performed by using the following command:
@@ -55,30 +59,20 @@ $ ./bin/ipc-agent cross-msg fund --subnet=<subnet-id> <amount>
 $ ./bin/ipc-agent cross-msg fund --subnet=/root/t01002 100
 
 ```
-This command includes the cross-net message into the next top-down checkpoint after the current epoch. Once the top-down checkpoint is conveniently committed, you should see the funds in your account of the child subnet.
+This command includes the cross-net message into the next top-down checkpoint after the current epoch. Once the top-down checkpoint is committed, you should see the funds in your account of the child subnet.
 
-> Top-down checkpoints are not used to anchor the security of the parent into the child (as it is the case for bottom-up checkpoints), they just include information of the top-down messages that need to beexecuted in the child subnet, and is just a way for validators in the subnet to reach consensus about the finality on their parent (that they all trust).
+>💡 Top-down checkpoints are not used to anchor the security of the parent into the child (as is the case for bottom-up checkpoints). They just include information of the top-down messages that need to be executed in the child subnet, and are a way for validators in the subnet to reach consensus on the finality on their parent.
 
 ### Release
-In order to release funds from a subnet, it should already have some circulating supply in it, and your account should have enough funds to perform the operation. This means, that unless there was already other activity in the subnet, a `fund` operation needs to be trigger to send some funds to the subnet. The circulating supply of a subnet can be checked with the `list-subnets` command.
+In order to release funds from a subnet, your account must hold enough funds inside it. Releasing funds to the parent subnet can be permformed with the following comand:
 ```bash
 $ ./bin/ipc-agent cross-msg release --subnet=<subnet-id> <amount>
 
 # Example execution
 $ ./bin/ipc-agent cross-msg release --subnet=/root/t01002 100
-
 ```
-This command includes the cross-net message into a bottom-up checkpoint after the current epoch. Once the bottom-up checkpoint is conveniently committed, you should see the funds in your account of the parent. You can check the checkpoint where the cross-message was included by listing the checkpoints around the epoch where your message was sent, as follows: 
-```bash
-# Example of checkpoint list command searching for the checkpoint including
-# our cross-msg
-$ ./bin/ipc-agent checkpoint list --from-epoch=10000 --to-epoch=16000 --subnet=/root/t01002
-[2023-04-18T17:37:49Z INFO  ipc_agent::cli::commands::checkpoint::list_checkpoints] epoch 10500 - prev_check="bafy2bzaceb5nt5g7bnkjtrkchw3ehoj5meofa5qhs7rmpat7mu3bn5ymmfrha", cross_msgs={"cross_msgs":[],"fee":[]}, child_checks=[]
-[2023-04-18T17:37:49Z INFO  ipc_agent::cli::commands::checkpoint::list_checkpoints] epoch 10510 - prev_check="bafy2bzacecflzfgombxgdaamnfznmckuhjsidnaaj6d2h6zbb575nn5mijrmy", cross_msgs={"cross_msgs":[],"fee":[]}, child_checks=[]
-[2023-04-18T17:37:49Z INFO  ipc_agent::cli::commands::checkpoint::list_checkpoints] epoch 10520 - prev_check="bafy2bzacebdngpnuogln7uijrdtyz6nxxlzbcbsd7zbvkid2vntenjwdlvsak", cross_msgs={"cross_msgs":[{"from":"/root/t01002:t099","method":0,"nonce":2,"params":"","to":"/root:t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq","value":0}],"fee":[0,23,72,118,232,0]}, child_checks=[]
-```
+This command includes the cross-net message into a bottom-up checkpoint after the current epoch. Once the bottom-up checkpoint is committed, you should see the funds in your account in the parent. 
 
-> TODO: Add a note on how `wallet list` can be used to check your funds in a subnet. This should be implemented tomorrow (if things go well).
 
 ## Listing checkpoints from a subnet
 
@@ -93,6 +87,7 @@ $ ./bin/ipc-agent checkpoint list --from-epoch 0 --to-epoch 100 --subnet root/t0
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 10 - prev_check={"/":"bafy2bzacecsatvda6lodrorh7y7foxjt3a2dexxx5jiyvtl7gimrrvywb7l5m"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 30 - prev_check={"/":"bafy2bzaceauzdx22hna4e4cqf55jqmd64a4fx72sxprzj72qhrwuxhdl7zexu"}, cross_msgs=null, child_checks=null
 ```
+You can find the checkpoint where your cross-message was included by listing the checkpoints around the epoch where your message was sent.
 
 ## Checking the health of top-down checkpoints
 In order to check the health of top-down checkpointing in a subnet, the following command can be run:
