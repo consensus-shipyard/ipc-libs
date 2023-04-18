@@ -211,11 +211,7 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
         .ipc_read_gateway_state(curr_child_tip_set)
         .await?;
 
-    let nonce = if state.applied_topdown_nonce == 0 {
-        0
-    } else {
-        state.applied_topdown_nonce + 1
-    };
+    let nonce = state.applied_topdown_nonce;
 
     // Then, we get the top-down messages from the latest nonce at the specific submission epoch.
     // This ensures that all validators will provide deterministically the top-down messages
