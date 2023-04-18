@@ -38,6 +38,7 @@ pub struct IPCReadGatewayStateResponse {
     pub top_down_check_period: ChainEpoch,
     pub applied_topdown_nonce: u64,
     pub top_down_checkpoint_voting: Voting,
+    pub initialized: bool,
 }
 
 /// The state of a subnet actor. The struct omits all fields that are not relevant for the

@@ -30,7 +30,7 @@ pub async fn manage_bottomup_checkpoints(
     stop_notify: Arc<Notify>,
 ) -> Result<()> {
     log::info!(
-        "Starting checkpoint manager for (child, parent) subnet pair ({}, {})",
+        "Starting bottom-up checkpoint manager for (child, parent) subnet pair ({}, {})",
         child.id,
         parent.id
     );

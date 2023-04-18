@@ -52,6 +52,7 @@ pub async fn manage_topdown_checkpoints(
 
         loop {
             // get current epoch in the parent and tipset
+            log::warn!("Get current epoch in parent tipset");
             let parent_head = parent_client.chain_head().await?;
             let curr_epoch: ChainEpoch = ChainEpoch::try_from(parent_head.height)?;
             let cid_map = parent_head.cids.first().unwrap().clone();
@@ -59,6 +60,7 @@ pub async fn manage_topdown_checkpoints(
 
             // get child gateway state to determine the last executed checkpoint
             // and compute the submission epoch
+            log::warn!("Get submission epoch for checkpoint");
             let child_head = child_client.chain_head().await?;
             let cid_map = child_head.cids.first().unwrap().clone();
             let child_tip_set = Cid::try_from(cid_map)?;
@@ -72,12 +74,16 @@ pub async fn manage_topdown_checkpoints(
             // FIXME: We should make this a while loop that while there is a
             // checkpoint to be committed I don't need to wait for a new iteration
             // to submit my checkpoint and I can submit it immediately
-            if curr_epoch >= submission_epoch {
+            if child_gw_state.initialized && curr_epoch >= submission_epoch {
                 // We check which accounts are in the validator set. This is done by reading
                 // the parent's chain head and requesting the state at that tip set.
                 let subnet_actor_state = parent_client
                     .ipc_read_subnet_actor_state(&child.id, parent_tip_set)
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        log::error!("error getting subnet actor state for {:?}", &child.id);
+                        e
+                    })?;
 
                 let mut validator_set: HashSet<Address, RandomState> = HashSet::new();
                 match subnet_actor_state.validator_set.validators {
@@ -89,6 +95,7 @@ pub async fn manage_topdown_checkpoints(
                     }
                 };
 
+                log::warn!(">>>> Validator set taken");
                 // For each account that we manage that is in the validator set, we submit a topdown
                 // checkpoint.
                 for account in child.accounts.iter() {
@@ -112,7 +119,9 @@ pub async fn manage_topdown_checkpoints(
                                 e
                             })?;
 
+                        log::warn!("Validator has voted!!");
                         if !has_voted {
+                            log::warn!("Submitting checkpoint!!");
                             // submitting the checkpoint synchronously and waiting to be committed.
                             submit_topdown_checkpoint(
                                 submission_epoch,
@@ -186,11 +195,12 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
     child_client: &LotusJsonRPCClient<T>,
     parent_client: &LotusJsonRPCClient<T>,
 ) -> Result<()> {
-    log::debug!("Submitting topdown checkpoint for account {}", account);
+    log::info!("Submitting topdown checkpoint for account {}", account);
     // First, we read from the child subnet the nonce of the last topdown message executed
     // after the last executed checkpoint. We
     // increment the result by one to obtain the nonce of the first topdown message we want to
     // submit to the child subnet.
+    log::warn!("Reading latest executed");
     let state = child_client
         .ipc_read_gateway_state(curr_child_tip_set)
         .await?;
@@ -201,12 +211,18 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
     // to be included in all checkpoints.
     // FIXME: We probably shouldn't use the default one here and use the one
     // deployed in the subnet
+    log::warn!("Get tipset by height at submission_epoch: {submission_epoch}");
     let gateway_addr = Address::from_str(GATEWAY_ACTOR_ADDRESS)?;
     let submission_tip_set = parent_client
         .get_tipset_by_height(submission_epoch, curr_parent_tip_set)
         .await?;
     let cid_map = submission_tip_set.cids.first().unwrap().clone();
     let submission_tip_set = Cid::try_from(cid_map)?;
+    log::warn!(
+        "Get top down messages for {:?} and nonce {:?}",
+        &child_subnet,
+        nonce
+    );
     let top_down_msgs = parent_client
         .ipc_get_topdown_msgs(&child_subnet, gateway_addr, submission_tip_set, nonce)
         .await?;
