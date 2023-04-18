@@ -19,6 +19,7 @@ use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
+use crate::constants::GATEWAY_ACTOR_ADDRESS;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
@@ -44,6 +45,7 @@ mod methods {
     pub const WALLET_DEFAULT_ADDRESS: &str = "Filecoin.WalletDefaultAddress";
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
     pub const CHAIN_HEAD: &str = "Filecoin.ChainHead";
+    pub const GET_TIPSET_BY_HEIGHT: &str = "Filecoin.ChainGetTipSetByHeight";
     pub const IPC_GET_PREV_CHECKPOINT_FOR_CHILD: &str = "Filecoin.IPCGetPrevCheckpointForChild";
     pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplateSerialized";
     pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpointSerialized";
@@ -51,12 +53,12 @@ mod methods {
     pub const IPC_READ_SUBNET_ACTOR_STATE: &str = "Filecoin.IPCReadSubnetActorState";
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
     pub const IPC_VALIDATOR_HAS_VOTED_BOTTOMUP: &str = "Filecoin.IPCHasVotedBottomUpCheckpoint";
-    pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpointsSerialized";
+    pub const IPC_VALIDATOR_HAS_VOTED_TOPDOWN: &str = "Filecoin.IPCHasVotedTopDownCheckpoint";
+    pub const IPC_LIST_BOTTOMUP_CHECKPOINTS: &str = "Filecoin.IPCListBottomUpCheckpointsSerialized";
     pub const IPC_GET_TOPDOWN_MESSAGES: &str = "Filecoin.IPCGetTopDownMsgsSerialized";
+    pub const IPC_GENESIS_EPOCH_FOR_SUBNET: &str = "Filecoin.IPCGetGenesisEpochForSubnet";
 }
 
-/// The default gateway actor address
-const GATEWAY_ACTOR_ADDRESS: &str = "t064";
 /// The default state wait confidence value
 /// TODO: we can afford 2 epochs confidence (and even one)
 /// with Mir, but with Filecoin mainnet this should be increased
@@ -265,6 +267,22 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         log::debug!("received chain_head response: {r:?}");
         Ok(r)
     }
+    // (context.Context, abi.ChainEpoch, types.TipSetKey) (*types.TipSet, error) //perm:read
+    async fn get_tipset_by_height(
+        &self,
+        epoch: ChainEpoch,
+        tip_set: Cid,
+    ) -> Result<ChainHeadResponse> {
+        let r = self
+            .client
+            .request::<ChainHeadResponse>(
+                methods::GET_TIPSET_BY_HEIGHT,
+                json!([epoch, [CIDMap::from(tip_set)]]),
+            )
+            .await?;
+        log::debug!("received get_tipset_by_height response: {r:?}");
+        Ok(r)
+    }
 
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
@@ -371,24 +389,32 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
+    async fn ipc_validator_has_voted_topdown(
+        &self,
+        gateway_addr: &Address,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool> {
+        let params = json!([gateway_addr.to_string(), epoch, validator.to_string()]);
+        let r = self
+            .client
+            .request::<bool>(methods::IPC_VALIDATOR_HAS_VOTED_TOPDOWN, params)
+            .await?;
+        Ok(r)
+    }
+
     async fn ipc_get_topdown_msgs(
         &self,
         subnet_id: &SubnetID,
         gateway_addr: Address,
+        tip_set: Cid,
         nonce: u64,
     ) -> Result<Vec<CrossMsg>> {
-        let parent = subnet_id
-            .parent()
-            .ok_or_else(|| anyhow!("no parent found"))?
-            .to_string();
-        let actor = subnet_id.subnet_actor().to_string();
         let params = json!([
             gateway_addr.to_string(),
-            {
-                "Parent": parent,
-                "Actor": actor
-            },
-            nonce,
+            subnet_id.to_json(),
+            [CIDMap::from(tip_set)],
+            nonce
         ]);
         let r = self
             .client
@@ -410,28 +436,29 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(msgs)
     }
 
+    async fn ipc_get_genesis_epoch_for_subnet(
+        &self,
+        subnet_id: &SubnetID,
+        gateway_addr: Address,
+    ) -> Result<ChainEpoch> {
+        let params = json!([gateway_addr.to_string(), subnet_id.to_json()]);
+        let r = self
+            .client
+            .request::<ChainEpoch>(methods::IPC_GENESIS_EPOCH_FOR_SUBNET, params)
+            .await?;
+        Ok(r)
+    }
+
     async fn ipc_list_checkpoints(
         &self,
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>> {
-        let parent = subnet_id
-            .parent()
-            .ok_or_else(|| anyhow!("no parent found"))?
-            .to_string();
-        let actor = subnet_id.subnet_actor().to_string();
-        let params = json!([
-            {
-                "Parent": parent,
-                "Actor": actor
-            },
-            from_epoch,
-            to_epoch
-        ]);
+        let params = json!([subnet_id.to_json(), from_epoch, to_epoch]);
         let r = self
             .client
-            .request::<Vec<String>>(methods::IPC_LIST_CHECKPOINTS, params)
+            .request::<Vec<String>>(methods::IPC_LIST_BOTTOMUP_CHECKPOINTS, params)
             .await?;
 
         let checkpoints = r

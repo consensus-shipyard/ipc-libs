@@ -98,6 +98,9 @@ pub trait SubnetManager {
     ///  Create new wallet in a subnet
     async fn wallet_new(&self, key_type: WalletKeyType) -> Result<Address>;
 
+    /// Returns the epoch of the latest top-down checkpoint executed
+    async fn last_topdown_executed(&self) -> Result<ChainEpoch>;
+
     /// Returns the list of checkpoints from a subnet actor for the given epoch range.
     async fn list_checkpoints(
         &self,

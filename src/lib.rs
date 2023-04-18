@@ -3,6 +3,7 @@
 #![feature(try_blocks)]
 pub mod cli;
 pub mod config;
+pub mod constants;
 pub mod jsonrpc;
 pub mod lotus;
 pub mod manager;

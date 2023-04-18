@@ -77,6 +77,13 @@ pub trait LotusClient {
     /// See: https://lotus.filecoin.io/reference/lotus/chain/#chainhead
     async fn chain_head(&self) -> Result<ChainHeadResponse>;
 
+    /// GetTipsetByHeight from the underlying chain
+    async fn get_tipset_by_height(
+        &self,
+        epoch: ChainEpoch,
+        tip_set: Cid,
+    ) -> Result<ChainHeadResponse>;
+
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
         child_subnet_id: SubnetID,
@@ -114,14 +121,31 @@ pub trait LotusClient {
         validator: &Address,
     ) -> Result<bool>;
 
+    /// Determines if a validator has already voted for a topdown checkpoint
+    /// at certain epoch
+    async fn ipc_validator_has_voted_topdown(
+        &self,
+        gateway_addr: &Address,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool>;
+
     /// Returns the top-down messages committed for propagation from
-    /// a specific `nonce`
+    /// a specific `nonce` at a specific tipset
     async fn ipc_get_topdown_msgs(
         &self,
         subnet_id: &SubnetID,
         gateway_addr: Address,
+        tip_set: Cid,
         nonce: u64,
     ) -> Result<Vec<CrossMsg>>;
+
+    /// Gets the genesis epoch at which a subnet was registered in the parent
+    async fn ipc_get_genesis_epoch_for_subnet(
+        &self,
+        subnet_id: &SubnetID,
+        gateway_addr: Address,
+    ) -> Result<ChainEpoch>;
 
     /// Returns the list of checkpoints from a subnet actor for the given epoch range.
     async fn ipc_list_checkpoints(

@@ -34,7 +34,11 @@ pub struct IPCGetPrevCheckpointForChildResponse {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IPCReadGatewayStateResponse {
+    pub bottom_up_check_period: ChainEpoch,
     pub top_down_check_period: ChainEpoch,
+    pub applied_topdown_nonce: u64,
+    pub top_down_checkpoint_voting: Voting,
+    pub initialized: bool,
 }
 
 /// The state of a subnet actor. The struct omits all fields that are not relevant for the
@@ -53,6 +57,7 @@ pub struct IPCReadSubnetActorStateResponse {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Voting {
+    pub genesis_epoch: i64,
     pub last_voting_executed: i64,
 }
 
