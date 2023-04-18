@@ -260,7 +260,7 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
     let message_cid = mem_push_response.cid()?;
     log::debug!("top-down checkpoint message published with cid: {message_cid:?}");
     log::info!("waiting for top-down checkpoint for epoch {submission_epoch:} to be committed");
-    parent_client.state_wait_msg(message_cid).await?;
+    child_client.state_wait_msg(message_cid).await?;
     log::info!(
         "successfully published top-down checkpoint submission for epoch {submission_epoch:}"
     );
