@@ -134,35 +134,41 @@ pub async fn manage_topdown_checkpoints(
                             )
                             .await?;
 
-                            // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
-                            // missing in case the previous one was executed successfully.
-                            // - we get the up to date head of the parent and the child.
-                            // - check the last executed checkpoint for the subnet
-                            // - And if we still have the info, submit a new checkpoint
-                            let parent_head = parent_client.chain_head().await?;
-                            let curr_epoch: ChainEpoch = ChainEpoch::try_from(parent_head.height)?;
-                            let cid_map = parent_head.cids.first().unwrap().clone();
-                            let parent_tip_set = Cid::try_from(cid_map)?;
-                            let child_head = child_client.chain_head().await?;
-                            let cid_map = child_head.cids.first().unwrap().clone();
-                            let child_tip_set = Cid::try_from(cid_map)?;
-                            let child_gw_state =
-                                child_client.ipc_read_gateway_state(child_tip_set).await?;
-                            let last_exec = child_gw_state
-                                .top_down_checkpoint_voting
-                                .last_voting_executed;
-                            let submission_epoch = last_exec + period;
-                            if curr_epoch >= submission_epoch {
-                                submit_topdown_checkpoint(
-                                    submission_epoch,
-                                    parent_tip_set,
-                                    child_tip_set,
-                                    account,
-                                    child.id.clone(),
-                                    &child_client,
-                                    &parent_client,
-                                )
-                                .await?;
+                            // loop to submit the lagging checkpoints as many as possible
+                            loop {
+                                // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
+                                // missing in case the previous one was executed successfully.
+                                // - we get the up to date head of the parent and the child.
+                                // - check the last executed checkpoint for the subnet
+                                // - And if we still have the info, submit a new checkpoint
+                                let parent_head = parent_client.chain_head().await?;
+                                let curr_epoch: ChainEpoch =
+                                    ChainEpoch::try_from(parent_head.height)?;
+                                let cid_map = parent_head.cids.first().unwrap().clone();
+                                let parent_tip_set = Cid::try_from(cid_map)?;
+                                let child_head = child_client.chain_head().await?;
+                                let cid_map = child_head.cids.first().unwrap().clone();
+                                let child_tip_set = Cid::try_from(cid_map)?;
+                                let child_gw_state =
+                                    child_client.ipc_read_gateway_state(child_tip_set).await?;
+                                let last_exec = child_gw_state
+                                    .top_down_checkpoint_voting
+                                    .last_voting_executed;
+                                let submission_epoch = last_exec + period;
+                                if curr_epoch >= submission_epoch {
+                                    submit_topdown_checkpoint(
+                                        submission_epoch,
+                                        parent_tip_set,
+                                        child_tip_set,
+                                        account,
+                                        child.id.clone(),
+                                        &child_client,
+                                        &parent_client,
+                                    )
+                                    .await?;
+                                } else {
+                                    break;
+                                }
                             }
                         }
                     }
