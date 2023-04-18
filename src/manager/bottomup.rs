@@ -61,6 +61,10 @@ pub async fn manage_bottomup_checkpoints(
         loop {
             let child_head = child_client.chain_head().await?;
             let curr_epoch: ChainEpoch = ChainEpoch::try_from(child_head.height)?;
+            // get child gateway state to see if the subnet is initialized
+            let cid_map = child_head.cids.first().unwrap().clone();
+            let child_tip_set = Cid::try_from(cid_map)?;
+            let child_gw_state = child_client.ipc_read_gateway_state(child_tip_set).await?;
 
             // get parent chain head
             let parent_head = parent_client.chain_head().await?;
@@ -79,7 +83,9 @@ pub async fn manage_bottomup_checkpoints(
                 .last_voting_executed;
             let submission_epoch = last_exec + period;
 
-            if curr_epoch >= submission_epoch {
+            // wait for the subnet to be initialized before submitting.
+            // if it is time to execute a checkpoint...
+            if child_gw_state.initialized && curr_epoch >= submission_epoch {
                 // First, we check which accounts are in the validator set. This is done by reading
                 // the parent's chain head and requesting the state at that tip set.
                 let mut validator_set: HashSet<Address, RandomState> = HashSet::new();
