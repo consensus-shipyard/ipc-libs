@@ -19,26 +19,26 @@ use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListCheckpointsParams {
+pub struct ListBottomUpCheckpointsParams {
     pub subnet_id: String,
     pub from_epoch: ChainEpoch,
     pub to_epoch: ChainEpoch,
 }
 
 /// The list checkpoints json rpc method handler.
-pub(crate) struct ListCheckpointsHandler {
+pub(crate) struct ListBottomUpCheckpointsHandler {
     pool: Arc<SubnetManagerPool>,
 }
 
-impl ListCheckpointsHandler {
+impl ListBottomUpCheckpointsHandler {
     pub(crate) fn new(pool: Arc<SubnetManagerPool>) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl JsonRPCRequestHandler for ListCheckpointsHandler {
-    type Request = ListCheckpointsParams;
+impl JsonRPCRequestHandler for ListBottomUpCheckpointsHandler {
+    type Request = ListBottomUpCheckpointsParams;
     type Response = Vec<SerializeToJson<BottomUpCheckpoint>>;
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {

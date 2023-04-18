@@ -131,16 +131,12 @@ pub async fn manage_bottomup_checkpoints(
                                 e
                             })?;
 
-                            // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
-                            // missing in case the previous one was executed successfully.
-                            // - we get the up to date head of the parent and the child.
-                            // - check the last executed checkpoint for the subnet
-                            // - And if we still have the info, submit a new checkpoint
-                            // FIXME: We should make this a while loop that while there is a
-                            // checkpoint to be committed I don't need to wait for a new iteration
-                            // to submit my checkpoint and I can submit it immediately
-
                             loop {
+                                // check if by any chance we have the opportunity to submit any outstanding checkpoint we may be
+                                // missing in case the previous one was executed successfully.
+                                // - we get the up to date head of the parent and the child.
+                                // - check the last executed checkpoint for the subnet
+                                // - And if we still have the info, submit a new checkpoint
                                 let child_head = child_client.chain_head().await?;
                                 let curr_epoch: ChainEpoch =
                                     ChainEpoch::try_from(child_head.height)?;
@@ -169,6 +165,8 @@ pub async fn manage_bottomup_checkpoints(
                                         e
                                     })?;
                                 } else {
+                                    // if no checkpoint lagging we can wait for the
+                                    // next iteration.
                                     break;
                                 }
                             }

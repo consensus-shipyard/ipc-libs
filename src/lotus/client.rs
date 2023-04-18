@@ -54,7 +54,7 @@ mod methods {
     pub const IPC_LIST_CHILD_SUBNETS: &str = "Filecoin.IPCListChildSubnets";
     pub const IPC_VALIDATOR_HAS_VOTED_BOTTOMUP: &str = "Filecoin.IPCHasVotedBottomUpCheckpoint";
     pub const IPC_VALIDATOR_HAS_VOTED_TOPDOWN: &str = "Filecoin.IPCHasVotedTopDownCheckpoint";
-    pub const IPC_LIST_CHECKPOINTS: &str = "Filecoin.IPCListCheckpointsSerialized";
+    pub const IPC_LIST_BOTTOMUP_CHECKPOINTS: &str = "Filecoin.IPCListBottomUpCheckpointsSerialized";
     pub const IPC_GET_TOPDOWN_MESSAGES: &str = "Filecoin.IPCGetTopDownMsgsSerialized";
     pub const IPC_GENESIS_EPOCH_FOR_SUBNET: &str = "Filecoin.IPCGetGenesisEpochForSubnet";
 }
@@ -458,7 +458,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let params = json!([subnet_id.to_json(), from_epoch, to_epoch]);
         let r = self
             .client
-            .request::<Vec<String>>(methods::IPC_LIST_CHECKPOINTS, params)
+            .request::<Vec<String>>(methods::IPC_LIST_BOTTOMUP_CHECKPOINTS, params)
             .await?;
 
         let checkpoints = r
