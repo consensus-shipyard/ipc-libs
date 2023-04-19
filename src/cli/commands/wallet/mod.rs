@@ -5,6 +5,7 @@ use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::cli::commands::wallet::new::{WalletNew, WalletNewArgs};
 use clap::{Args, Subcommand};
 
+mod list;
 mod new;
 
 #[derive(Debug, Args)]

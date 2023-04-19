@@ -95,8 +95,11 @@ pub trait SubnetManager {
     /// Send value between two addresses in a subnet
     async fn send_value(&self, from: Address, to: Address, amount: TokenAmount) -> Result<()>;
 
-    ///  Create new wallet in a subnet
+    /// Create new wallet in a subnet
     async fn wallet_new(&self, key_type: WalletKeyType) -> Result<Address>;
+
+    /// List wallets in this subnet
+    async fn wallet_list(&self) -> Result<Vec<Address>>;
 
     /// Returns the epoch of the latest top-down checkpoint executed
     async fn last_topdown_executed(&self) -> Result<ChainEpoch>;
