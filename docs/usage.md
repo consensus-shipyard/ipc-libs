@@ -83,7 +83,7 @@ This command includes the cross-net message into a bottom-up checkpoint after th
 
 ## Listing checkpoints from a subnet
 
-Subnets are periodically committing checkpoints to their parent every `check-period` (parameter defined when creating the subnet). If you want to inspect the information of a range of checkpoints committed in the parent for a subnet, you can use the `checkpoint list` command provided by the agent as follows: 
+Subnets are periodically committing checkpoints to their parent every `bottomup-check-period` (parameter defined when creating the subnet). If you want to inspect the information of a range of bottom-up checkpoints committed in the parent for a subnet, you can use the `checkpoint list` command provided by the agent as follows: 
 ```bash
 # List checkpoints between two epochs for a subnet
 $ ./bin/ipc-agent checkpoint bottomup-list --from-epoch <range-start> --to-epoch <range-end> --subnet <subnet-id>
