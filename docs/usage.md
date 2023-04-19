@@ -27,8 +27,15 @@ $ ./bin/ipc-agent subnet join --subnet /root/t01002 --collateral 2 --validator-n
 ```
 This command specifies the subnet to join, the amount of collateral to provide and the validator net address used by other validators to dial them.
 
-## Listing your balance in a subnet 
-> TODO: Add a note on how `wallet list` can be used to check your funds in a subnet. This should be implemented tomorrow (if things go well).
+## Listing your balance in a subnet
+To check if the funds arrived to their destination you can use the following command to list the balance of your wallet in a subnet:
+```bash
+$ ./bin/ipc-agent wallet list --subnet=<subnet-id>
+
+# Example execution
+$ ./bin/ipc-agent wallet list --subnet=/root/t01002
+ipc_agent::cli::commands::wallet::list] wallets in subnet /root are {"t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq": "500.0"}
+```
 
 ## Sending funds in a subnet
 
@@ -79,10 +86,10 @@ This command includes the cross-net message into a bottom-up checkpoint after th
 Subnets are periodically committing checkpoints to their parent every `check-period` (parameter defined when creating the subnet). If you want to inspect the information of a range of checkpoints committed in the parent for a subnet, you can use the `checkpoint list` command provided by the agent as follows: 
 ```bash
 # List checkpoints between two epochs for a subnet
-$ ./bin/ipc-agent checkpoint list --from-epoch <range-start> --to-epoch <range-end> --subnet <subnet-id>
+$ ./bin/ipc-agent checkpoint bottomup-list --from-epoch <range-start> --to-epoch <range-end> --subnet <subnet-id>
 
 # Example execution
-$ ./bin/ipc-agent checkpoint list --from-epoch 0 --to-epoch 100 --subnet /root/t01002
+$ ./bin/ipc-agent checkpoint bottomup-list --from-epoch 0 --to-epoch 100 --subnet /root/t01002
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 0 - prev_check={"/":"bafy2bzacedkoa623kvi5gfis2yks7xxjl73vg7xwbojz4tpq63dd5jpfz757i"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 10 - prev_check={"/":"bafy2bzacecsatvda6lodrorh7y7foxjt3a2dexxx5jiyvtl7gimrrvywb7l5m"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 30 - prev_check={"/":"bafy2bzaceauzdx22hna4e4cqf55jqmd64a4fx72sxprzj72qhrwuxhdl7zexu"}, cross_msgs=null, child_checks=null
