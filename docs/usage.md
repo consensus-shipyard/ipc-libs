@@ -82,7 +82,7 @@ Subnets are periodically committing checkpoints to their parent every `check-per
 $ ./bin/ipc-agent checkpoint list --from-epoch <range-start> --to-epoch <range-end> --subnet <subnet-id>
 
 # Example execution
-$ ./bin/ipc-agent checkpoint list --from-epoch 0 --to-epoch 100 --subnet root/t01002
+$ ./bin/ipc-agent checkpoint list --from-epoch 0 --to-epoch 100 --subnet /root/t01002
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 0 - prev_check={"/":"bafy2bzacedkoa623kvi5gfis2yks7xxjl73vg7xwbojz4tpq63dd5jpfz757i"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 10 - prev_check={"/":"bafy2bzacecsatvda6lodrorh7y7foxjt3a2dexxx5jiyvtl7gimrrvywb7l5m"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 30 - prev_check={"/":"bafy2bzaceauzdx22hna4e4cqf55jqmd64a4fx72sxprzj72qhrwuxhdl7zexu"}, cross_msgs=null, child_checks=null
@@ -92,10 +92,10 @@ You can find the checkpoint where your cross-message was included by listing the
 ## Checking the health of top-down checkpoints
 In order to check the health of top-down checkpointing in a subnet, the following command can be run:
 ```bash
-$./bin/ipc-agent checkpoint last-td-exec --subnet=<subnet-id>
+$./bin/ipc-agent checkpoint last-topdown --subnet=<subnet-id>
 
 # Example execution
-$./bin/ipc-agent checkpoint last-td-exec --subnet /root/t01002
+$./bin/ipc-agent checkpoint last-topdown --subnet /root/t01002
 [2023-04-18T17:11:34Z INFO  ipc_agent::cli::commands::checkpoint::topdown_executed] Last top-down checkpoint executed in epoch: 9866
 ```
 
