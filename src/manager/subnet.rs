@@ -101,6 +101,9 @@ pub trait SubnetManager {
     /// List wallets in this subnet
     async fn wallet_list(&self) -> Result<Vec<Address>>;
 
+    /// Get the balance of an address
+    async fn wallet_balance(&self, address: &Address) -> Result<TokenAmount>;
+
     /// Returns the epoch of the latest top-down checkpoint executed
     async fn last_topdown_executed(&self) -> Result<ChainEpoch>;
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::manager::SubnetManager;
@@ -5,6 +6,9 @@ use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
+use futures_util::future::join_all;
+use fvm_shared::address::Address;
+use fvm_shared::econ::TokenAmount;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -15,10 +19,8 @@ pub struct WalletListParams {
     pub subnet: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WalletListResponse {
-    pub addresses: Vec<String>,
-}
+/// Key is the address as string and value is the token amount as string
+pub type WalletListResponse = HashMap<String, String>;
 
 /// Send value between two addresses within a subnet
 pub(crate) struct WalletListHandler {
@@ -43,9 +45,27 @@ impl JsonRPCRequestHandler for WalletListHandler {
             Some(conn) => conn,
         };
 
-        let address = conn.manager().wallet_list().await?;
-        Ok(WalletListResponse {
-            addresses: address.iter().map(|e| e.to_string()).collect(),
-        })
+        let manager = conn.manager();
+        let addresses = manager.wallet_list().await?;
+
+        let r = addresses
+            .iter()
+            .map(|addr| async move {
+                manager
+                    .wallet_balance(addr)
+                    .await
+                    .map(|balance| (balance, addr))
+            })
+            .collect::<Vec<_>>();
+
+        let mut hashmap = HashMap::new();
+        let r = join_all(r)
+            .await
+            .into_iter()
+            .collect::<anyhow::Result<Vec<(TokenAmount, &Address)>>>()?;
+        for (balance, addr) in r {
+            hashmap.insert(addr.to_string(), balance.to_string());
+        }
+        Ok(hashmap)
     }
 }

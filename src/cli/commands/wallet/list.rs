@@ -35,11 +35,7 @@ impl CommandLineHandler for WalletList {
             )
             .await?;
 
-        log::info!(
-            "wallets in subnet {:} are {:?}",
-            arguments.subnet,
-            addrs.addresses
-        );
+        log::info!("wallets in subnet {:} are {:?}", arguments.subnet, addrs);
 
         Ok(())
     }

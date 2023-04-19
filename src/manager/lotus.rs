@@ -316,6 +316,11 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             .collect::<Result<_>>()
     }
 
+    async fn wallet_balance(&self, address: &Address) -> Result<TokenAmount> {
+        log::info!("get the balance of an address");
+        self.lotus_client.wallet_balance(address).await
+    }
+
     async fn list_checkpoints(
         &self,
         subnet_id: SubnetID,
