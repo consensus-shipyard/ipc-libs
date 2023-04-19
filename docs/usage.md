@@ -99,7 +99,7 @@ $./bin/ipc-agent checkpoint last-topdown --subnet /root/t01002
 [2023-04-18T17:11:34Z INFO  ipc_agent::cli::commands::checkpoint::topdown_executed] Last top-down checkpoint executed in epoch: 9866
 ```
 
-This command return the epoch of the last top-down checkpoint executed in the child. If you see that this epoch is way below the current epoch of the parent of the child subnet, it means that the top-down checkpoint may be lagging, that validators need to catch-up, and that the forwarding of top-down messages (from parent to child) may take longer to be committed.
+This command returns the epoch of the last top-down checkpoint executed in the child. If you see that this epoch is way below the current epoch of the parent subnet, then top-down checkpointing may be lagging, validators need to catch-up, and the forwarding of top-down messages (from parent to child) may take longer to be committed.
 
 
 ## Leaving a subnet
