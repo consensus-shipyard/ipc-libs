@@ -312,7 +312,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             .wallet_list()
             .await?
             .iter()
-            .map(Address::from_str)
+            .map(|raw| Address::from_str(raw).map_err(|_| anyhow!("invalid addr: {raw:}")))
             .collect::<Result<_>>()
     }
 
