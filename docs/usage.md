@@ -9,7 +9,7 @@ As a sanity-check that we have joined the subnet successfully and that we provid
 ```bash
 $ ./bin/ipc-agent list-subnets --gateway-address=<gateway-addr> --subnet=<parent-subnet-id>
 
-# Sample execution
+# Example execution
 $ ./bin/ipc-agent list-subnets --gateway-address=t064 --subnet=/root
 [2023-03-30T17:00:25Z INFO  ipc_agent::cli::commands::manager::list_subnets] /root/t01003 - status: 0, collateral: 2 FIL, circ.supply: 0.0 FIL
 ```
@@ -28,7 +28,7 @@ $ ./bin/ipc-agent subnet join --subnet /root/t01002 --collateral 2 --validator-n
 This command specifies the subnet to join, the amount of collateral to provide and the validator net address used by other validators to dial them.
 
 ## Listing your balance in a subnet
-To check if the funds arrived to their destination you can use the following command to list the balance of your wallet in a subnet:
+In order to send messages in a subnet, you'll need to have funds in your subnt account. You can use the following command to list the balance of your wallets in a subnet:
 ```bash
 $ ./bin/ipc-agent wallet list --subnet=<subnet-id>
 
