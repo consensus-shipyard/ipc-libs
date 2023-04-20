@@ -20,7 +20,7 @@ pub mod propagate;
 pub mod release;
 pub mod send_value;
 pub mod subnet;
-pub mod wallet;
+pub mod topdown_executed;
 pub mod whitelist;
 
 pub(crate) fn check_subnet(subnet: &Subnet) -> Result<()> {

@@ -27,15 +27,18 @@ use crate::server::handlers::manager::release::ReleaseHandler;
 use crate::server::handlers::manager::whitelist::WhitelistPropagatorHandler;
 use crate::server::handlers::send_value::SendValueHandler;
 use crate::server::handlers::validator::QueryValidatorSetHandler;
-use crate::server::list_checkpoints::ListCheckpointsHandler;
+use crate::server::handlers::wallet::list::WalletListHandler;
+use crate::server::handlers::wallet::new::WalletNewHandler;
+use crate::server::list_checkpoints::ListBottomUpCheckpointsHandler;
 use crate::server::net_addr::SetValidatorNetAddrHandler;
 use crate::server::JsonRPCRequestHandler;
 
-use self::wallet::WalletNewHandler;
+use self::topdown_executed::LastTopDownExecHandler;
 
 mod config;
 mod manager;
 mod validator;
+pub mod wallet;
 
 pub type Method = String;
 
@@ -107,14 +110,21 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_NEW), h);
 
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletListHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::WALLET_LIST), h);
+
         let h: Box<dyn HandlerWrapper> = Box::new(SetValidatorNetAddrHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::SET_VALIDATOR_NET_ADDR), h);
 
         let h: Box<dyn HandlerWrapper> = Box::new(ListSubnetsHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::LIST_CHILD_SUBNETS), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(ListCheckpointsHandler::new(pool));
-        handlers.insert(String::from(json_rpc_methods::LIST_CHECKPOINTS), h);
+        let h: Box<dyn HandlerWrapper> =
+            Box::new(ListBottomUpCheckpointsHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::LIST_BOTTOMUP_CHECKPOINTS), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(LastTopDownExecHandler::new(pool));
+        handlers.insert(String::from(json_rpc_methods::LAST_TOPDOWN_EXECUTED), h);
 
         // query validator
         let h: Box<dyn HandlerWrapper> = Box::new(QueryValidatorSetHandler::new(config));
