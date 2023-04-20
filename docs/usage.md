@@ -83,13 +83,13 @@ This command includes the cross-net message into a bottom-up checkpoint after th
 
 ## Listing checkpoints from a subnet
 
-Subnets are periodically committing checkpoints to their parent every `bottomup-check-period` (parameter defined when creating the subnet). If you want to inspect the information of a range of bottom-up checkpoints committed in the parent for a subnet, you can use the `checkpoint list` command provided by the agent as follows: 
+Subnets are periodically committing checkpoints to their parent every `bottomup-check-period` (parameter defined when creating the subnet). If you want to inspect the information of a range of bottom-up checkpoints committed in the parent for a subnet, you can use the `checkpoint list-bottomup` command provided by the agent as follows: 
 ```bash
 # List checkpoints between two epochs for a subnet
-$ ./bin/ipc-agent checkpoint bottomup-list --from-epoch <range-start> --to-epoch <range-end> --subnet <subnet-id>
+$ ./bin/ipc-agent checkpoint list-bottomup --from-epoch <range-start> --to-epoch <range-end> --subnet <subnet-id>
 
 # Example execution
-$ ./bin/ipc-agent checkpoint bottomup-list --from-epoch 0 --to-epoch 100 --subnet /root/t01002
+$ ./bin/ipc-agent checkpoint list-bottomup --from-epoch 0 --to-epoch 100 --subnet /root/t01002
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 0 - prev_check={"/":"bafy2bzacedkoa623kvi5gfis2yks7xxjl73vg7xwbojz4tpq63dd5jpfz757i"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 10 - prev_check={"/":"bafy2bzacecsatvda6lodrorh7y7foxjt3a2dexxx5jiyvtl7gimrrvywb7l5m"}, cross_msgs=null, child_checks=null
 [2023-03-29T12:43:42Z INFO  ipc_agent::cli::commands::manager::list_checkpoints] epoch 30 - prev_check={"/":"bafy2bzaceauzdx22hna4e4cqf55jqmd64a4fx72sxprzj72qhrwuxhdl7zexu"}, cross_msgs=null, child_checks=null
