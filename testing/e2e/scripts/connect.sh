@@ -74,6 +74,11 @@ if [ "${IPC_NODE_TYPE}" == "eudico" ]; then
   done
   set -e
 
+  if [[ "$WALLET" =~ ^ERROR.* ]]; then
+    echo $WALLET
+    exit 1
+  fi
+
   write_subnet_config $TOKEN $WALLET
 
 else
