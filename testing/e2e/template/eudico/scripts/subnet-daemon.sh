@@ -19,6 +19,10 @@ echo '
 ' > $LOTUS_PATH/config.toml
 
 echo "[*] Generate genesis for subnet deterministically"
-eudico genesis new --subnet-id=$SUBNETID --template=/genesis.json --out=subnet.car
+if [[ "$SUBNETID" == "/root" ]]; then
+    eudico genesis new --subnet-id=$SUBNETID --template=/genesis-test.json --out=subnet.car
+else
+    eudico genesis new --subnet-id=$SUBNETID --template=/genesis.json --out=subnet.car
+fi
 echo "[*] Starting daemon"
 eudico mir daemon --genesis=subnet.car --bootstrap=false

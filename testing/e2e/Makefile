@@ -163,13 +163,14 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 # Initialize the node directory based on the active node type.
 # If the node has a parent, make a wallet and a subnet on the parent node.
 # The agent used must be one connected to the parent node.
-$(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
+# Assumes that the root node can use some pre-funded wallet.key file in the template genesis directory.
+$(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wallet.key
 	mkdir -p $@
 	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/
 
 	@# Create .env file with overrides taken from the environment.
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
-		export IPC_WALLET_KEY=${PWD}/$(PROJECT_ROOT)/bin/ipc-infra/src/wallet.key; \
+		export IPC_WALLET_KEY=${PWD}/template/$(IPC_NODE_TYPE)/genesis/wallet.key; \
 		export IPC_SUBNET_ID=/root; \
 		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
 	else \

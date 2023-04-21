@@ -30,7 +30,7 @@ run() {
 }
 
 if [ "$FUND_AMOUNT" != "0" ]; then
-  echo "[*] Funding wallet-$IPC_WALLET_NR ($ADDR) with $FUND_AMOUNT tokens using agent-$IPC_AGENT_NR on $IPC_NODE_TYPE node-$IPC_NODE_NR under $IPC_SUBNET_ID named $IPC_SUBNET_NAME"
+  echo "[*] Funding wallet-$IPC_WALLET_NR ($ADDR) with $FUND_AMOUNT token(s) using agent-$IPC_AGENT_NR on $IPC_NODE_TYPE node-$IPC_NODE_NR under $IPC_SUBNET_ID named $IPC_SUBNET_NAME"
   run $IPC_AGENT subnet send-value --ipc-agent-url $IPC_AGENT_URL --subnet $IPC_SUBNET_ID --to $ADDR $FUND_AMOUNT
 else
   echo "[*] Fund amount is zero; skip funding $ADDR"

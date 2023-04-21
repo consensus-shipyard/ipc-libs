@@ -30,6 +30,7 @@ services:
       - repo_directory:/var/lib/lotus
       # Modified versions of the infra scripts. Mounted from templates so they can be edited between restarts.
       - ${IPC_PROJECT_ROOT}/testing/e2e/template/${IPC_NODE_TYPE}/scripts:/scripts
+      - ${IPC_PROJECT_ROOT}/testing/e2e/template/${IPC_NODE_TYPE}/genesis:/genesis
     networks:
       - ipc
     environment:
