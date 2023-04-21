@@ -89,7 +89,7 @@ node/down:
 	fi
 
 # Start a node.
-node-1/up:
+node-%/up:
 	$(MAKE) node/up IPC_NODE_NR=$*
 
 # Stop and remove a specific node.
@@ -164,13 +164,13 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 # If the node has a parent, make a wallet and a subnet on the parent node.
 # The agent used must be one connected to the parent node.
 # Assumes that the root node can use some pre-funded wallet.key file in the template genesis directory.
-$(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/wallet.key
+$(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wallet.key
 	mkdir -p $@
 	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/
 
 	@# Create .env file with overrides taken from the environment.
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
-		export IPC_WALLET_KEY=${PWD}/template/$(IPC_NODE_TYPE)/wallet.key && \
+		export IPC_WALLET_KEY=${PWD}/template/$(IPC_NODE_TYPE)/genesis/wallet.key && \
 		export IPC_SUBNET_ID=/root && \
 		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	else \

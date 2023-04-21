@@ -28,11 +28,12 @@ if [ "${IPC_NODE_TYPE}" == "eudico" ]; then
   # [2023-04-14T14:24:27Z INFO  ipc_agent::cli::commands::wallet::new] created new wallet with address WalletNewResponse { address: "t1qn46gmcao6vnujtim7l2a4ombut2ywyhh4ccdga" } in subnet "/root"
   set +e
   LOG=$($IPC_AGENT wallet new --ipc-agent-url $IPC_AGENT_URL --key-type secp256k1 --subnet=$IPC_SUBNET_ID 2>&1)
-  set -e
-  if [ $? != 0 ]; then
+  STATUS=$?
+  if [ $STATUS != 0 ]; then
     echo $LOG
     exit 1
   fi
+  set -e
   ADDR=$(echo $LOG | sed 's/^.*address: "\([^"]*\)".*$/\1/')
 
   if [ -z "$ADDR" ]; then

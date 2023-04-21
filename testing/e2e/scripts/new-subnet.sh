@@ -33,11 +33,12 @@ CMD=$(echo $IPC_AGENT subnet create --ipc-agent-url $IPC_AGENT_URL --parent $IPC
 echo $CMD
 set +e
 LOG=$($CMD 2>&1)
-set -e
-if [ $? != 0 ]; then
+STATUS=$?
+if [ $STATUS != 0 ]; then
     echo $LOG
     exit 1
 fi
+set -e
 
 # Example output from the agent:
 # [2023-04-17T11:44:13Z INFO  ipc_agent::cli::commands::subnet::create] created subnet actor with id: /root/t01003
