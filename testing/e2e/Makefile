@@ -12,7 +12,7 @@ IPC_SUBNET_NAME  := ""
 
 PROJECT_ROOT     := ../..
 IPC_INFRA_DIR    := $(PROJECT_ROOT)/bin/ipc-infra
-IPC_SRC          := $(shell find $(PROJECT_ROOT) -type f \( -name "*.rs" \) | grep -v target)
+IPC_SRC          := $(shell find $(PROJECT_ROOT) -type f \( -name "*.rs" \) | grep -v target | grep -v testing)
 IPC_AGENT        := $(PROJECT_ROOT)/bin/ipc-agent
 
 IPC_NETWORK      := ipc
@@ -109,6 +109,11 @@ connect: node/up agent/up
 wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
 
 
+# Fund a wallet on the active node.
+fund: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
+	./scripts/fund-wallet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $< $(IPC_AGENT) $(IPC_AGENT_URL)
+
+
 # Create a subnet on the active node.
 subnet: $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME)
 
@@ -170,6 +175,7 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE)
 	else \
 		$(MAKE) subnet IPC_NODE_NR=$(IPC_PARENT_NR); \
 		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR); \
+		$(MAKE) fund   IPC_NODE_NR=$(IPC_PARENT_NR); \
 		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key; \
 		export IPC_SUBNET_ID=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id); \
 	fi; \

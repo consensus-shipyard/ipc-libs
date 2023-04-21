@@ -17,7 +17,7 @@ echo "[*] Compiling $TOPO_YAML to $TOPO_SH"
 yq -Poj $TOPO_YAML > $TOPO_JSON
 
 echo "#!/usr/bin/env bash" > $TOPO_SH
-echo "# Topology compiled from $TOPO_YAML" >> $TOPO_SH
+echo "# Generated from $TOPO_YAML" >> $TOPO_SH
 echo "set -e" >> $TOPO_SH
 
 echo "# Create the agent(s)" >> $TOPO_SH
@@ -61,7 +61,8 @@ cat $TOPO_JSON | jq -r '
                             + " IPC_NODE_NR="     + (.nr | tostring)
                             + " IPC_PARENT_NR="   + (.parent_node | tostring)
                             + " IPC_WALLET_NR="   + (.wallet | tostring)
-                            + " IPC_SUBNET_NAME=" + (.subnet_name))
+                            + " IPC_SUBNET_NAME=" + (.subnet_name)
+                            + " FUND_AMOUNT="     + (.funds | tostring))
           }
       ] as $subnets
     | [

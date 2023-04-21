@@ -31,7 +31,9 @@ echo "[*] Creating new subnet with agent-$IPC_AGENT_NR on $IPC_NODE_TYPE node-$I
 
 CMD=$(echo $IPC_AGENT subnet create --ipc-agent-url $IPC_AGENT_URL --parent $IPC_SUBNET_ID --name $IPC_SUBNET_NAME --min-validator-stake $MIN_VALIDATOR_STAKE --min-validators $MIN_VALIDATORS --finality-threshold $FINALITY_THRESHOLD --check-period $CHECK_PERIOD)
 echo $CMD
+set +e
 LOG=$($CMD 2>&1)
+set -e
 echo $LOG
 
 # Example output from the agent:

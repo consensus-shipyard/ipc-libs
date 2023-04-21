@@ -12,11 +12,13 @@ nodes:
     subnet_name: thorax
     parent_node: 0
     wallet: 0
+    funds: 1
 
   - nr: 2
     subnet_name: abdomen
     parent_node: 1
     wallet: 0
+    funds: 1
 
 agents:
   - nr: 0
