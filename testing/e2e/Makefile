@@ -119,12 +119,12 @@ subnet: $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME)
 
 
 # Turn a topology YAML file into a script
-topology/%.sh: topology/%.yaml | jq yq
+topologies/%.sh: topologies/%.yaml | jq yq
 	./scripts/topology.sh $<
 
 
 # Compile and execute a topology.
-setup/%: topology/%.sh
+setup/%: topologies/%.sh
 	bash $<
 
 

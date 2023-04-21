@@ -56,5 +56,4 @@ The main targets of the `Makefile` are:
 * `make connect`: connect `$IPC_AGENT_NR` to `$IPC_NODE_NR` and reload the agent configuration
 * `make wallet`: creates a new wallet for `$IPC_WALLET_NR` under `$IPC_NODE_NR` which we are then free to assign to anyone
 * `make subnet`: creates a new subnet named `$IPC_SUBNET_NAME` under `$IPC_NODE_NR` which we can then create nodes to run
-* `make topology/<topology-name>.sh`: compile `topology/<topology-name>.yaml` into an executable script
-* `make setup/<topology-name>`: compile and execute the setup script for `topology/<topology-name>.yaml`
+* `make setup/<topology-name>`: compile and execute the setup script for `topologies/<topology-name>.yaml`
