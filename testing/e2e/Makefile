@@ -114,13 +114,18 @@ wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR) $(IPC_AGENT)
 
 
 # Fund a wallet on the active node.
-fund: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR) $(IPC_AGENT)
+wallet/fund: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
 	./scripts/fund-wallet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $< $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
 # Join the subnet of the active node, on the parent node.
-join: node/up agent/up $(IPC_AGENT)
+subnet/join: node/up agent/up $(IPC_AGENT)
 	./scripts/join-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $(IPC_AGENT) $(IPC_AGENT_URL)
+
+
+# Fund the subnet of the active node, on the parent node.
+subnet/fund: node/up agent/up $(IPC_AGENT)
+	./scripts/fund-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
 # Turn a topology YAML file into a script
@@ -170,6 +175,13 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 # The agent used must be one connected to the parent node.
 # Assumes that the root node can use some pre-funded wallet.key file in the template genesis directory.
 $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wallet.key
+	@# Get the recursive dependencies out of the way first. If they fail, we don't have to manually delete the node directory.
+	@# If we put the fund commands into the topology script instead of here, they would get executed every time the setup is called, not just when the node is started.
+	@# The reason this is here and not in node/up is because node/up executes any time it's marked as a dependency.
+	if [ "$(IPC_PARENT_NR)" != "$(IPC_NODE_NR)" ]; then \
+		$(MAKE) --no-print-directory subnet wallet wallet/fund IPC_NODE_NR=$(IPC_PARENT_NR) ; \
+	fi
+
 	mkdir -p $@
 	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/
 
@@ -179,7 +191,6 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wall
 		export IPC_SUBNET_ID=/root && \
 		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	else \
-		$(MAKE) --no-print-directory subnet wallet fund IPC_NODE_NR=$(IPC_PARENT_NR) && \
 		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key && \
 		export IPC_SUBNET_ID=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id) ; \
 	fi && \

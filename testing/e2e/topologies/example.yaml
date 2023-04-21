@@ -23,7 +23,8 @@ nodes:
       name: warm-blooded
     parent_node: 0
     wallet: 0
-    funds: 6
+    wallet_funds: 100
+    subnet_funds: 90
     collateral: 1
 
   # Another subnet under the root running on node-0,
@@ -33,7 +34,8 @@ nodes:
       name: cold-blooded
     parent_node: 0
     wallet: 1
-    funds: 2
+    wallet_funds: 100
+    subnet_funds: 90
     collateral: 1
 
   # A sub-subnet /vertebrates/warm-blooded/mammals,
@@ -44,7 +46,8 @@ nodes:
       name: mammals
     parent_node: 1
     wallet: 0
-    funds: 2
+    wallet_funds: 10
+    subnet_funds: 6
     collateral: 1
 
   - nr: 4
@@ -52,7 +55,8 @@ nodes:
       name: birds
     parent_node: 1
     wallet: 1
-    funds: 2
+    wallet_funds: 10
+    subnet_funds: 7
     collateral: 1
 
   - nr: 5
@@ -60,8 +64,9 @@ nodes:
       name: warm-blooded
     parent_node: 0
     wallet: 1
-    funds: 2
-    collateral: 1
+    wallet_funds: 50
+    subnet_funds: 40
+    collateral: 2
 
 agents:
   - nr: 0

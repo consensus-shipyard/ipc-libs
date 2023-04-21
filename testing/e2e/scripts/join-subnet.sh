@@ -23,6 +23,7 @@ source $IPC_NODE_DIR/.env
 
 # Rest of the variables from env vars.
 COLLATERAL=${COLLATERAL:-0}
+
 IPC_WALLET_DIR=$(dirname $IPC_WALLET_KEY)
 ADDR=$(cat $IPC_WALLET_DIR/address)
 

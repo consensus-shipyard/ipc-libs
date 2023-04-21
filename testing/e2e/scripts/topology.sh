@@ -45,7 +45,7 @@ cat $TOPO_JSON | jq -r '
             sort_key: ((.node | tostring) + "/a"),
             node: .node,
             agent: $agent.nr,
-            cmd: ("make --no-print-directory connect      "
+            cmd: ("make --no-print-directory connect"
                     + " IPC_AGENT_NR=" + ($agent.nr | tostring)
                     + " IPC_NODE_NR="  + (.node | tostring))
           }
@@ -58,19 +58,20 @@ cat $TOPO_JSON | jq -r '
         | select(has("parent_node") and (.parent_node != .nr))
         | {
             sort_key: ((.parent_node | tostring) + "/b"),
-            cmd: ("make --no-print-directory node/up join "
+            cmd: ("make --no-print-directory node/up subnet/join subnet/fund"
                     + " IPC_AGENT_NR="    + ($node_agent_map[.parent_node | tostring])
                     + " IPC_NODE_NR="     + (.nr | tostring)
                     + " IPC_PARENT_NR="   + (.parent_node | tostring)
                     + " IPC_WALLET_NR="   + (.wallet | tostring)
                     + " IPC_SUBNET_NAME=" + (.subnet.name)
-                    + " FUND_AMOUNT="     + (.funds | tostring)
-                    + " COLLATERAL="      + (.collateral // 1 | tostring)
-                    + " MIN_VALIDATOR_STAKE="   + (.subnet.min_validator_stake // 1    | tostring)
-                    + " MIN_VALIDATORS="        + (.subnet.min_validators // 0         | tostring)
+                    + " WALLET_FUNDS="    + (.wallet_funds // 0 | tostring)
+                    + " SUBNET_FUNDS="    + (.subnet_funds // 0 | tostring)
+                    + " COLLATERAL="      + (.collateral   // 0 | tostring)
+                    + " MIN_VALIDATOR_STAKE="   + (.subnet.min_validator_stake   // 1  | tostring)
+                    + " MIN_VALIDATORS="        + (.subnet.min_validators        // 0  | tostring)
                     + " BOTTOMUP_CHECK_PERIOD=" + (.subnet.bottomup_check_period // 10 | tostring)
-                    + " TOPDOWN_CHECK_PERIOD="  + (.subnet.topdown_check_period // 10  | tostring)
-                      )
+                    + " TOPDOWN_CHECK_PERIOD="  + (.subnet.topdown_check_period  // 10 | tostring)
+                  )
           }
       ] as $subnets
     | [
