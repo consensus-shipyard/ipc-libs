@@ -29,7 +29,10 @@ if [ "${IPC_NODE_TYPE}" == "eudico" ]; then
   set +e
   LOG=$($IPC_AGENT wallet new --ipc-agent-url $IPC_AGENT_URL --key-type secp256k1 --subnet=$IPC_SUBNET_ID 2>&1)
   set -e
-  echo $LOG
+  if [ $? != 0 ]; then
+    echo $LOG
+    exit 1
+  fi
   ADDR=$(echo $LOG | sed 's/^.*address: "\([^"]*\)".*$/\1/')
 
   if [ -z "$ADDR" ]; then

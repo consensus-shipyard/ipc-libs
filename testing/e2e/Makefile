@@ -170,23 +170,23 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wall
 
 	@# Create .env file with overrides taken from the environment.
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
-		export IPC_WALLET_KEY=${PWD}/template/$(IPC_NODE_TYPE)/genesis/wallet.key; \
-		export IPC_SUBNET_ID=/root; \
-		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME); \
+		export IPC_WALLET_KEY=${PWD}/template/$(IPC_NODE_TYPE)/genesis/wallet.key && \
+		export IPC_SUBNET_ID=/root && \
+		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	else \
-		$(MAKE) subnet IPC_NODE_NR=$(IPC_PARENT_NR); \
-		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR); \
-		$(MAKE) fund   IPC_NODE_NR=$(IPC_PARENT_NR); \
-		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key; \
-		export IPC_SUBNET_ID=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id); \
-	fi; \
-	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT); \
-	export IPC_NETWORK=$(IPC_NETWORK); \
-	export IPC_PARENT_NR=$(IPC_PARENT_NR); \
-	export IPC_WALLET_NR=$(IPC_WALLET_NR); \
-	export IPC_NODE_NR=$(IPC_NODE_NR); \
-	export IPC_NODE_TYPE=$(IPC_NODE_TYPE); \
-	unset  IPC_AGENT_NR; \
+		$(MAKE) subnet IPC_NODE_NR=$(IPC_PARENT_NR) && \
+		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR) && \
+		$(MAKE) fund   IPC_NODE_NR=$(IPC_PARENT_NR) && \
+		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key && \
+		export IPC_SUBNET_ID=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id) ; \
+	fi && \
+	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT) && \
+	export IPC_NETWORK=$(IPC_NETWORK) && \
+	export IPC_PARENT_NR=$(IPC_PARENT_NR) && \
+	export IPC_WALLET_NR=$(IPC_WALLET_NR) && \
+	export IPC_NODE_NR=$(IPC_NODE_NR) && \
+	export IPC_NODE_TYPE=$(IPC_NODE_TYPE) && \
+	unset  IPC_AGENT_NR && \
 	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
 
 

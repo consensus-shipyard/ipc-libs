@@ -30,7 +30,7 @@ echo "# Create the root node(s)" >> $TOPO_SH
 cat $TOPO_JSON | jq -r '
   .nodes[]
   | select((.parent_node == .nr) or (. | has("parent_node") | not))
-  | "make node/up IPC_NODE_NR=" + (.nr | tostring) + " IPC_SUBNET_NAME=" + (.subnet_name | tostring)
+  | "make node/up IPC_NODE_NR=" + (.nr | tostring) + " IPC_SUBNET_NAME=" + (.subnet.name | tostring)
 ' >> $TOPO_SH
 
 echo "# Alternate connecting agents and creating subnets and nodes to run them" >> $TOPO_SH
@@ -61,8 +61,12 @@ cat $TOPO_JSON | jq -r '
                             + " IPC_NODE_NR="     + (.nr | tostring)
                             + " IPC_PARENT_NR="   + (.parent_node | tostring)
                             + " IPC_WALLET_NR="   + (.wallet | tostring)
-                            + " IPC_SUBNET_NAME=" + (.subnet_name)
-                            + " FUND_AMOUNT="     + (.funds | tostring))
+                            + " FUND_AMOUNT="     + (.fund_amount | tostring)
+                            + " IPC_SUBNET_NAME=" + (.subnet.name)
+                            + " MIN_VALIDATOR_STAKE="   + (.subnet | if has("min_validator_stake")   then .min_validator_stake   | tostring else "" end)
+                            + " MIN_VALIDATORS="        + (.subnet | if has("min_validators")        then .min_validators        | tostring else "" end)
+                            + " BOTTOMUP_CHECK_PERIOD=" + (.subnet | if has("bottomup_check_period") then .bottomup_check_period | tostring else "" end)
+                            + " TOPDOWN_CHECK_PERIOD="  + (.subnet | if has("topdown_check_period")  then .topdown_check_period  | tostring else "" end) )
           }
       ] as $subnets
     | [
