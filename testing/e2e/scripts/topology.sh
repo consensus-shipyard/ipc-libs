@@ -23,14 +23,14 @@ echo "set -e" >> $TOPO_SH
 echo "# Create the agent(s)" >> $TOPO_SH
 cat $TOPO_JSON | jq -r '
   .agents[]
-  | "make agent/up IPC_AGENT_NR=" + (.nr | tostring)
+  | "make --no-print-directory agent/up IPC_AGENT_NR=" + (.nr | tostring)
 ' >> $TOPO_SH
 
 echo "# Create the root node(s)" >> $TOPO_SH
 cat $TOPO_JSON | jq -r '
   .nodes[]
   | select((.parent_node == .nr) or (. | has("parent_node") | not))
-  | "make node/up IPC_NODE_NR=" + (.nr | tostring) + " IPC_SUBNET_NAME=" + (.subnet.name | tostring)
+  | "make --no-print-directory node/up IPC_NODE_NR=" + (.nr | tostring) + " IPC_SUBNET_NAME=" + (.subnet.name | tostring)
 ' >> $TOPO_SH
 
 echo "# Alternate connecting agents and creating subnets and nodes to run them" >> $TOPO_SH
@@ -45,8 +45,9 @@ cat $TOPO_JSON | jq -r '
             sort_key: ((.node | tostring) + "/a"),
             node: .node,
             agent: $agent.nr,
-            cmd: ("make connect IPC_AGENT_NR=" + ($agent.nr | tostring)
-                              + " IPC_NODE_NR="  + (.node | tostring))
+            cmd: ("make --no-print-directory connect      "
+                    + " IPC_AGENT_NR=" + ($agent.nr | tostring)
+                    + " IPC_NODE_NR="  + (.node | tostring))
           }
       ] as $connections
     | $connections
@@ -57,16 +58,19 @@ cat $TOPO_JSON | jq -r '
         | select(has("parent_node") and (.parent_node != .nr))
         | {
             sort_key: ((.parent_node | tostring) + "/b"),
-            cmd: ("make node/up IPC_AGENT_NR="    + ($node_agent_map[.parent_node | tostring])
-                            + " IPC_NODE_NR="     + (.nr | tostring)
-                            + " IPC_PARENT_NR="   + (.parent_node | tostring)
-                            + " IPC_WALLET_NR="   + (.wallet | tostring)
-                            + " FUND_AMOUNT="     + (.fund_amount | tostring)
-                            + " IPC_SUBNET_NAME=" + (.subnet.name)
-                            + " MIN_VALIDATOR_STAKE="   + (.subnet | if has("min_validator_stake")   then .min_validator_stake   | tostring else "" end)
-                            + " MIN_VALIDATORS="        + (.subnet | if has("min_validators")        then .min_validators        | tostring else "" end)
-                            + " BOTTOMUP_CHECK_PERIOD=" + (.subnet | if has("bottomup_check_period") then .bottomup_check_period | tostring else "" end)
-                            + " TOPDOWN_CHECK_PERIOD="  + (.subnet | if has("topdown_check_period")  then .topdown_check_period  | tostring else "" end) )
+            cmd: ("make --no-print-directory node/up join "
+                    + " IPC_AGENT_NR="    + ($node_agent_map[.parent_node | tostring])
+                    + " IPC_NODE_NR="     + (.nr | tostring)
+                    + " IPC_PARENT_NR="   + (.parent_node | tostring)
+                    + " IPC_WALLET_NR="   + (.wallet | tostring)
+                    + " IPC_SUBNET_NAME=" + (.subnet.name)
+                    + " FUND_AMOUNT="     + (.funds | tostring)
+                    + " COLLATERAL="      + (.collateral // 1 | tostring)
+                    + " MIN_VALIDATOR_STAKE="   + (.subnet.min_validator_stake // 1    | tostring)
+                    + " MIN_VALIDATORS="        + (.subnet.min_validators // 0         | tostring)
+                    + " BOTTOMUP_CHECK_PERIOD=" + (.subnet.bottomup_check_period // 10 | tostring)
+                    + " TOPDOWN_CHECK_PERIOD="  + (.subnet.topdown_check_period // 10  | tostring)
+                      )
           }
       ] as $subnets
     | [

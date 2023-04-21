@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # Fund an existing wallet with funds from the default wallet of the agent.
+# Call it on the node where the wallet will receive the funds.
 
 set -e
 

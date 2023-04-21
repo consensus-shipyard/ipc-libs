@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # Create a new wallet and export the address and key.
+# Call it on the node where the wallet will be created.
 
 set -e
 

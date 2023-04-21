@@ -61,15 +61,15 @@ agent/down:
 
 # Start an agent.
 agent-%/down:
-	$(MAKE) agent/up IPC_AGENT_NR=$*
+	$(MAKE) --no-print-directory agent/up IPC_AGENT_NR=$*
 
 # Stop and remove specific agent.
 agent-%/down:
-	$(MAKE) agent/down IPC_AGENT_NR=$*
+	$(MAKE) --no-print-directory agent/down IPC_AGENT_NR=$*
 
 
 # Reload the configuration of an agent.
-agent/reload: agent/up
+agent/reload: agent/up $(IPC_AGENT)
 	$(IPC_AGENT) config reload --ipc-agent-url $(IPC_AGENT_URL)
 
 
@@ -90,36 +90,41 @@ node/down:
 
 # Start a node.
 node-%/up:
-	$(MAKE) node/up IPC_NODE_NR=$*
+	$(MAKE) --no-print-directory node/up IPC_NODE_NR=$*
 
 # Stop and remove a specific node.
 node-%/down:
-	$(MAKE) node/down IPC_NODE_NR=$*
+	$(MAKE) --no-print-directory node/down IPC_NODE_NR=$*
 
 
-# Connect an agent to a node.
+# Connect an agent to a node. Assumes the node is running, but won't start it on its own.
 # A node will always be participating in a specific subnet, so this means exactly one entry in the agent's config.
 # Example: `make connect IPC_AGENT_NR=0 IPC_NODE_NR=0`
-connect: node/up agent/up
+connect: agent/up
 	./scripts/connect.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR)
-	$(MAKE) agent/reload
-
-
-# Create a wallet on the active node.
-wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
-
-
-# Fund a wallet on the active node.
-fund: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
-	./scripts/fund-wallet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $< $(IPC_AGENT) $(IPC_AGENT_URL)
+	$(MAKE) --no-print-directory agent/reload
 
 
 # Create a subnet on the active node.
-subnet: $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME)
+subnet: $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME) $(IPC_AGENT)
+
+
+# Create a wallet on the active node.
+wallet: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR) $(IPC_AGENT)
+
+
+# Fund a wallet on the active node.
+fund: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR) $(IPC_AGENT)
+	./scripts/fund-wallet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $< $(IPC_AGENT) $(IPC_AGENT_URL)
+
+
+# Join the subnet of the active node, on the parent node.
+join: node/up agent/up $(IPC_AGENT)
+	./scripts/join-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
 # Turn a topology YAML file into a script
-topologies/%.sh: topologies/%.yaml | jq yq
+topologies/%.sh: topologies/%.yaml scripts/topology.sh | jq yq
 	./scripts/topology.sh $<
 
 
@@ -174,9 +179,7 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wall
 		export IPC_SUBNET_ID=/root && \
 		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	else \
-		$(MAKE) subnet IPC_NODE_NR=$(IPC_PARENT_NR) && \
-		$(MAKE) wallet IPC_NODE_NR=$(IPC_PARENT_NR) && \
-		$(MAKE) fund   IPC_NODE_NR=$(IPC_PARENT_NR) && \
+		$(MAKE) --no-print-directory subnet wallet fund IPC_NODE_NR=$(IPC_PARENT_NR) && \
 		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key && \
 		export IPC_SUBNET_ID=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id) ; \
 	fi && \

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # Create a new subnet on a node and export its ID.
+# Call it on the node running the parent subnet.
 
 set -e
 

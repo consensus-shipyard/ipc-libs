@@ -14,14 +14,16 @@ nodes:
       name: thorax
     parent_node: 0
     wallet: 0
-    fund_amount: 5
+    funds: 5
+    collateral: 1
 
   - nr: 2
     subnet:
       name: abdomen
     parent_node: 1
     wallet: 0
-    fund_amount: 3
+    funds: 3
+    collateral: 1
 
 agents:
   - nr: 0
