@@ -48,8 +48,7 @@ agent: $(IPC_AGENT_DIR) $(IPC_AGENT_CONFIG)
 
 
 # Start an agent daemon.
-agent/up: agent .make/docker/network .make/docker/images/ipc-agent
-	@cd $(IPC_AGENT_DIR) && docker-compose up -d
+agent/up: agent  $(IPC_AGENT_DIR)/steps/up
 
 
 # Stop an agent daemon and remove its configuration, as if it never existed.
@@ -78,7 +77,7 @@ node: $(IPC_NODE_DIR)
 
 # Start a node.
 node/up: \
-		$(IPC_NODE_DIR) \
+		node \
 		$(IPC_NODE_DIR)/steps/pre-up \
 		$(IPC_NODE_DIR)/steps/up \
 		$(IPC_NODE_DIR)/steps/post-up
@@ -170,6 +169,12 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 	@echo "# DO NOT EDIT! Any changes will be overwritten as subnets are added. Add changes to config.toml.orig instead." > $@
 	cat $(IPC_AGENT_DIR)/config.toml.orig >> $@
 	for subnet in $(IPC_AGENT_SUBNETS); do cat $$subnet >> $@; done
+
+
+# Start the IPC agent docker container.
+$(IPC_AGENT_DIR)/steps/up: .make/docker/network .make/docker/images/ipc-agent
+	cd $(IPC_AGENT_DIR) && docker-compose up -d
+	mkdir -p $(dir $@) && touch $@
 
 
 # Initialize the node directory based on the active node type.
