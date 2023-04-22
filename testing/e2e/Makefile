@@ -1,14 +1,13 @@
 # Functions to help set up the infrastructure needed to run end-to-end tests.
 
-# Parameters that can be set when calling make to act like named arguments.
+# Parameters that can be set when calling make to act like named arguments, or by defining env vars.
 # e.g. `make <target> IPC_AGENT_NR=1`
-IPC_AGENT_NR     := 0
-IPC_WALLET_NR    := 0
-IPC_PARENT_NR    := 0
-IPC_NODE_NR      := 0
-IPC_NODE_TYPE    := eudico
-IPC_SUBNET_ID    := /root
-IPC_SUBNET_NAME  := ""
+IPC_AGENT_NR     ?= 0
+IPC_WALLET_NR    ?= 0
+IPC_PARENT_NR    ?= 0
+IPC_NODE_NR      ?= 0
+IPC_NODE_TYPE    ?= eudico
+IPC_SUBNET_NAME  ?= ""
 
 PROJECT_ROOT     := ../..
 IPC_INFRA_DIR    := $(PROJECT_ROOT)/bin/ipc-infra
@@ -78,8 +77,11 @@ node: $(IPC_NODE_DIR)
 
 
 # Start a node.
-node/up: node .make/docker/network
-	@cd $(IPC_NODE_DIR) && docker-compose up -d
+node/up: \
+		$(IPC_NODE_DIR) \
+		$(IPC_NODE_DIR)/steps/pre-up \
+		$(IPC_NODE_DIR)/steps/up \
+		$(IPC_NODE_DIR)/steps/post-up
 
 
 # Stop a node and remove its configuration, as if it never existed.
@@ -119,12 +121,12 @@ wallet/fund: $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR)
 
 
 # Join the subnet of the active node, on the parent node.
-subnet/join: node/up agent/up $(IPC_AGENT)
+subnet/join: $(IPC_NODE_DIR)/steps/pre-up $(IPC_NODE_DIR)/steps/up agent/up $(IPC_AGENT)
 	./scripts/join-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
 # Fund the subnet of the active node, on the parent node.
-subnet/fund: node/up agent/up $(IPC_AGENT)
+subnet/fund: $(IPC_NODE_DIR)/steps/pre-up $(IPC_NODE_DIR)/steps/up agent/up $(IPC_AGENT)
 	./scripts/fund-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $(IPC_AGENT) $(IPC_AGENT_URL)
 
 
@@ -165,7 +167,7 @@ $(IPC_AGENT_DIR):
 
 # Initialize the agent config.
 $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
-	echo "# DO NOT EDIT! Any changes will be overwritten as subnets are added. Add changes to config.toml.orig instead." > $@
+	@echo "# DO NOT EDIT! Any changes will be overwritten as subnets are added. Add changes to config.toml.orig instead." > $@
 	cat $(IPC_AGENT_DIR)/config.toml.orig >> $@
 	for subnet in $(IPC_AGENT_SUBNETS); do cat $$subnet >> $@; done
 
@@ -175,25 +177,19 @@ $(IPC_AGENT_CONFIG): $(IPC_AGENT_DIR) $(IPC_AGENT_SUBNETS)
 # The agent used must be one connected to the parent node.
 # Assumes that the root node can use some pre-funded wallet.key file in the template genesis directory.
 $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wallet.key
-	@# Get the recursive dependencies out of the way first. If they fail, we don't have to manually delete the node directory.
-	@# If we put the fund commands into the topology script instead of here, they would get executed every time the setup is called, not just when the node is started.
-	@# The reason this is here and not in node/up is because node/up executes any time it's marked as a dependency.
-	if [ "$(IPC_PARENT_NR)" != "$(IPC_NODE_NR)" ]; then \
-		$(MAKE) --no-print-directory subnet wallet wallet/fund IPC_NODE_NR=$(IPC_PARENT_NR) ; \
-	fi
-
 	mkdir -p $@
 	cp template/$(IPC_NODE_TYPE)/compose.yaml $@/
 
 	@# Create .env file with overrides taken from the environment.
+	@# The IPC_SUBNET will have to be evaluated later when pre-up step has been executed.
 	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
 		export IPC_WALLET_KEY=${PWD}/template/$(IPC_NODE_TYPE)/genesis/wallet.key && \
-		export IPC_SUBNET_ID=/root && \
-		export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
+		export IPC_SUBNET="\"echo /root\""; \
 	else \
 		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key && \
-		export IPC_SUBNET_ID=$$(cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id) ; \
+		export IPC_SUBNET="\"cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id\"" ; \
 	fi && \
+	export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT) && \
 	export IPC_NETWORK=$(IPC_NETWORK) && \
 	export IPC_PARENT_NR=$(IPC_PARENT_NR) && \
@@ -220,6 +216,39 @@ $(IPC_NODE_DIR)/wallets/wallet-$(IPC_WALLET_NR): | $(IPC_AGENT_DIR)/subnets/node
 # The agent has to be connected to the node to issue the commands.
 $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME): | $(IPC_AGENT_DIR)/subnets/node-$(IPC_NODE_NR) node/up agent/up
 	./scripts/new-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $@ $(IPC_AGENT) $(IPC_AGENT_URL)
+
+
+# Set up dependencies in the parent node, e.g. create the wallet.
+$(IPC_NODE_DIR)/steps/pre-up: $(IPC_NODE_DIR)
+	bash -c ' \
+	set -a && \
+	source $(IPC_NODE_DIR)/.env && \
+	set +a && \
+	if [ "$${IPC_PARENT_NR}" != "$(IPC_NODE_NR)" ]; then \
+		$(MAKE) --no-print-directory subnet wallet wallet/fund IPC_NODE_NR=$${IPC_PARENT_NR} ; \
+	fi && \
+	echo IPC_SUBNET_ID=$$($${IPC_SUBNET}) >> $(IPC_NODE_DIR)/.env ; \
+	'
+	mkdir -p $(dir $@) && touch $@
+
+
+# Start the node docker containers.
+$(IPC_NODE_DIR)/steps/up: $(IPC_NODE_DIR) .make/docker/network
+	cd $(IPC_NODE_DIR) && docker-compose up -d
+	mkdir -p $(dir $@) && touch $@
+
+
+# Run steps that require the node to be running, e.g. join the subnet with the validator address.
+$(IPC_NODE_DIR)/steps/post-up: $(IPC_NODE_DIR)
+	bash -c ' \
+	set -a && \
+	source $(IPC_NODE_DIR)/.env && \
+	set +a && \
+	if [ "$${IPC_PARENT_NR}" != "$(IPC_NODE_NR)" ]; then \
+		$(MAKE) --no-print-directory subnet/fund subnet/join ; \
+	fi \
+	'
+	mkdir -p $(dir $@) && touch $@
 
 
 # Create the docker network every container connects to.
