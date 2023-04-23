@@ -2529,6 +2529,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-graceful-shutdown",
+ "tokio-stream",
  "tokio-tungstenite",
  "toml 0.7.3",
  "url",

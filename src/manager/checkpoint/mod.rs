@@ -1,6 +1,8 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
+//! Issues:
+//! 1. Checkpoint periods are fetched
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -16,8 +18,17 @@ use tokio::time::sleep;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
 use crate::config::{ReloadableConfig, Subnet};
-use crate::manager::bottomup::manage_bottomup_checkpoints;
-use crate::manager::topdown::manage_topdown_checkpoints;
+use bottomup::manage_bottomup_checkpoints;
+use topdown::manage_topdown_checkpoints;
+
+pub use manager::*;
+pub use subsystem::*;
+
+pub(crate) mod bottomup;
+mod manager;
+mod submit;
+mod subsystem;
+pub(crate) mod topdown;
 
 /// The frequency at which to check a new chain head.
 pub(crate) const CHAIN_HEAD_REQUEST_PERIOD: Duration = Duration::from_secs(10);
