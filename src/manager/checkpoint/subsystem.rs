@@ -65,6 +65,84 @@ impl CheckpointDriver {
     }
 }
 
+fn handle_response(response: anyhow::Result<()>) {
+    if response.is_err() {
+        // TODO: handle different actor error responses
+    }
+}
+
+fn setup_managers_from_config(
+    _subnets: &HashMap<SubnetID, Subnet>,
+) -> Result<Vec<Box<dyn CheckpointManagerWrapper>>> {
+    todo!()
+    // log::debug!("We have {} subnets to manage", subnets_to_manage.len());
+}
+
+async fn break_into_tasks(
+    policies: Vec<Box<dyn CheckpointManagerWrapper>>,
+) -> anyhow::Result<Vec<(Arc<Box<dyn CheckpointManagerWrapper>>, Address)>> {
+    let mut pairs = vec![];
+    for p in policies {
+        let validators = p.setup().await?;
+
+        let p = Arc::new(p);
+        for validator in validators {
+            pairs.push((p.clone(), validator));
+        }
+    }
+
+    Ok(pairs)
+}
+
+async fn process_tasks(
+    tasks: &[(Arc<Box<dyn CheckpointManagerWrapper>>, Address)],
+    config_chan: &mut broadcast::Receiver<()>,
+) -> anyhow::Result<()> {
+    // Loop as the config has not updated, we only need to process the same set of tasks
+    'tasks: loop {
+        // Batch process the stream. If the number of subnets or validators increases, we
+        // can still control the batch size of all tasks processed simultaneously.
+        let mut stream = tokio_stream::iter(tasks)
+            .map(|(policy, validator)| async move {
+                policy.try_submit_next_epoch(validator).await.map_err(|e| {
+                    log::error!("manager: {:} failed with error: {:}", policy.id(), e);
+                    e
+                })
+            })
+            .buffer_unordered(EXECUTION_BATCH_SIZE);
+
+        // Tracks the start time of the processing, will use this to determine should sleep
+        let start_time = Instant::now();
+
+        // A loop that drives stream to the end
+        loop {
+            select! {
+                r = stream.next() => match r {
+                    Some(response) => handle_response(response),
+                    None => sleep_or_continue(start_time).await,
+                },
+                r = config_chan.recv() => {
+                    log::info!("Config changed, reloading checkpointing subsystem");
+                    match r {
+                        // Config updated, return to caller
+                        Ok(_) => { break 'tasks Ok(()) },
+                        Err(_) => {
+                            return Err(anyhow!("Config channel unexpectedly closed, shutting down checkpointing subsystem"))
+                        },
+                    }
+                }
+            }
+        }
+    }
+}
+
+async fn sleep_or_continue(start_time: Instant) {
+    let elapsed = start_time.elapsed().as_secs();
+    if elapsed < TASKS_PROCESS_THRESHOLD_SEC {
+        sleep(Duration::from_secs(TASKS_PROCESS_THRESHOLD_SEC - elapsed)).await
+    }
+}
+
 #[async_trait]
 impl<P: CheckpointManager + Send + Sync> CheckpointManagerWrapper for P {
     /// Attempts to submit checkpoint to the next `submittable` epoch. If the return value is Some(ChainEpoch).
@@ -121,81 +199,4 @@ trait CheckpointManagerWrapper: Send + Sync {
     async fn setup(&self) -> Result<Vec<Address>>;
 
     fn id(&self) -> String;
-}
-
-fn handle_response(response: anyhow::Result<()>) {
-    if response.is_err() {
-        // TODO: handle different actor error responses
-    }
-}
-
-fn setup_managers_from_config(
-    _subnets: &HashMap<SubnetID, Subnet>,
-) -> Result<Vec<Box<dyn CheckpointManagerWrapper>>> {
-    todo!()
-    // log::debug!("We have {} subnets to manage", subnets_to_manage.len());
-}
-
-async fn break_into_tasks(
-    policies: Vec<Box<dyn CheckpointManagerWrapper>>,
-) -> anyhow::Result<Vec<(Arc<Box<dyn CheckpointManagerWrapper>>, Address)>> {
-    let mut pairs = vec![];
-    for p in policies {
-        let validators = p.setup().await?;
-
-        let p = Arc::new(p);
-        for validator in validators {
-            pairs.push((p.clone(), validator));
-        }
-    }
-
-    Ok(pairs)
-}
-
-async fn process_tasks(
-    tasks: &[(Arc<Box<dyn CheckpointManagerWrapper>>, Address)],
-    config_chan: &mut broadcast::Receiver<()>,
-) -> anyhow::Result<()> {
-    // Loop as the config has not updated, we only need to process the same set of tasks
-    'tasks: loop {
-        // Batch process the stream. If the number of subnets or validators increase, we
-        // can still control the batch size of tasks processed simultaneously.
-        let mut stream = tokio_stream::iter(tasks)
-            .map(|(policy, validator)| async move {
-                policy.try_submit_next_epoch(validator).await.map_err(|e| {
-                    log::error!("manager: {:} failed with error: {:}", policy.id(), e);
-                    e
-                })
-            })
-            .buffer_unordered(EXECUTION_BATCH_SIZE);
-
-        // Tracks the start time of the processing, will use this to determine should sleep
-        let start_time = Instant::now();
-
-        // A loop that drives stream to the end
-        loop {
-            select! {
-                r = stream.next() => match r {
-                    Some(response) => handle_response(response),
-                    None => sleep_or_continue(start_time).await,
-                },
-                r = config_chan.recv() => {
-                    log::info!("Config changed, reloading checkpointing subsystem");
-                    match r {
-                        Ok(_) => { break 'tasks Ok(()) },
-                        Err(_) => {
-                            return Err(anyhow!("Config channel unexpectedly closed, shutting down checkpointing subsystem"))
-                        },
-                    }
-                }
-            }
-        }
-    }
-}
-
-async fn sleep_or_continue(start_time: Instant) {
-    let elapsed = start_time.elapsed().as_secs();
-    if elapsed < TASKS_PROCESS_THRESHOLD_SEC {
-        sleep(Duration::from_secs(TASKS_PROCESS_THRESHOLD_SEC - elapsed)).await
-    }
 }
