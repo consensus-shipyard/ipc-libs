@@ -18,7 +18,6 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
 const EXECUTION_BATCH_SIZE: usize = 20;
 const TASKS_PROCESS_THRESHOLD_SEC: u64 = 15;
-static TASKS_SLEEP_DURATION: Duration = Duration::from_secs(TASKS_PROCESS_THRESHOLD_SEC);
 
 pub struct CheckpointSubsystem {
     driver: CheckpointDriver,
@@ -196,7 +195,7 @@ async fn process_tasks(
 
 async fn sleep_or_continue(start_time: Instant) {
     let elapsed = start_time.elapsed().as_secs();
-    if elapsed > TASKS_PROCESS_THRESHOLD_SEC {
-        sleep(TASKS_SLEEP_DURATION).await
+    if elapsed < TASKS_PROCESS_THRESHOLD_SEC {
+        sleep(Duration::from_secs(TASKS_PROCESS_THRESHOLD_SEC - elapsed)).await
     }
 }
