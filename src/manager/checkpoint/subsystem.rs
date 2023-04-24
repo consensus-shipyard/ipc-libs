@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::config::{ReloadableConfig, Subnet};
 use crate::manager::checkpoint::manager::CheckpointManager;
 use crate::manager::checkpoint::submit::SubmissionStrategy;
@@ -8,10 +10,15 @@ use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::select;
+use tokio::sync::broadcast;
+use tokio::time::sleep;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
 const EXECUTION_BATCH_SIZE: usize = 20;
+const TASKS_PROCESS_THRESHOLD_SEC: u64 = 15;
+static TASKS_SLEEP_DURATION: Duration = Duration::from_secs(TASKS_PROCESS_THRESHOLD_SEC);
 
 pub struct CheckpointSubsystem {
     driver: CheckpointDriver,
@@ -51,37 +58,10 @@ impl CheckpointDriver {
             let managers = setup_managers_from_config(&config.subnets)?;
 
             // Each manager might have to handle multiple validators, we group them into
-            // (Manager, Validator) tuple pair, so that we can fire the submission in batches
-            let groups = break_into_groups(managers).await?;
+            // (Manager, Validator) tuple pair task, so that we can fire the submission in batches
+            let tasks = break_into_tasks(managers).await?;
 
-            loop {
-                let mut stream = tokio_stream::iter(&groups)
-                    .map(|(policy, validator)| async move {
-                        policy.try_submit_next_epoch(validator).await.map_err(|e| {
-                            log::error!("manager: {:} failed with error: {:}", policy.id(), e);
-                            e
-                        })
-                    })
-                    .buffer_unordered(EXECUTION_BATCH_SIZE);
-
-                loop {
-                    select! {
-                        r = stream.next() => match r {
-                            Some(response) => handle_response(response),
-                            None => break,
-                        },
-                        r = config_chan.recv() => {
-                            log::info!("Config changed, reloading checkpointing subsystem");
-                            match r {
-                                Ok(_) => { break },
-                                Err(_) => {
-                                    return Err(anyhow!("Config channel unexpectedly closed, shutting down checkpointing subsystem"))
-                                },
-                            }
-                        }
-                    }
-                }
-            }
+            process_tasks(&tasks, &mut config_chan).await?;
         }
     }
 }
@@ -132,7 +112,7 @@ impl<P: CheckpointManager + Send + Sync> CheckpointManagerWrapper for P {
     }
 }
 
-/// A util trait to avoid Box<dyn> and associated type mess in CheckpointPolicy trait
+/// A util trait to avoid Box<dyn> and associated type mess in CheckpointManager trait
 #[async_trait]
 trait CheckpointManagerWrapper: Send + Sync {
     /// Try submit the checkpoint for the validator in the checkpoint policy
@@ -157,7 +137,7 @@ fn setup_managers_from_config(
     // log::debug!("We have {} subnets to manage", subnets_to_manage.len());
 }
 
-async fn break_into_groups(
+async fn break_into_tasks(
     policies: Vec<Box<dyn CheckpointManagerWrapper>>,
 ) -> anyhow::Result<Vec<(Arc<Box<dyn CheckpointManagerWrapper>>, Address)>> {
     let mut pairs = vec![];
@@ -171,4 +151,52 @@ async fn break_into_groups(
     }
 
     Ok(pairs)
+}
+
+async fn process_tasks(
+    tasks: &[(Arc<Box<dyn CheckpointManagerWrapper>>, Address)],
+    config_chan: &mut broadcast::Receiver<()>,
+) -> anyhow::Result<()> {
+    // Loop as the config has not updated, we only need to process the same set of tasks
+    'tasks: loop {
+        // Batch process the stream. If the number of subnets or validators increase, we
+        // can still control the batch size of tasks processed simultaneously.
+        let mut stream = tokio_stream::iter(tasks)
+            .map(|(policy, validator)| async move {
+                policy.try_submit_next_epoch(validator).await.map_err(|e| {
+                    log::error!("manager: {:} failed with error: {:}", policy.id(), e);
+                    e
+                })
+            })
+            .buffer_unordered(EXECUTION_BATCH_SIZE);
+
+        // Tracks the start time of the processing, will use this to determine should sleep
+        let start_time = Instant::now();
+
+        // A loop that drives stream to the end
+        loop {
+            select! {
+                r = stream.next() => match r {
+                    Some(response) => handle_response(response),
+                    None => sleep_or_continue(start_time).await,
+                },
+                r = config_chan.recv() => {
+                    log::info!("Config changed, reloading checkpointing subsystem");
+                    match r {
+                        Ok(_) => { break 'tasks Ok(()) },
+                        Err(_) => {
+                            return Err(anyhow!("Config channel unexpectedly closed, shutting down checkpointing subsystem"))
+                        },
+                    }
+                }
+            }
+        }
+    }
+}
+
+async fn sleep_or_continue(start_time: Instant) {
+    let elapsed = start_time.elapsed().as_secs();
+    if elapsed > TASKS_PROCESS_THRESHOLD_SEC {
+        sleep(TASKS_SLEEP_DURATION).await
+    }
 }

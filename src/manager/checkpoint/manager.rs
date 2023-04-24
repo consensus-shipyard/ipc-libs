@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::manager::checkpoint::submit::SubmissionStrategy;
 use anyhow::Result;
 use async_trait::async_trait;
