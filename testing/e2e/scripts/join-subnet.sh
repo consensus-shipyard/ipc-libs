@@ -35,7 +35,8 @@ sleep 10
 
 echo "[*] Get the validator net address"
 set +e
-VALIDATOR_NET_ADDR=$(docker exec -it $DAEMON_ID eudico mir validator config validator-addr | grep -vE '(/ip6/)' | grep -v "127.0.0.1"  | grep -E '/tcp/1347')
+# The validator address should not contain the identity part, just the /ip4/... onwards.
+VALIDATOR_NET_ADDR=$(docker exec -it $DAEMON_ID eudico mir validator config validator-addr | grep -vE '(/ip6/)' | grep -v "127.0.0.1"  | grep -E '/tcp/1347' | sed 's/^.*@//')
 STATUS=$?
 set -e
 if [ $STATUS != 0 ]; then

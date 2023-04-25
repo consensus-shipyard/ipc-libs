@@ -23,7 +23,7 @@ eudico mir validator config init
 # Find an address where the validator can be reached by others. This is going into some kind of membership file
 # which should be shared with the other validators, which isn't done, there is no shared volume for that.
 # The process seems to have some `--membership=onchain` parameter that might help.
-validator_addr=`eudico mir validator config validator-addr | grep -vE '(/ip6/)' | grep -v "127.0.0.1"  | grep -E '/tcp/1347'`
+validator_addr=`eudico mir validator config validator-addr | grep -vE '(/ip6/)' | grep -v "127.0.0.1"  | grep -E '/tcp/1347' | sed 's/^.*@//'`
 echo "[*] Adding validator with address $validator_addr"
 eudico mir validator config add-validator $validator_addr
 
