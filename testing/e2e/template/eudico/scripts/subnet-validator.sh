@@ -23,7 +23,13 @@ eudico mir validator config init
 # Find an address where the validator can be reached by others. This is going into some kind of membership file
 # which should be shared with the other validators, which isn't done, there is no shared volume for that.
 # The process seems to have some `--membership=onchain` parameter that might help.
-validator_addr=`eudico mir validator config validator-addr | grep -vE '(/ip6/)' | grep -v "127.0.0.1"  | grep -E '/tcp/1347' | sed 's/^.*@//'`
+validator_addr=`eudico mir validator config validator-addr | grep -vE '(/ip6/)' | grep -v "127.0.0.1"  | grep -E '/tcp/1347'`
+
+if [ "$IPC_SUBNET_ID" != "/root" ]; then
+  # On subnets Mir crashes if the address contains the <wallet-id>@ part.
+  validator_addr=$(echo $validator_addr | sed 's/^.*@//')
+fi
+
 echo "[*] Adding validator with address $validator_addr"
 eudico mir validator config add-validator $validator_addr
 
@@ -31,7 +37,7 @@ set -e
 
 echo "[*] Starting validator"
 
-if [[ "$IPC_SUBNET_ID" == "/root" ]]; then
+if [ "$IPC_SUBNET_ID" == "/root" ]; then
   eudico mir validator run --nosync
 else
   # In the infra scripts this is called in mine-subnet.sh
