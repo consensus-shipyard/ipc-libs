@@ -13,16 +13,17 @@ then
     exit 1
 fi
 
-IPC_AGENT_DIR=$1
-IPC_NODE_DIR=$2
-IPC_AGENT=$3
-IPC_AGENT_URL=$4
+AGENT_DIR=$1
+NODE_DIR=$2
+AGENT=$3
+AGENT_URL=$4
 
-source $IPC_NODE_DIR/.env
-source $IPC_AGENT_DIR/.env
+# Rest of the variables from env vars. Before sourcing more .env
+COLLATERAL=${IPC_COLLATERAL:-0}
 
-# Rest of the variables from env vars.
-IPC_COLLATERAL=${IPC_COLLATERAL:-0}
+source $NODE_DIR/.env
+source $AGENT_DIR/.env
+
 
 IPC_WALLET_DIR=$(dirname $IPC_WALLET_KEY)
 ADDR=$(cat $IPC_WALLET_DIR/address)
@@ -52,9 +53,9 @@ run() {
   $@
 }
 
-if [ "$IPC_COLLATERAL" != "0" ]; then
-  echo "[*] Joining $IPC_SUBNET_ID ($IPC_SUBNET_NAME) by wallet-$IPC_WALLET_NR ($ADDR) with $IPC_COLLATERAL token(s) using agent-$IPC_AGENT_NR"
-  run $IPC_AGENT subnet join --ipc-agent-url $IPC_AGENT_URL --subnet $IPC_SUBNET_ID --from $ADDR --collateral $IPC_COLLATERAL --validator-net-addr $VALIDATOR_NET_ADDR
+if [ "$COLLATERAL" != "0" ]; then
+  echo "[*] Joining $IPC_SUBNET_ID ($IPC_SUBNET_NAME) by wallet-$IPC_WALLET_NR ($ADDR) with $COLLATERAL token(s) using agent-$IPC_AGENT_NR"
+  run $AGENT subnet join --ipc-agent-url $AGENT_URL --subnet $IPC_SUBNET_ID --from $ADDR --collateral $COLLATERAL --validator-net-addr $VALIDATOR_NET_ADDR
 else
   echo "[*] Collateral amount is zero; skip joining by $ADDR"
 fi
