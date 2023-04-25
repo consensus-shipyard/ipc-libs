@@ -35,8 +35,8 @@ run() {
   do
     echo $CMD
     $CMD
-    $STATUS=$?
-    if [ $STATUS == 0 ]; then
+    STATUS=$?
+    if [ $STATUS = 0 ]; then
       break;
     fi
     echo "[*] Failed; retrying a bit later"
