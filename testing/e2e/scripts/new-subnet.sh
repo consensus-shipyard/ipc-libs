@@ -17,8 +17,8 @@ IPC_SUBNET_DIR=$3
 IPC_AGENT=$4
 IPC_AGENT_URL=$5
 
-source $IPC_AGENT_DIR/.env
 source $IPC_NODE_DIR/.env
+source $IPC_AGENT_DIR/.env
 
 IPC_SUBNET_NAME=$(basename $IPC_SUBNET_DIR)
 

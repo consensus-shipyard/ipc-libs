@@ -17,8 +17,8 @@ IPC_WALLET_DIR=$3
 IPC_AGENT=$4
 IPC_AGENT_URL=$5
 
-source $IPC_AGENT_DIR/.env
 source $IPC_NODE_DIR/.env
+source $IPC_AGENT_DIR/.env
 
 if [ "${IPC_NODE_TYPE}" == "eudico" ]; then
   DAEMON_ID=ipc-node-${IPC_NODE_NR}-daemon

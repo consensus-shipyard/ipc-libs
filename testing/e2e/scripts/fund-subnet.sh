@@ -16,8 +16,8 @@ IPC_NODE_DIR=$2
 IPC_AGENT=$3
 IPC_AGENT_URL=$4
 
-source $IPC_AGENT_DIR/.env
 source $IPC_NODE_DIR/.env
+source $IPC_AGENT_DIR/.env
 
 # Rest of the variables from env vars.
 IPC_SUBNET_FUNDS=${IPC_SUBNET_FUNDS:-0}
@@ -26,8 +26,27 @@ IPC_WALLET_DIR=$(dirname $IPC_WALLET_KEY)
 ADDR=$(cat $IPC_WALLET_DIR/address)
 
 run() {
-  echo $@
-  $@
+  CMD=$@
+  STATUS=0
+  # This command often fails for the first time for some reason.
+  set +e
+  n=0
+  until [ "$n" -ge 3 ]
+  do
+    echo $CMD
+    $CMD
+    $STATUS=$?
+    if [ $STATUS == 0 ]; then
+      break;
+    fi
+    echo "[*] Failed; retrying a bit later"
+    n=$((n+1))
+    sleep 10
+  done
+  set -e
+  if [ $STATUS != 0 ]; then
+    exit $STATUS;
+  fi
 }
 
 if [ "$IPC_SUBNET_FUNDS" != "0" ]; then

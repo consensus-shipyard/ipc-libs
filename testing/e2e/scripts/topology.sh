@@ -28,9 +28,25 @@ cat $TOPO_JSON | jq -r '
 
 echo "# Create the root node(s)" >> $TOPO_SH
 cat $TOPO_JSON | jq -r '
-  .nodes[]
+  . as $top
+  |
+    [
+      $top.agents[]
+      | . as $agent
+      | .connections[]
+      | {
+          key:   .node | tostring,
+          value: $agent.nr | tostring
+        }
+    ]
+    | from_entries as $node_agent_map
+  | $top.nodes[]
   | select((.parent_node == .nr) or (. | has("parent_node") | not))
-  | "make --no-print-directory node/up IPC_NODE_NR=" + (.nr | tostring) + " IPC_SUBNET_NAME=" + (.subnet.name | tostring)
+  | ("make --no-print-directory node/up"
+        + " IPC_NODE_NR=" + (.nr | tostring)
+        + " IPC_AGENT_NR=" + ($node_agent_map[.nr | tostring])
+        + " IPC_SUBNET_NAME=" + (.subnet.name | tostring)
+    )
 ' >> $TOPO_SH
 
 echo "# Alternate connecting agents and creating subnets and nodes to run them" >> $TOPO_SH
@@ -46,8 +62,9 @@ cat $TOPO_JSON | jq -r '
             node: .node,
             agent: $agent.nr,
             cmd: ("make --no-print-directory connect"
+                    + " IPC_NODE_NR="  + (.node | tostring)
                     + " IPC_AGENT_NR=" + ($agent.nr | tostring)
-                    + " IPC_NODE_NR="  + (.node | tostring))
+                 )
           }
       ] as $connections
     | $connections
@@ -59,9 +76,10 @@ cat $TOPO_JSON | jq -r '
         | {
             sort_key: ((.parent_node | tostring) + "/b"),
             cmd: ("make --no-print-directory node/up"
-                    + " IPC_AGENT_NR="    + ($node_agent_map[.parent_node | tostring])
-                    + " IPC_NODE_NR="     + (.nr | tostring)
-                    + " IPC_PARENT_NR="   + (.parent_node | tostring)
+                    + " IPC_NODE_NR="         + (.nr | tostring)
+                    + " IPC_AGENT_NR="        + ($node_agent_map[.nr | tostring])
+                    + " IPC_PARENT_NODE_NR="  + (.parent_node | tostring)
+                    + " IPC_PARENT_AGENT_NR=" + ($node_agent_map[.parent_node | tostring])
                     + " IPC_WALLET_NR="   + (.wallet | tostring)
                     + " IPC_SUBNET_NAME=" + (.subnet.name)
                     + " IPC_WALLET_FUNDS="          + (.wallet_funds // 0 | tostring)

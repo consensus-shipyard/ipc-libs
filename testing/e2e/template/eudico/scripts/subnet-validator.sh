@@ -30,4 +30,11 @@ eudico mir validator config add-validator $validator_addr
 set -e
 
 echo "[*] Starting validator"
-eudico mir validator run --nosync
+
+if [[ "$IPC_SUBNET_ID" == "/root" ]]; then
+  eudico mir validator run --nosync
+else
+  # In the infra scripts this is called in mine-subnet.sh
+  # It's not clear if there is any problem launching this before the validator has joined the subnet.
+  eudico mir validator run --nosync --membership onchain --ipcagent-url=http://${AGENT_HOSTNAME}:3030/json_rpc
+fi

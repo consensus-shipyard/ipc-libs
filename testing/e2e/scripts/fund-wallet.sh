@@ -17,8 +17,8 @@ IPC_WALLET_DIR=$3
 IPC_AGENT=$4
 IPC_AGENT_URL=$5
 
-source $IPC_AGENT_DIR/.env
 source $IPC_NODE_DIR/.env
+source $IPC_AGENT_DIR/.env
 
 # Rest of the variables from env vars.
 IPC_WALLET_FUNDS=${IPC_WALLET_FUNDS:-0}
@@ -31,7 +31,7 @@ run() {
 }
 
 if [ "$IPC_WALLET_FUNDS" != "0" ]; then
-  echo "[*] Funding wallet-$IPC_WALLET_NR ($ADDR) with $IPC_WALLET_FUNDS token(s) using agent-$IPC_AGENT_NR on $IPC_NODE_TYPE node-$IPC_NODE_NR under $IPC_SUBNET_ID named $IPC_SUBNET_NAME"
+  echo "[*] Funding wallet-$IPC_WALLET_NR ($ADDR) with $IPC_WALLET_FUNDS token(s) using agent-$IPC_AGENT_NR on $IPC_NODE_TYPE node-$IPC_NODE_NR under $IPC_SUBNET_ID ($IPC_SUBNET_NAME)"
   run $IPC_AGENT subnet send-value --ipc-agent-url $IPC_AGENT_URL --subnet $IPC_SUBNET_ID --to $ADDR $IPC_WALLET_FUNDS
 else
   echo "[*] Fund amount is zero; skip funding $ADDR"

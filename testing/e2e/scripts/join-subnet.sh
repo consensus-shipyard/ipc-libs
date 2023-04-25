@@ -18,8 +18,8 @@ IPC_NODE_DIR=$2
 IPC_AGENT=$3
 IPC_AGENT_URL=$4
 
-source $IPC_AGENT_DIR/.env
 source $IPC_NODE_DIR/.env
+source $IPC_AGENT_DIR/.env
 
 # Rest of the variables from env vars.
 IPC_COLLATERAL=${IPC_COLLATERAL:-0}

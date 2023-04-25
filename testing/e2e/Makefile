@@ -2,12 +2,13 @@
 
 # Parameters that can be set when calling make to act like named arguments, or by defining env vars.
 # e.g. `make <target> IPC_AGENT_NR=1`
-IPC_AGENT_NR     ?= 0
-IPC_WALLET_NR    ?= 0
-IPC_PARENT_NR    ?= 0
-IPC_NODE_NR      ?= 0
-IPC_NODE_TYPE    ?= eudico
-IPC_SUBNET_NAME  ?= ""
+IPC_AGENT_NR        ?= 0
+IPC_WALLET_NR       ?= 0
+IPC_NODE_NR         ?= 0
+IPC_NODE_TYPE       ?= eudico
+IPC_PARENT_NODE_NR  ?= 0
+IPC_PARENT_AGENT_NR ?= 0
+IPC_SUBNET_NAME     ?= ""
 
 PROJECT_ROOT     := ../..
 IPC_INFRA_DIR    := $(PROJECT_ROOT)/bin/ipc-infra
@@ -20,7 +21,7 @@ IPC_VERSION      := latest
 # Location of artifacts derived from input parameters.
 IPC_AGENT_DIR    := .ipc/agents/agent-$(IPC_AGENT_NR)
 IPC_AGENT_CONFIG := $(IPC_AGENT_DIR)/config.toml
-IPC_AGENT_SUBNETS:= $(shell find . -type f -wholename "./$(IPC_AGENT_DIR)/subnets/node-*")
+IPC_AGENT_SUBNETS:= $(shell find . -type f -wholename "./$(IPC_AGENT_DIR)/subnets/node-*" | sort)
 IPC_AGENT_URL    := http://127.0.0.1:303$(IPC_AGENT_NR)/json_rpc
 IPC_NODE_DIR     := .ipc/nodes/node-$(IPC_NODE_NR)
 
@@ -188,21 +189,21 @@ $(IPC_NODE_DIR): | .make/$(IPC_NODE_TYPE) template/$(IPC_NODE_TYPE)/genesis/wall
 
 	@# Create .env file with overrides taken from the environment.
 	@# The IPC_SUBNET will have to be evaluated later when pre-up step has been executed.
-	if [ "$(IPC_PARENT_NR)" = "$(IPC_NODE_NR)" ]; then \
+	if [ "$(IPC_PARENT_NODE_NR)" = "$(IPC_NODE_NR)" ]; then \
 		export IPC_WALLET_KEY=${PWD}/template/$(IPC_NODE_TYPE)/genesis/wallet.key && \
 		export IPC_SUBNET="\"echo /root\""; \
 	else \
-		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key && \
-		export IPC_SUBNET="\"cat .ipc/nodes/node-$(IPC_PARENT_NR)/subnets/$(IPC_SUBNET_NAME)/id\"" ; \
+		export IPC_WALLET_KEY=${PWD}/.ipc/nodes/node-$(IPC_PARENT_NODE_NR)/wallets/wallet-$(IPC_WALLET_NR)/wallet.key && \
+		export IPC_SUBNET="\"cat .ipc/nodes/node-$(IPC_PARENT_NODE_NR)/subnets/$(IPC_SUBNET_NAME)/id\"" ; \
 	fi && \
 	export IPC_SUBNET_NAME=$(IPC_SUBNET_NAME) ; \
 	export IPC_PROJECT_ROOT=${PWD}/$(PROJECT_ROOT) && \
 	export IPC_NETWORK=$(IPC_NETWORK) && \
-	export IPC_PARENT_NR=$(IPC_PARENT_NR) && \
+	export IPC_PARENT_NODE_NR=$(IPC_PARENT_NODE_NR) && \
 	export IPC_WALLET_NR=$(IPC_WALLET_NR) && \
+	export IPC_AGENT_NR=$(IPC_AGENT_NR) && \
 	export IPC_NODE_NR=$(IPC_NODE_NR) && \
 	export IPC_NODE_TYPE=$(IPC_NODE_TYPE) && \
-	unset  IPC_AGENT_NR && \
 	./scripts/make-env.sh template/$(IPC_NODE_TYPE)/.env $@/.env IPC_
 
 
@@ -225,13 +226,13 @@ $(IPC_NODE_DIR)/subnets/$(IPC_SUBNET_NAME): | $(IPC_AGENT_DIR)/subnets/node-$(IP
 
 
 # Set up dependencies in the parent node, e.g. create the wallet.
-$(IPC_NODE_DIR)/steps/pre-up: $(IPC_NODE_DIR)
+$(IPC_NODE_DIR)/steps/pre-up: | $(IPC_NODE_DIR)
 	bash -c ' \
 	set -a && \
 	source $(IPC_NODE_DIR)/.env && \
 	set +a && \
-	if [ "$${IPC_PARENT_NR}" != "$(IPC_NODE_NR)" ]; then \
-		$(MAKE) --no-print-directory subnet wallet wallet/fund IPC_NODE_NR=$${IPC_PARENT_NR} ; \
+	if [ "$${IPC_PARENT_NODE_NR}" != "$(IPC_NODE_NR)" ]; then \
+		$(MAKE) --no-print-directory subnet wallet wallet/fund IPC_NODE_NR=$${IPC_PARENT_NODE_NR} IPC_AGENT_NR=$${IPC_PARENT_AGENT_NR} ; \
 	fi && \
 	echo IPC_SUBNET_ID=$$($${IPC_SUBNET}) >> $(IPC_NODE_DIR)/.env ; \
 	'
@@ -239,19 +240,19 @@ $(IPC_NODE_DIR)/steps/pre-up: $(IPC_NODE_DIR)
 
 
 # Start the node docker containers.
-$(IPC_NODE_DIR)/steps/up: $(IPC_NODE_DIR) .make/docker/network
+$(IPC_NODE_DIR)/steps/up: | $(IPC_NODE_DIR) .make/docker/network
 	cd $(IPC_NODE_DIR) && docker-compose up -d
 	mkdir -p $(dir $@) && touch $@
 
 
 # Run steps that require the node to be running, e.g. join the subnet with the validator address.
-$(IPC_NODE_DIR)/steps/post-up: $(IPC_NODE_DIR)
+$(IPC_NODE_DIR)/steps/post-up: | $(IPC_NODE_DIR)
 	bash -c ' \
 	set -a && \
 	source $(IPC_NODE_DIR)/.env && \
 	set +a && \
-	if [ "$${IPC_PARENT_NR}" != "$(IPC_NODE_NR)" ]; then \
-		$(MAKE) --no-print-directory subnet/join subnet/fund ; \
+	if [ "$${IPC_PARENT_NODE_NR}" != "$(IPC_NODE_NR)" ]; then \
+		$(MAKE) --no-print-directory subnet/join subnet/fund IPC_AGENT_NR=$${IPC_PARENT_AGENT_NR} ; \
 	fi \
 	'
 	mkdir -p $(dir $@) && touch $@
