@@ -246,6 +246,7 @@ $(IPC_NODE_DIR)/steps/up: | $(IPC_NODE_DIR) .make/docker/network
 
 
 # Run steps that require the node to be running, e.g. join the subnet with the validator address.
+# We do an extra docker-compose up in case the validator container crashed because it needs to join first.
 $(IPC_NODE_DIR)/steps/post-up: | $(IPC_NODE_DIR)
 	bash -c ' \
 	set -a && \
@@ -253,6 +254,7 @@ $(IPC_NODE_DIR)/steps/post-up: | $(IPC_NODE_DIR)
 	set +a && \
 	if [ "$${IPC_PARENT_NODE_NR}" != "$(IPC_NODE_NR)" ]; then \
 		$(MAKE) --no-print-directory subnet/join subnet/fund IPC_AGENT_NR=$${IPC_PARENT_AGENT_NR} ; \
+		cd $(IPC_NODE_DIR) && docker-compose up -d ; \
 	fi \
 	'
 	mkdir -p $(dir $@) && touch $@
