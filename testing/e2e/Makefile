@@ -125,6 +125,7 @@ subnet/join: $(IPC_NODE_DIR)/steps/pre-up $(IPC_NODE_DIR)/steps/up agent/up $(IP
 
 
 # Fund the subnet of the active node, on the parent node.
+# This seems to require that the subnet is active, so some validators need to join first.
 subnet/fund: $(IPC_NODE_DIR)/steps/pre-up $(IPC_NODE_DIR)/steps/up agent/up $(IPC_AGENT)
 	./scripts/fund-subnet.sh $(IPC_AGENT_DIR) $(IPC_NODE_DIR) $(IPC_AGENT) $(IPC_AGENT_URL)
 
@@ -250,7 +251,7 @@ $(IPC_NODE_DIR)/steps/post-up: $(IPC_NODE_DIR)
 	source $(IPC_NODE_DIR)/.env && \
 	set +a && \
 	if [ "$${IPC_PARENT_NR}" != "$(IPC_NODE_NR)" ]; then \
-		$(MAKE) --no-print-directory subnet/fund subnet/join ; \
+		$(MAKE) --no-print-directory subnet/join subnet/fund ; \
 	fi \
 	'
 	mkdir -p $(dir $@) && touch $@
