@@ -105,20 +105,16 @@ pub async fn manage_bottomup_checkpoints(
                 for account in child.accounts.iter() {
                     if validator_set.contains(account) {
                         // check if the validator already voted
-                        // let has_voted = parent_client
-                        //     .ipc_validator_has_voted_bottomup(&child.id, submission_epoch, account)
-                        //     .await
-                        //     .map_err(|e| {
-                        //         log::error!(
-                        //             "error checking if validator has voted in subnet: {:?}",
-                        //             &child.id
-                        //         );
-                        //         e
-                        //     })?;
-                        // FIXME: There is a nasty bug in the de-serialization of EpochVoteSubmissions in
-                        // the actor due to the fact that we are using Cids and nodes can't be load.
-                        // commenting for now, but needs to be fixed in actors.
-                        let has_voted = false;
+                        let has_voted = parent_client
+                            .ipc_validator_has_voted_bottomup(&child.id, submission_epoch, account)
+                            .await
+                            .map_err(|e| {
+                                log::error!(
+                                    "error checking if validator has voted in subnet: {:?}",
+                                    &child.id
+                                );
+                                e
+                            })?;
                         if !has_voted {
                             // submitting the checkpoint synchronously and waiting to be committed.
                             let r = submit_checkpoint(
