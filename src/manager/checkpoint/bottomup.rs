@@ -261,7 +261,7 @@ async fn submit_checkpoint<T: JsonRpcClient + Send + Sync>(
         &child_subnet.id
     );
     let response = parent_client
-        .ipc_get_prev_checkpoint_for_child(child_subnet.id.clone())
+        .ipc_get_prev_checkpoint_for_child(&child_subnet.id)
         .await
         .map_err(|e| {
             log::error!(

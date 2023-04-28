@@ -307,7 +307,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
-        child_subnet_id: SubnetID,
+        child_subnet_id: &SubnetID,
     ) -> Result<Option<CIDMap>> {
         if child_subnet_id.parent().is_none() {
             return Err(anyhow!("The child_subnet_id must be a valid child subnet"));

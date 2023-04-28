@@ -93,7 +93,7 @@ pub trait LotusClient {
 
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
-        child_subnet_id: SubnetID,
+        child_subnet_id: &SubnetID,
     ) -> Result<Option<CIDMap>>;
 
     /// Returns the checkpoint template at `epoch`.

@@ -3,7 +3,6 @@
 use crate::manager::checkpoint::CheckpointManager;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_gateway::TopDownCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 
 pub struct TopDownCheckpointManager;
@@ -11,17 +10,15 @@ use async_trait::async_trait;
 
 #[async_trait]
 impl CheckpointManager for TopDownCheckpointManager {
-    type Checkpoint = TopDownCheckpoint;
-
     async fn obtain_validators(&self) -> anyhow::Result<Vec<Address>> {
         todo!()
     }
 
-    fn parent_subnet(&self) -> &SubnetID {
+    fn parent_subnet_id(&self) -> &SubnetID {
         todo!()
     }
 
-    fn child_subnet(&self) -> &SubnetID {
+    fn child_subnet_id(&self) -> &SubnetID {
         todo!()
     }
 
@@ -34,7 +31,7 @@ impl CheckpointManager for TopDownCheckpointManager {
         _epoch: ChainEpoch,
         _previous_epoch: ChainEpoch,
         _validator: &Address,
-    ) -> anyhow::Result<Self::Checkpoint> {
+    ) -> anyhow::Result<()> {
         todo!()
     }
 

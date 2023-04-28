@@ -98,7 +98,7 @@ async fn setup_managers_from_config(
                 LotusJsonRPCClient::from_subnet(parent),
                 parent.id.clone(),
                 LotusJsonRPCClient::from_subnet(s),
-                s.id.clone(),
+                s.clone(),
             )
             .await?,
         );
