@@ -34,6 +34,8 @@ use crate::lotus::message::CIDMap;
 use crate::lotus::{LotusClient, NetworkVersion};
 use crate::manager::SubnetInfo;
 
+pub type DefaultLotusJsonRPCClient = LotusJsonRPCClient<JsonRpcClientImpl>;
+
 // RPC methods
 mod methods {
     pub const MPOOL_PUSH_MESSAGE: &str = "Filecoin.MpoolPushMessage";
@@ -59,6 +61,7 @@ mod methods {
     pub const IPC_LIST_BOTTOMUP_CHECKPOINTS: &str = "Filecoin.IPCListCheckpointsSerialized";
     pub const IPC_GET_TOPDOWN_MESSAGES: &str = "Filecoin.IPCGetTopDownMsgsSerialized";
     pub const IPC_GENESIS_EPOCH_FOR_SUBNET: &str = "Filecoin.IPCGetGenesisEpochForSubnet";
+    pub const IPC_HAS_VOTED_BOTTOM_UP_CHECKPOINT: &str = "Filecoin.IPCHasVotedBottomUpCheckpoint";
 }
 
 /// The default state wait confidence value
@@ -282,6 +285,10 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
+    async fn current_epoch(&self) -> Result<ChainEpoch> {
+        Ok(self.chain_head().await?.height as ChainEpoch)
+    }
+
     async fn get_tipset_by_height(
         &self,
         epoch: ChainEpoch,
@@ -488,6 +495,24 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .collect::<Result<_>>()?;
 
         Ok(checkpoints)
+    }
+
+    /// Checks if the validator has submitted the
+    async fn ipc_has_voted_bu_in_epoch(
+        &self,
+        validator: &Address,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<bool> {
+        let params = json!([subnet_id.to_json(), epoch, validator.to_string()]);
+        log::debug!("sending {params:?}");
+
+        let r = self
+            .client
+            .request::<bool>(methods::IPC_HAS_VOTED_BOTTOM_UP_CHECKPOINT, params)
+            .await?;
+
+        Ok(r)
     }
 }
 

@@ -81,6 +81,9 @@ pub trait LotusClient {
     /// See: https://lotus.filecoin.io/reference/lotus/chain/#chainhead
     async fn chain_head(&self) -> Result<ChainHeadResponse>;
 
+    /// Returns the latest epoch of the chain
+    async fn current_epoch(&self) -> Result<ChainEpoch>;
+
     /// GetTipsetByHeight from the underlying chain
     async fn get_tipset_by_height(
         &self,
@@ -158,4 +161,12 @@ pub trait LotusClient {
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>>;
+
+    /// Checks if the validator has submitted the bottom up checkpoint in epoch
+    async fn ipc_has_voted_bu_in_epoch(
+        &self,
+        validator: &Address,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<bool>;
 }

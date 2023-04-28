@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::manager::checkpoint::CheckpointManager;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
@@ -11,6 +13,10 @@ use async_trait::async_trait;
 impl CheckpointManager for TopDownCheckpointManager {
     type Checkpoint = TopDownCheckpoint;
 
+    async fn obtain_validators(&self) -> anyhow::Result<Vec<Address>> {
+        todo!()
+    }
+
     fn parent_subnet(&self) -> &SubnetID {
         todo!()
     }
@@ -20,14 +26,6 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 
     fn checkpoint_period(&self) -> ChainEpoch {
-        todo!()
-    }
-
-    async fn sync_checkpoint_period(&self) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    async fn obtain_validators(&self) -> anyhow::Result<Vec<Address>> {
         todo!()
     }
 

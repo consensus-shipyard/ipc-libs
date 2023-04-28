@@ -1,6 +1,7 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::config::{ReloadableConfig, Subnet};
+use crate::lotus::client::LotusJsonRPCClient;
 use crate::manager::checkpoint::manager::bottomup::BottomUpCheckpointManager;
 use crate::manager::checkpoint::manager::topdown::TopDownCheckpointManager;
 use crate::manager::checkpoint::manager::CheckpointManager;
@@ -32,7 +33,7 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
             // Load the latest config.
             let config = self.config.get_config();
             let (top_down_managers, bottom_up_managers) =
-                setup_managers_from_config(&config.subnets)?;
+                setup_managers_from_config(&config.subnets).await?;
 
             loop {
                 select! {
@@ -66,14 +67,55 @@ fn handle_response(response: anyhow::Result<()>) {
     }
 }
 
-fn setup_managers_from_config(
-    _subnets: &HashMap<SubnetID, Subnet>,
+async fn setup_managers_from_config(
+    subnets: &HashMap<SubnetID, Subnet>,
 ) -> Result<(
     Vec<TopDownCheckpointManager>,
     Vec<BottomUpCheckpointManager>,
 )> {
-    todo!()
-    // log::debug!("We have {} subnets to manage", subnets_to_manage.len());
+    let mut bottom_up_managers = vec![];
+    let top_down_managers = vec![];
+
+    for s in subnets.values() {
+        log::info!("config checkpoint manager for subnet: {:}", s.id);
+
+        // We filter for subnets that have at least one account and for which the parent subnet
+        // is also in the configuration.
+        if s.accounts.is_empty() {
+            log::info!("no accounts in subnet: {:}, not managing checkpoints", s.id);
+            continue;
+        }
+
+        let parent = if let Some(p) = s.id.parent() && subnets.contains_key(&p) {
+            subnets.get(&p).unwrap()
+        } else {
+            log::info!("subnet has no parent configured: {:}, not managing checkpoints", s.id);
+            continue
+        };
+
+        bottom_up_managers.push(
+            BottomUpCheckpointManager::new(
+                LotusJsonRPCClient::from_subnet(parent),
+                parent.id.clone(),
+                LotusJsonRPCClient::from_subnet(s),
+                s.id.clone(),
+            )
+            .await?,
+        );
+
+        // TODO: to update top down in another PR
+    }
+
+    log::info!(
+        "we are managing checkpoints for {:} number of bottom up subnets",
+        bottom_up_managers.len()
+    );
+    log::info!(
+        "we are managing checkpoints for {:} number of top down subnets",
+        top_down_managers.len()
+    );
+
+    Ok((top_down_managers, bottom_up_managers))
 }
 
 async fn process_managers<T: CheckpointManager>(managers: &[T]) -> anyhow::Result<()> {
