@@ -81,7 +81,7 @@ pub trait LotusClient {
     /// See: https://lotus.filecoin.io/reference/lotus/chain/#chainhead
     async fn chain_head(&self) -> Result<ChainHeadResponse>;
 
-    /// Returns the latest epoch of the chain
+    /// Returns the heaviest epoch for the chain
     async fn current_epoch(&self) -> Result<ChainEpoch>;
 
     /// GetTipsetByHeight from the underlying chain
