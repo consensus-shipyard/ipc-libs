@@ -56,7 +56,5 @@ pub trait CheckpointManager: Display {
 
     /// Performs checks to see if the subnet is ready for checkpoint submission. If `true` means the
     /// subnet is ready for submission, else means the subnet is not ready.
-    async fn presubmission_check(&self) -> anyhow::Result<bool> {
-        Ok(true)
-    }
+    async fn presubmission_check(&self) -> anyhow::Result<bool>;
 }

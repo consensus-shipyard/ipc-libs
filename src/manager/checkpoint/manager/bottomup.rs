@@ -216,6 +216,10 @@ impl CheckpointManager for BottomUpCheckpointManager {
             .ipc_has_voted_bu_in_epoch(validator, &self.child_subnet.id, epoch)
             .await
     }
+
+    async fn presubmission_check(&self) -> anyhow::Result<bool> {
+        Ok(true)
+    }
 }
 
 impl Display for BottomUpCheckpointManager {

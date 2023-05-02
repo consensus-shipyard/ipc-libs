@@ -61,4 +61,8 @@ impl CheckpointManager for TopDownCheckpointManager {
     ) -> anyhow::Result<bool> {
         todo!()
     }
+
+    async fn presubmission_check(&self) -> anyhow::Result<bool> {
+        Ok(true)
+    }
 }
