@@ -160,7 +160,7 @@ async fn sleep_or_continue(start_time: Instant) {
 async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<()> {
     if !manager.presubmission_check().await? {
         log::info!("subnet in manager: {manager:} not ready to submit checkpoint");
-        return Ok(())
+        return Ok(());
     }
 
     // we might have to obtain the list of validators as some validators might leave the subnet
@@ -184,7 +184,10 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
         for validator in &validators {
             log::debug!("submit checkpoint for validator: {validator:?} in manager: {manager:}");
 
-            if manager.should_submit_in_epoch(validator, next_epoch).await? {
+            if manager
+                .should_submit_in_epoch(validator, next_epoch)
+                .await?
+            {
                 log::debug!(
                     "next submission epoch {next_epoch:?} already voted for validator: {validator:?} in manager: {manager:}"
                 );

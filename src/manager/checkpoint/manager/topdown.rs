@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::sync::atomic::{AtomicI64, Ordering};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::manager::checkpoint::CheckpointManager;
@@ -8,6 +9,7 @@ use ipc_sdk::subnet_id::SubnetID;
 
 use crate::config::Subnet;
 use crate::lotus::client::DefaultLotusJsonRPCClient;
+use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
 use crate::lotus::LotusClient;
 use async_trait::async_trait;
 use cid::Cid;
@@ -19,6 +21,9 @@ pub struct TopDownCheckpointManager {
     child_client: DefaultLotusJsonRPCClient,
 
     checkpoint_period: ChainEpoch,
+
+    // some cache states
+    current_epoch: AtomicI64,
 }
 
 impl TopDownCheckpointManager {
@@ -35,6 +40,7 @@ impl TopDownCheckpointManager {
             child_subnet,
             child_client,
             checkpoint_period,
+            current_epoch: Default::default(),
         })
     }
 }
@@ -46,6 +52,18 @@ impl Display for TopDownCheckpointManager {
             "top-down, parent: {:}, child: {:}",
             self.parent, self.child_subnet.id
         )
+    }
+}
+
+impl TopDownCheckpointManager {
+    async fn sync_subnet_gateway_state(&self) -> anyhow::Result<IPCReadGatewayStateResponse> {
+        let child_head = self.child_client.chain_head().await?;
+        let cid_map = child_head.cids.first().unwrap().clone();
+        let child_tip_set = Cid::try_from(cid_map)?;
+
+        self.child_client
+            .ipc_read_gateway_state(child_tip_set)
+            .await
     }
 }
 
@@ -70,22 +88,15 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
-        let child_head = self.child_client.chain_head().await?;
-        let cid_map = child_head.cids.first().unwrap().clone();
-        let child_tip_set = Cid::try_from(cid_map)?;
-
-        let child_gw_state = self
-            .child_client
-            .ipc_read_gateway_state(child_tip_set)
-            .await?;
-
+        let child_gw_state = self.sync_subnet_gateway_state().await?;
         Ok(child_gw_state
             .top_down_checkpoint_voting
             .last_voting_executed)
     }
 
     async fn current_epoch(&self) -> anyhow::Result<ChainEpoch> {
-        todo!()
+        let parent_head = self.parent_client.chain_head().await?;
+        Ok(ChainEpoch::try_from(parent_head.height)?)
     }
 
     async fn submit_checkpoint(
@@ -103,6 +114,11 @@ impl CheckpointManager for TopDownCheckpointManager {
         _epoch: ChainEpoch,
     ) -> anyhow::Result<bool> {
         todo!()
+    }
+
+    async fn presubmission_check(&self) -> anyhow::Result<bool> {
+        let state = self.sync_subnet_gateway_state().await?;
+        Ok(state.initialized)
     }
 }
 
