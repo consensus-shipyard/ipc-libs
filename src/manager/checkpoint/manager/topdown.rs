@@ -5,10 +5,38 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_sdk::subnet_id::SubnetID;
 
-pub struct TopDownCheckpointManager;
 use crate::config::Subnet;
 use crate::lotus::client::DefaultLotusJsonRPCClient;
+use crate::lotus::LotusClient;
 use async_trait::async_trait;
+use cid::Cid;
+
+pub struct TopDownCheckpointManager {
+    parent: SubnetID,
+    parent_client: DefaultLotusJsonRPCClient,
+    child_subnet: Subnet,
+    child_client: DefaultLotusJsonRPCClient,
+
+    checkpoint_period: ChainEpoch,
+}
+
+impl TopDownCheckpointManager {
+    pub async fn new(
+        parent_client: DefaultLotusJsonRPCClient,
+        parent: SubnetID,
+        child_client: DefaultLotusJsonRPCClient,
+        child_subnet: Subnet,
+    ) -> anyhow::Result<Self> {
+        let checkpoint_period = obtain_checkpoint_period(&child_subnet.id, &child_client).await?;
+        Ok(Self {
+            parent,
+            parent_client,
+            child_subnet,
+            child_client,
+            checkpoint_period,
+        })
+    }
+}
 
 #[async_trait]
 impl CheckpointManager for TopDownCheckpointManager {
@@ -50,4 +78,22 @@ impl CheckpointManager for TopDownCheckpointManager {
     ) -> anyhow::Result<Option<ChainEpoch>> {
         todo!()
     }
+}
+
+async fn obtain_checkpoint_period(
+    subnet_id: &SubnetID,
+    child_client: &DefaultLotusJsonRPCClient,
+) -> anyhow::Result<ChainEpoch> {
+    log::debug!("Getting the top down checkpoint period for subnet: {subnet_id:?}");
+
+    // Read the child's chain head and obtain the tip set CID.
+    log::debug!("Getting child tipset and starting top-down checkpointing manager");
+    let child_head = child_client.chain_head().await?;
+    let cid_map = child_head.cids.first().unwrap().clone();
+    let child_tip_set = Cid::try_from(cid_map)?;
+
+    // Read the child's chain head and obtain the topdown checkpoint period
+    // and genesis epoch.
+    let state = child_client.ipc_read_gateway_state(child_tip_set).await?;
+    Ok(state.top_down_check_period)
 }

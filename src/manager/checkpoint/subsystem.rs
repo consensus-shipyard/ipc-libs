@@ -76,7 +76,7 @@ async fn setup_managers_from_config(
     Vec<BottomUpCheckpointManager>,
 )> {
     let mut bottom_up_managers = vec![];
-    let top_down_managers = vec![];
+    let mut top_down_managers = vec![];
 
     for s in subnets.values() {
         log::info!("config checkpoint manager for subnet: {:}", s.id);
@@ -105,7 +105,15 @@ async fn setup_managers_from_config(
             .await?,
         );
 
-        // TODO: to update top down in another PR
+        top_down_managers.push(
+            TopDownCheckpointManager::new(
+                LotusJsonRPCClient::from_subnet(parent),
+                parent.id.clone(),
+                LotusJsonRPCClient::from_subnet(s),
+                s.clone(),
+            )
+            .await?,
+        );
     }
 
     log::info!(
