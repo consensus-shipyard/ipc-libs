@@ -161,12 +161,4 @@ pub trait LotusClient {
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>>;
-
-    /// Checks if the validator has submitted the bottom up checkpoint in epoch
-    async fn ipc_has_voted_bu_in_epoch(
-        &self,
-        validator: &Address,
-        subnet_id: &SubnetID,
-        epoch: ChainEpoch,
-    ) -> Result<bool>;
 }
