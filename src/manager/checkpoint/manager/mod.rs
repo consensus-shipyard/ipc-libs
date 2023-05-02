@@ -11,12 +11,13 @@ use async_trait::async_trait;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_sdk::subnet_id::SubnetID;
+use std::fmt::Display;
 
 /// Checkpoint manager that handles a specific parent - child - checkpoint type tuple.
 /// For example, we might have `/root` subnet and `/root/t01` as child, one implementation of manager
 /// is handling the top-down checkpoint submission for `/root` to `/root/t01`.
 #[async_trait]
-pub trait CheckpointManager {
+pub trait CheckpointManager: Display {
     type LotusClient: LotusClient;
 
     /// The client of the parent
@@ -34,6 +35,9 @@ pub trait CheckpointManager {
     /// Obtain the last executed epoch of the checkpoint submission
     async fn last_executed_epoch(&self) -> Result<ChainEpoch>;
 
+    /// The current epoch in the subnet that the checkpoints should be submitted to
+    async fn current_epoch(&self) -> Result<ChainEpoch>;
+
     /// Submit the checkpoint based on the current epoch to submit and the previous epoch that was
     /// already submitted.
     async fn submit_checkpoint(
@@ -43,11 +47,10 @@ pub trait CheckpointManager {
         validator: &Address,
     ) -> Result<()>;
 
-    /// Derive the next epoch to submit checkpoint for the validator in the defined
-    /// parent-child subnet pair.
-    async fn next_submission_epoch(
+    /// Checks if the validator has already submitted in the epoch
+    async fn has_submitted_epoch(
         &self,
         validator: &Address,
-        last_executed_epoch: ChainEpoch,
-    ) -> anyhow::Result<Option<ChainEpoch>>;
+        epoch: ChainEpoch,
+    ) -> anyhow::Result<bool>;
 }
