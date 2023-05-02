@@ -213,7 +213,7 @@ impl CheckpointManager for BottomUpCheckpointManager {
         );
 
         self.parent_client
-            .ipc_has_voted_bu_in_epoch(validator, &self.child_subnet.id, epoch)
+            .ipc_validator_has_voted_bottomup(&self.child_subnet.id, epoch, validator)
             .await
     }
 
