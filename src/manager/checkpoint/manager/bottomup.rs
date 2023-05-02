@@ -202,7 +202,7 @@ impl CheckpointManager for BottomUpCheckpointManager {
         Ok(())
     }
 
-    async fn has_submitted_epoch(
+    async fn should_submit_in_epoch(
         &self,
         validator: &Address,
         epoch: ChainEpoch,
