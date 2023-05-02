@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::manager::checkpoint::CheckpointManager;
@@ -38,6 +39,12 @@ impl TopDownCheckpointManager {
     }
 }
 
+impl Display for TopDownCheckpointManager {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
 #[async_trait]
 impl CheckpointManager for TopDownCheckpointManager {
     type LotusClient = DefaultLotusJsonRPCClient;
@@ -62,6 +69,10 @@ impl CheckpointManager for TopDownCheckpointManager {
         todo!()
     }
 
+    async fn current_epoch(&self) -> anyhow::Result<ChainEpoch> {
+        todo!()
+    }
+
     async fn submit_checkpoint(
         &self,
         _epoch: ChainEpoch,
@@ -71,11 +82,11 @@ impl CheckpointManager for TopDownCheckpointManager {
         todo!()
     }
 
-    async fn next_submission_epoch(
+    async fn has_submitted_epoch(
         &self,
         _validator: &Address,
-        _last_executed_epoch: ChainEpoch,
-    ) -> anyhow::Result<Option<ChainEpoch>> {
+        _epoch: ChainEpoch,
+    ) -> anyhow::Result<bool> {
         todo!()
     }
 }

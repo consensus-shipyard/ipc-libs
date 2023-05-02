@@ -9,6 +9,7 @@ use crate::manager::checkpoint::manager::CheckpointManager;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
+use futures_util::future::join_all;
 use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
@@ -132,11 +133,15 @@ async fn process_managers<T: CheckpointManager>(managers: &[T]) -> anyhow::Resul
     // Tracks the start time of the processing, will use this to determine should sleep
     let start_time = Instant::now();
 
-    // A loop that drives stream to the end
-    for manager in managers {
-        let response = submit_next_epoch(manager).await;
-        handle_err_response(response);
-    }
+    let futures = managers
+        .iter()
+        .map(|manager| async {
+            let response = submit_till_current_epoch(manager).await;
+            handle_err_response(response);
+        })
+        .collect::<Vec<_>>();
+
+    join_all(futures).await;
 
     sleep_or_continue(start_time).await;
 
@@ -150,33 +155,53 @@ async fn sleep_or_continue(start_time: Instant) {
     }
 }
 
-/// Attempts to submit checkpoint to the next `submittable` epoch. If the return value is Some(ChainEpoch).
-/// it means the checkpoint is submitted to the target epoch. If returns None, it means there are no
-/// epoch to be submitted.
-async fn submit_next_epoch(manager: &impl CheckpointManager) -> Result<()> {
+/// Attempts to submit checkpoints from the last executed epoch all the way to the current epoch for
+/// all the validators in the provided manager.
+async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<()> {
     // we might have to obtain the list of validators as some validators might leave the subnet
     // we can improve the performance by caching if this slows down the process significantly.
     let validators = obtain_validators(manager).await?;
-    let last_executed_epoch = manager.last_executed_epoch().await?;
     let period = manager.checkpoint_period();
 
-    for validator in validators {
-        log::debug!("submit checkpoint for validator: {validator:?}");
+    let last_executed_epoch = manager.last_executed_epoch().await?;
+    let current_epoch = manager.current_epoch().await?;
 
-        while let Some(next_epoch) = manager
-            .next_submission_epoch(&validator, last_executed_epoch)
-            .await?
-        {
-            log::info!("next epoch to execute {next_epoch:} for validator {validator:}");
+    log::debug!(
+        "latest epoch {:?}, last executed epoch: {:?} for checkpointing: {:}",
+        current_epoch,
+        last_executed_epoch,
+        manager,
+    );
 
-            let previous_epoch = next_epoch - period;
+    let mut next_epoch = last_executed_epoch + period;
+    while next_epoch < current_epoch {
+        // now we process each validator
+        for validator in &validators {
+            log::debug!("submit checkpoint for validator: {validator:?} in manager: {manager:}");
+
+            if manager.has_submitted_epoch(validator, next_epoch).await? {
+                log::debug!(
+                    "next submission epoch {next_epoch:?} already voted for validator: {validator:?} in manager: {manager:}"
+                );
+                continue;
+            }
+
+            log::debug!(
+                "next submission epoch {next_epoch:} not voted for validator: {validator:} in manager: {manager:}, should vote"
+            );
+
             manager
-                .submit_checkpoint(next_epoch, previous_epoch, &validator)
+                .submit_checkpoint(next_epoch, next_epoch - period, validator)
                 .await?;
 
-            log::info!("checkpoint at epoch {next_epoch:} submitted for validator {validator:}");
+            log::info!("checkpoint at epoch {next_epoch:} submitted for validator {validator:} in manager: {manager:}");
         }
+
+        // increment next epoch
+        next_epoch += period;
     }
+
+    log::info!("process checkpoint from epoch: {last_executed_epoch:} to {current_epoch:} in manager: {manager:}");
 
     Ok(())
 }

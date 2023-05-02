@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::config::Subnet;
@@ -100,6 +101,10 @@ impl CheckpointManager for BottomUpCheckpointManager {
             .last_voting_executed)
     }
 
+    async fn current_epoch(&self) -> anyhow::Result<ChainEpoch> {
+        self.child_client.current_epoch().await
+    }
+
     async fn submit_checkpoint(
         &self,
         epoch: ChainEpoch,
@@ -197,43 +202,29 @@ impl CheckpointManager for BottomUpCheckpointManager {
         Ok(())
     }
 
-    async fn next_submission_epoch(
+    async fn has_submitted_epoch(
         &self,
         validator: &Address,
-        last_executed_epoch: ChainEpoch,
-    ) -> anyhow::Result<Option<ChainEpoch>> {
+        epoch: ChainEpoch,
+    ) -> anyhow::Result<bool> {
         log::debug!(
             "attempt to obtain the next submission epoch in bottom up checkpoint for subnet: {:?}",
             self.child_subnet.id
         );
 
-        let current_epoch = self.child_client.current_epoch().await?;
+        self.parent_client
+            .ipc_has_voted_bu_in_epoch(validator, &self.child_subnet.id, epoch)
+            .await
+    }
+}
 
-        log::debug!(
-            "latest epoch {:?}, last executed epoch: {:?} for bottom up checkpointing in subnet: {:?}",
-            current_epoch,
-            last_executed_epoch,
-            self.child_subnet.id,
-        );
-
-        let next_submission_epoch = last_executed_epoch + self.checkpoint_period;
-        if current_epoch < next_submission_epoch {
-            log::info!("latest epoch {current_epoch:} lagging next submission epoch {next_submission_epoch:}");
-            return Ok(None);
-        }
-
-        if self
-            .parent_client
-            .ipc_has_voted_bu_in_epoch(validator, &self.child_subnet.id, next_submission_epoch)
-            .await?
-        {
-            log::info!("next submission epoch {next_submission_epoch:} already executed");
-            return Ok(None);
-        }
-
-        log::debug!("next submission epoch {next_submission_epoch:}");
-
-        Ok(Some(next_submission_epoch))
+impl Display for BottomUpCheckpointManager {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "bottom-up, parent: {:}, child: {:}",
+            self.parent, self.child_subnet.id
+        )
     }
 }
 
