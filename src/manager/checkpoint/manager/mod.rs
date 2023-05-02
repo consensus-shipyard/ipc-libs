@@ -4,6 +4,8 @@
 pub mod bottomup;
 pub mod topdown;
 
+use crate::config::Subnet;
+use crate::lotus::LotusClient;
 use anyhow::Result;
 use async_trait::async_trait;
 use fvm_shared::address::Address;
@@ -15,13 +17,16 @@ use ipc_sdk::subnet_id::SubnetID;
 /// is handling the top-down checkpoint submission for `/root` to `/root/t01`.
 #[async_trait]
 pub trait CheckpointManager {
-    async fn obtain_validators(&self) -> Result<Vec<Address>>;
+    type LotusClient: LotusClient;
+
+    /// The client of the parent
+    fn parent_client(&self) -> &Self::LotusClient;
 
     /// Getter for the parent subnet this checkpoint manager is handling
     fn parent_subnet_id(&self) -> &SubnetID;
 
     /// Getter for the target subnet this checkpoint manager is handling
-    fn child_subnet_id(&self) -> &SubnetID;
+    fn child_subnet(&self) -> &Subnet;
 
     /// The checkpoint period that the current manager is submitting upon
     fn checkpoint_period(&self) -> ChainEpoch;

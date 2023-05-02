@@ -2,13 +2,17 @@
 // SPDX-License-Identifier: MIT
 use crate::config::{ReloadableConfig, Subnet};
 use crate::lotus::client::LotusJsonRPCClient;
+use crate::lotus::LotusClient;
 use crate::manager::checkpoint::manager::bottomup::BottomUpCheckpointManager;
 use crate::manager::checkpoint::manager::topdown::TopDownCheckpointManager;
 use crate::manager::checkpoint::manager::CheckpointManager;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use cid::Cid;
+use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::select;
@@ -37,8 +41,6 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
 
             loop {
                 select! {
-                    // TODO: somehow adding the below lines causes: higher-ranked lifetime error
-                    // TODO: comment off for now first.
                     _ = process_managers(&top_down_managers) => {},
                     _ = process_managers(&bottom_up_managers) => {},
                     r = config_chan.recv() => {
@@ -144,7 +146,7 @@ async fn sleep_or_continue(start_time: Instant) {
 /// it means the checkpoint is submitted to the target epoch. If returns None, it means there are no
 /// epoch to be submitted.
 async fn submit_next_epoch(manager: &impl CheckpointManager) -> Result<()> {
-    let validators = manager.obtain_validators().await?;
+    let validators = obtain_validators(manager).await?;
     let period = manager.checkpoint_period();
 
     for validator in validators {
@@ -163,4 +165,37 @@ async fn submit_next_epoch(manager: &impl CheckpointManager) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Obtain the validators in the subnet from the parent subnet of the manager
+async fn obtain_validators(manager: &impl CheckpointManager) -> anyhow::Result<Vec<Address>> {
+    let parent_client = manager.parent_client();
+    let parent_head = parent_client.chain_head().await?;
+
+    // A key assumption we make now is that each block has exactly one tip set. We panic
+    // if this is not the case as it violates our assumption.
+    // TODO: update this logic once the assumption changes (i.e., mainnet)
+    assert_eq!(parent_head.cids.len(), 1);
+
+    let cid_map = parent_head.cids.first().unwrap().clone();
+    let parent_tip_set = Cid::try_from(cid_map)?;
+    let child_subnet = manager.child_subnet();
+
+    let subnet_actor_state = parent_client
+        .ipc_read_subnet_actor_state(&child_subnet.id, parent_tip_set)
+        .await?;
+
+    match subnet_actor_state.validator_set.validators {
+        None => Ok(vec![]),
+        Some(validators) => {
+            let mut vs = vec![];
+            for v in validators {
+                let addr = Address::from_str(&v.addr)?;
+                if child_subnet.accounts.contains(&addr) {
+                    vs.push(addr);
+                }
+            }
+            Ok(vs)
+        }
+    }
 }

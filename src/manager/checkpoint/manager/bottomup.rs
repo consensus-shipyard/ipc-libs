@@ -15,7 +15,6 @@ use fvm_shared::MethodNum;
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
-use std::str::FromStr;
 
 pub struct BottomUpCheckpointManager {
     parent: SubnetID,
@@ -83,43 +82,18 @@ impl BottomUpCheckpointManager {
 
 #[async_trait]
 impl CheckpointManager for BottomUpCheckpointManager {
-    async fn obtain_validators(&self) -> anyhow::Result<Vec<Address>> {
-        let parent_head = self.parent_client.chain_head().await?;
+    type LotusClient = DefaultLotusJsonRPCClient;
 
-        // A key assumption we make now is that each block has exactly one tip set. We panic
-        // if this is not the case as it violates our assumption.
-        // TODO: update this logic once the assumption changes (i.e., mainnet)
-        assert_eq!(parent_head.cids.len(), 1);
-
-        let cid_map = parent_head.cids.first().unwrap().clone();
-        let parent_tip_set = Cid::try_from(cid_map)?;
-
-        let subnet_actor_state = self
-            .parent_client
-            .ipc_read_subnet_actor_state(&self.child_subnet.id, parent_tip_set)
-            .await?;
-
-        match subnet_actor_state.validator_set.validators {
-            None => Ok(vec![]),
-            Some(validators) => {
-                let mut vs = vec![];
-                for v in validators {
-                    let addr = Address::from_str(&v.addr)?;
-                    if self.child_subnet.accounts.contains(&addr) {
-                        vs.push(addr);
-                    }
-                }
-                Ok(vs)
-            }
-        }
+    fn parent_client(&self) -> &Self::LotusClient {
+        &self.parent_client
     }
 
     fn parent_subnet_id(&self) -> &SubnetID {
         &self.parent
     }
 
-    fn child_subnet_id(&self) -> &SubnetID {
-        &self.child_subnet.id
+    fn child_subnet(&self) -> &Subnet {
+        &self.child_subnet
     }
 
     fn checkpoint_period(&self) -> ChainEpoch {

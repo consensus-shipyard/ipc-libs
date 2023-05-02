@@ -6,11 +6,15 @@ use fvm_shared::clock::ChainEpoch;
 use ipc_sdk::subnet_id::SubnetID;
 
 pub struct TopDownCheckpointManager;
+use crate::config::Subnet;
+use crate::lotus::client::DefaultLotusJsonRPCClient;
 use async_trait::async_trait;
 
 #[async_trait]
 impl CheckpointManager for TopDownCheckpointManager {
-    async fn obtain_validators(&self) -> anyhow::Result<Vec<Address>> {
+    type LotusClient = DefaultLotusJsonRPCClient;
+
+    fn parent_client(&self) -> &Self::LotusClient {
         todo!()
     }
 
@@ -18,7 +22,7 @@ impl CheckpointManager for TopDownCheckpointManager {
         todo!()
     }
 
-    fn child_subnet_id(&self) -> &SubnetID {
+    fn child_subnet(&self) -> &Subnet {
         todo!()
     }
 
