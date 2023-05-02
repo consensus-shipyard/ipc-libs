@@ -63,7 +63,7 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
     }
 }
 
-fn handle_response(response: anyhow::Result<()>) {
+fn handle_err_response(response: anyhow::Result<()>) {
     if response.is_err() {
         // TODO: handle different actor error responses
     }
@@ -127,7 +127,7 @@ async fn process_managers<T: CheckpointManager>(managers: &[T]) -> anyhow::Resul
     // A loop that drives stream to the end
     for manager in managers {
         let response = submit_next_epoch(manager).await;
-        handle_response(response);
+        handle_err_response(response);
     }
 
     sleep_or_continue(start_time).await;
