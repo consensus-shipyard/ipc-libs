@@ -40,8 +40,12 @@ impl TopDownCheckpointManager {
 }
 
 impl Display for TopDownCheckpointManager {
-    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "top-down, parent: {:}, child: {:}",
+            self.parent, self.child_subnet.id
+        )
     }
 }
 
@@ -50,23 +54,34 @@ impl CheckpointManager for TopDownCheckpointManager {
     type LotusClient = DefaultLotusJsonRPCClient;
 
     fn parent_client(&self) -> &Self::LotusClient {
-        todo!()
+        &self.parent_client
     }
 
     fn parent_subnet_id(&self) -> &SubnetID {
-        todo!()
+        &self.parent
     }
 
     fn child_subnet(&self) -> &Subnet {
-        todo!()
+        &self.child_subnet
     }
 
     fn checkpoint_period(&self) -> ChainEpoch {
-        todo!()
+        self.checkpoint_period
     }
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
-        todo!()
+        let child_head = self.child_client.chain_head().await?;
+        let cid_map = child_head.cids.first().unwrap().clone();
+        let child_tip_set = Cid::try_from(cid_map)?;
+
+        let child_gw_state = self
+            .child_client
+            .ipc_read_gateway_state(child_tip_set)
+            .await?;
+
+        Ok(child_gw_state
+            .top_down_checkpoint_voting
+            .last_voting_executed)
     }
 
     async fn current_epoch(&self) -> anyhow::Result<ChainEpoch> {
