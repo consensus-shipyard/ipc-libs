@@ -48,9 +48,15 @@ pub trait CheckpointManager: Display {
     ) -> Result<()>;
 
     /// Checks if the validator has already submitted in the epoch
-    async fn has_submitted_epoch(
+    async fn should_submit_in_epoch(
         &self,
         validator: &Address,
         epoch: ChainEpoch,
     ) -> anyhow::Result<bool>;
+
+    /// Performs checks to see if the subnet is ready for checkpoint submission. If `true` means the
+    /// subnet is ready for submission, else means the subnet is not ready.
+    async fn presubmission_check(&self) -> anyhow::Result<bool> {
+        Ok(true)
+    }
 }

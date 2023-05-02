@@ -54,7 +54,7 @@ impl CheckpointManager for TopDownCheckpointManager {
         todo!()
     }
 
-    async fn has_submitted_epoch(
+    async fn should_submit_in_epoch(
         &self,
         _validator: &Address,
         _epoch: ChainEpoch,

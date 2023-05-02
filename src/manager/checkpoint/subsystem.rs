@@ -150,6 +150,11 @@ async fn sleep_or_continue(start_time: Instant) {
 /// Attempts to submit checkpoints from the last executed epoch all the way to the current epoch for
 /// all the validators in the provided manager.
 async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<()> {
+    if !manager.presubmission_check().await? {
+        log::info!("subnet in manager: {manager:} not ready to submit checkpoint");
+        return Ok(())
+    }
+
     // we might have to obtain the list of validators as some validators might leave the subnet
     // we can improve the performance by caching if this slows down the process significantly.
     let validators = obtain_validators(manager).await?;
@@ -171,7 +176,7 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
         for validator in &validators {
             log::debug!("submit checkpoint for validator: {validator:?} in manager: {manager:}");
 
-            if manager.has_submitted_epoch(validator, next_epoch).await? {
+            if manager.should_submit_in_epoch(validator, next_epoch).await? {
                 log::debug!(
                     "next submission epoch {next_epoch:?} already voted for validator: {validator:?} in manager: {manager:}"
                 );
