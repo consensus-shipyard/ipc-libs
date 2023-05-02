@@ -30,6 +30,10 @@ impl CheckpointManager for TopDownCheckpointManager {
         todo!()
     }
 
+    async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
+        todo!()
+    }
+
     async fn submit_checkpoint(
         &self,
         _epoch: ChainEpoch,
@@ -42,6 +46,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     async fn next_submission_epoch(
         &self,
         _validator: &Address,
+        _last_executed_epoch: ChainEpoch,
     ) -> anyhow::Result<Option<ChainEpoch>> {
         todo!()
     }

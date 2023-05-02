@@ -57,27 +57,6 @@ impl BottomUpCheckpointManager {
             checkpoint_period,
         ))
     }
-
-    async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
-        let parent_head = self.parent_client.chain_head().await?;
-
-        // A key assumption we make now is that each block has exactly one tip set. We panic
-        // if this is not the case as it violates our assumption.
-        // TODO: update this logic once the assumption changes (i.e., mainnet)
-        assert_eq!(parent_head.cids.len(), 1);
-
-        let cid_map = parent_head.cids.first().unwrap().clone();
-        let parent_tip_set = Cid::try_from(cid_map)?;
-        // get subnet actor state and last checkpoint executed
-        let subnet_actor_state = self
-            .parent_client
-            .ipc_read_subnet_actor_state(&self.child_subnet.id, parent_tip_set)
-            .await?;
-
-        Ok(subnet_actor_state
-            .bottom_up_checkpoint_voting
-            .last_voting_executed)
-    }
 }
 
 #[async_trait]
@@ -98,6 +77,27 @@ impl CheckpointManager for BottomUpCheckpointManager {
 
     fn checkpoint_period(&self) -> ChainEpoch {
         self.checkpoint_period
+    }
+
+    async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
+        let parent_head = self.parent_client.chain_head().await?;
+
+        // A key assumption we make now is that each block has exactly one tip set. We panic
+        // if this is not the case as it violates our assumption.
+        // TODO: update this logic once the assumption changes (i.e., mainnet)
+        assert_eq!(parent_head.cids.len(), 1);
+
+        let cid_map = parent_head.cids.first().unwrap().clone();
+        let parent_tip_set = Cid::try_from(cid_map)?;
+        // get subnet actor state and last checkpoint executed
+        let subnet_actor_state = self
+            .parent_client
+            .ipc_read_subnet_actor_state(&self.child_subnet.id, parent_tip_set)
+            .await?;
+
+        Ok(subnet_actor_state
+            .bottom_up_checkpoint_voting
+            .last_voting_executed)
     }
 
     async fn submit_checkpoint(
@@ -200,6 +200,7 @@ impl CheckpointManager for BottomUpCheckpointManager {
     async fn next_submission_epoch(
         &self,
         validator: &Address,
+        last_executed_epoch: ChainEpoch,
     ) -> anyhow::Result<Option<ChainEpoch>> {
         log::debug!(
             "attempt to obtain the next submission epoch in bottom up checkpoint for subnet: {:?}",
@@ -207,7 +208,6 @@ impl CheckpointManager for BottomUpCheckpointManager {
         );
 
         let current_epoch = self.child_client.current_epoch().await?;
-        let last_executed_epoch = self.last_executed_epoch().await?;
 
         log::debug!(
             "latest epoch {:?}, last executed epoch: {:?} for bottom up checkpointing in subnet: {:?}",

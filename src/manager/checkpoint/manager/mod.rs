@@ -31,6 +31,9 @@ pub trait CheckpointManager {
     /// The checkpoint period that the current manager is submitting upon
     fn checkpoint_period(&self) -> ChainEpoch;
 
+    /// Obtain the last executed epoch of the checkpoint submission
+    async fn last_executed_epoch(&self) -> Result<ChainEpoch>;
+
     /// Submit the checkpoint based on the current epoch to submit and the previous epoch that was
     /// already submitted.
     async fn submit_checkpoint(
@@ -45,5 +48,6 @@ pub trait CheckpointManager {
     async fn next_submission_epoch(
         &self,
         validator: &Address,
+        last_executed_epoch: ChainEpoch,
     ) -> anyhow::Result<Option<ChainEpoch>>;
 }

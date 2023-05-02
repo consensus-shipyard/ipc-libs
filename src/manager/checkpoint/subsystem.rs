@@ -146,13 +146,19 @@ async fn sleep_or_continue(start_time: Instant) {
 /// it means the checkpoint is submitted to the target epoch. If returns None, it means there are no
 /// epoch to be submitted.
 async fn submit_next_epoch(manager: &impl CheckpointManager) -> Result<()> {
+    // we might have to obtain the list of validators as some validators might leave the subnet
+    // we can improve the performance by caching if this slows down the process significantly.
     let validators = obtain_validators(manager).await?;
+    let last_executed_epoch = manager.last_executed_epoch().await?;
     let period = manager.checkpoint_period();
 
     for validator in validators {
         log::debug!("submit checkpoint for validator: {validator:?}");
 
-        while let Some(next_epoch) = manager.next_submission_epoch(&validator).await? {
+        while let Some(next_epoch) = manager
+            .next_submission_epoch(&validator, last_executed_epoch)
+            .await?
+        {
             log::info!("next epoch to execute {next_epoch:} for validator {validator:}");
 
             let previous_epoch = next_epoch - period;
