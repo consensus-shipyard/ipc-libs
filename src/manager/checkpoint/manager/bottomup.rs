@@ -18,7 +18,7 @@ use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
 
 pub struct BottomUpCheckpointManager {
-    parent: SubnetID,
+    parent: Subnet,
     parent_client: DefaultLotusJsonRPCClient,
     child_subnet: Subnet,
     child_client: DefaultLotusJsonRPCClient,
@@ -28,14 +28,14 @@ pub struct BottomUpCheckpointManager {
 
 impl BottomUpCheckpointManager {
     pub fn new_with_period(
-        parent_subnet: SubnetID,
+        parent: Subnet,
         parent_client: DefaultLotusJsonRPCClient,
         child_subnet: Subnet,
         child_client: DefaultLotusJsonRPCClient,
         checkpoint_period: ChainEpoch,
     ) -> Self {
         Self {
-            parent: parent_subnet,
+            parent,
             parent_client,
             child_subnet,
             child_client,
@@ -45,7 +45,7 @@ impl BottomUpCheckpointManager {
 
     pub async fn new(
         parent_client: DefaultLotusJsonRPCClient,
-        parent: SubnetID,
+        parent: Subnet,
         child_client: DefaultLotusJsonRPCClient,
         child_subnet: Subnet,
     ) -> anyhow::Result<Self> {
@@ -68,7 +68,7 @@ impl CheckpointManager for BottomUpCheckpointManager {
         &self.parent_client
     }
 
-    fn parent_subnet_id(&self) -> &SubnetID {
+    fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }
 
@@ -108,7 +108,6 @@ impl CheckpointManager for BottomUpCheckpointManager {
     async fn submit_checkpoint(
         &self,
         epoch: ChainEpoch,
-        _previous_epoch: ChainEpoch,
         validator: &Address,
     ) -> anyhow::Result<()> {
         let mut checkpoint = BottomUpCheckpoint::new(self.child_subnet.id.clone(), epoch);
@@ -216,6 +215,10 @@ impl CheckpointManager for BottomUpCheckpointManager {
             .ipc_has_voted_bu_in_epoch(validator, &self.child_subnet.id, epoch)
             .await
     }
+
+    async fn presubmission_check(&self) -> anyhow::Result<bool> {
+        Ok(true)
+    }
 }
 
 impl Display for BottomUpCheckpointManager {
@@ -223,7 +226,7 @@ impl Display for BottomUpCheckpointManager {
         write!(
             f,
             "bottom-up, parent: {:}, child: {:}",
-            self.parent, self.child_subnet.id
+            self.parent.id, self.child_subnet.id
         )
     }
 }

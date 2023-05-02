@@ -99,7 +99,7 @@ async fn setup_managers_from_config(
         bottom_up_managers.push(
             BottomUpCheckpointManager::new(
                 LotusJsonRPCClient::from_subnet(parent),
-                parent.id.clone(),
+                parent.clone(),
                 LotusJsonRPCClient::from_subnet(s),
                 s.clone(),
             )
@@ -109,7 +109,7 @@ async fn setup_managers_from_config(
         top_down_managers.push(
             TopDownCheckpointManager::new(
                 LotusJsonRPCClient::from_subnet(parent),
-                parent.id.clone(),
+                parent.clone(),
                 LotusJsonRPCClient::from_subnet(s),
                 s.clone(),
             )
@@ -198,9 +198,7 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
                 "next submission epoch {next_epoch:} not voted for validator: {validator:} in manager: {manager:}, should vote"
             );
 
-            manager
-                .submit_checkpoint(next_epoch, next_epoch - period, validator)
-                .await?;
+            manager.submit_checkpoint(next_epoch, validator).await?;
 
             log::info!("checkpoint at epoch {next_epoch:} submitted for validator {validator:} in manager: {manager:}");
         }

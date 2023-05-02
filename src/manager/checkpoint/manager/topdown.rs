@@ -1,7 +1,7 @@
-use std::fmt::{Display, Formatter};
-use std::sync::atomic::{AtomicI64, Ordering};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
+use std::fmt::{Display, Formatter};
+
 use crate::manager::checkpoint::CheckpointManager;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
@@ -9,27 +9,28 @@ use ipc_sdk::subnet_id::SubnetID;
 
 use crate::config::Subnet;
 use crate::lotus::client::DefaultLotusJsonRPCClient;
-use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
+use crate::lotus::message::ipc::IPCReadGatewayStateResponse;
+use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
 use async_trait::async_trait;
 use cid::Cid;
+use fil_actors_runtime::cbor;
+use fvm_shared::MethodNum;
+use ipc_gateway::TopDownCheckpoint;
 
 pub struct TopDownCheckpointManager {
-    parent: SubnetID,
+    parent: Subnet,
     parent_client: DefaultLotusJsonRPCClient,
     child_subnet: Subnet,
     child_client: DefaultLotusJsonRPCClient,
 
     checkpoint_period: ChainEpoch,
-
-    // some cache states
-    current_epoch: AtomicI64,
 }
 
 impl TopDownCheckpointManager {
     pub async fn new(
         parent_client: DefaultLotusJsonRPCClient,
-        parent: SubnetID,
+        parent: Subnet,
         child_client: DefaultLotusJsonRPCClient,
         child_subnet: Subnet,
     ) -> anyhow::Result<Self> {
@@ -40,7 +41,6 @@ impl TopDownCheckpointManager {
             child_subnet,
             child_client,
             checkpoint_period,
-            current_epoch: Default::default(),
         })
     }
 }
@@ -50,7 +50,7 @@ impl Display for TopDownCheckpointManager {
         write!(
             f,
             "top-down, parent: {:}, child: {:}",
-            self.parent, self.child_subnet.id
+            self.parent.id, self.child_subnet.id
         )
     }
 }
@@ -65,6 +65,27 @@ impl TopDownCheckpointManager {
             .ipc_read_gateway_state(child_tip_set)
             .await
     }
+
+    async fn parent_tipset(&self) -> anyhow::Result<Cid> {
+        let parent_head = self.parent_client.chain_head().await?;
+        let cid_map = parent_head.cids.first().unwrap().clone();
+        Cid::try_from(cid_map)
+    }
+
+    async fn child_tipset(&self) -> anyhow::Result<Cid> {
+        let child_head = self.child_client.chain_head().await?;
+        let cid_map = child_head.cids.first().unwrap().clone();
+        Cid::try_from(cid_map)
+    }
+
+    async fn submission_tipset(&self, epoch: ChainEpoch) -> anyhow::Result<Cid> {
+        let submission_tip_set = self
+            .parent_client
+            .get_tipset_by_height(epoch, self.parent_tipset().await?)
+            .await?;
+        let cid_map = submission_tip_set.cids.first().unwrap().clone();
+        Cid::try_from(cid_map)
+    }
 }
 
 #[async_trait]
@@ -75,7 +96,7 @@ impl CheckpointManager for TopDownCheckpointManager {
         &self.parent_client
     }
 
-    fn parent_subnet_id(&self) -> &SubnetID {
+    fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }
 
@@ -101,19 +122,84 @@ impl CheckpointManager for TopDownCheckpointManager {
 
     async fn submit_checkpoint(
         &self,
-        _epoch: ChainEpoch,
-        _previous_epoch: ChainEpoch,
-        _validator: &Address,
+        epoch: ChainEpoch,
+        validator: &Address,
     ) -> anyhow::Result<()> {
-        todo!()
+        let nonce = self
+            .child_client
+            .ipc_read_gateway_state(self.child_tipset().await?)
+            .await?
+            .applied_topdown_nonce;
+
+        let submission_tip_set = self.submission_tipset(epoch).await?;
+        let top_down_msgs = self
+            .parent_client
+            .ipc_get_topdown_msgs(
+                &self.child_subnet.id,
+                &self.parent.gateway_addr,
+                submission_tip_set,
+                nonce,
+            )
+            .await?;
+
+        log::debug!(
+            "nonce: {:} for submission tip set: {:} at epoch {:} of manager: {:}, size of top down messages: {:}",
+            nonce, submission_tip_set, epoch, self, top_down_msgs.len()
+        );
+
+        // we submit the topdown messages to the CHILD subnet.
+        let topdown_checkpoint = TopDownCheckpoint {
+            epoch,
+            top_down_msgs,
+        };
+        let message = MpoolPushMessage::new(
+            self.parent.gateway_addr,
+            *validator,
+            ipc_gateway::Method::SubmitTopDownCheckpoint as MethodNum,
+            cbor::serialize(&topdown_checkpoint, "topdown_checkpoint")?.to_vec(),
+        );
+        let mem_push_response = self
+            .child_client
+            .mpool_push_message(message)
+            .await
+            .map_err(|e| {
+                log::error!("error submitting checkpoint at epoch {epoch:} for manager: {self:}");
+                e
+            })?;
+
+        // wait for the checkpoint to be committed before moving on.
+        let message_cid = mem_push_response.cid()?;
+        log::debug!(
+            "checkpoint at epoch {:} for manager: {:} published with cid: {:?}, wait for execution",
+            epoch,
+            self,
+            message_cid,
+        );
+        self.child_client.state_wait_msg(message_cid).await?;
+        log::debug!(
+            "checkpoint at epoch {:} for manager: {:} published with cid: {:?}, executed",
+            epoch,
+            self,
+            message_cid,
+        );
+
+        Ok(())
     }
 
     async fn should_submit_in_epoch(
         &self,
-        _validator: &Address,
-        _epoch: ChainEpoch,
+        validator: &Address,
+        epoch: ChainEpoch,
     ) -> anyhow::Result<bool> {
-        todo!()
+        self.child_client
+            .ipc_validator_has_voted_topdown(&self.child_subnet.gateway_addr, epoch, validator)
+            .await
+            .map_err(|e| {
+                log::error!(
+                    "error checking if validator has voted for manager: {self:} due to {e:}"
+                );
+                e
+            })
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {

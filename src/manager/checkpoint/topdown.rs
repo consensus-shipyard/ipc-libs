@@ -253,7 +253,7 @@ async fn submit_topdown_checkpoint<T: JsonRpcClient + Send + Sync>(
         nonce
     );
     let top_down_msgs = parent_client
-        .ipc_get_topdown_msgs(&child_subnet, gateway_addr, submission_tip_set, nonce)
+        .ipc_get_topdown_msgs(&child_subnet, &gateway_addr, submission_tip_set, nonce)
         .await?;
 
     // Finally, we submit the topdown messages to the child subnet.
