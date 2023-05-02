@@ -497,7 +497,6 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(checkpoints)
     }
 
-    /// Checks if the validator has submitted the
     async fn ipc_has_voted_bu_in_epoch(
         &self,
         validator: &Address,
