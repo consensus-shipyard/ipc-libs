@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use cid::Cid;
 use futures_util::future::join_all;
 use fvm_shared::address::Address;
+use fvm_shared::clock::ChainEpoch;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -21,6 +22,7 @@ use tokio::time::sleep;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
 const TASKS_PROCESS_THRESHOLD_SEC: u64 = 15;
+const SUBMISSION_LOOK_AHEAD_EPOCH: ChainEpoch = 50;
 
 pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
@@ -186,7 +188,11 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
     );
 
     let mut next_epoch = last_executed_epoch + period;
-    while next_epoch < current_epoch {
+    let cut_off_epoch = std::cmp::min(
+        current_epoch,
+        SUBMISSION_LOOK_AHEAD_EPOCH + last_executed_epoch,
+    );
+    while next_epoch < cut_off_epoch {
         // now we process each validator
         for validator in &validators {
             log::debug!("submit checkpoint for validator: {validator:?} in manager: {manager:}");

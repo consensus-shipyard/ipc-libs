@@ -131,20 +131,6 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
         checkpoint.data.children = template.data.children;
         checkpoint.data.cross_msgs = template.data.cross_msgs;
 
-        log::info!(
-            "checkpoint at epoch {:} contains {:} number of cross messages, cid: {:} for manager: {:}",
-            checkpoint.data.epoch,
-            checkpoint
-                .data
-                .cross_msgs
-                .cross_msgs
-                .as_ref()
-                .map(|s| s.len())
-                .unwrap_or_default(),
-            checkpoint.cid(),
-            self,
-        );
-
         // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
         // subnet.
         log::debug!(
@@ -174,6 +160,21 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             .first()
             .ok_or_else(|| anyhow!("chain head has empty cid: {:}", self.child_subnet.id))?;
         checkpoint.data.proof = Cid::try_from(child_tip_set)?.to_bytes();
+
+        log::info!(
+            "checkpoint at epoch {:} contains {:} number of cross messages, cid: {:} for manager: {:} and validator: {:}",
+            checkpoint.data.epoch,
+            checkpoint
+                .data
+                .cross_msgs
+                .cross_msgs
+                .as_ref()
+                .map(|s| s.len())
+                .unwrap_or_default(),
+            checkpoint.cid(),
+            self,
+            validator,
+        );
 
         let to = self.child_subnet.id.subnet_actor();
         let message = MpoolPushMessage::new(
