@@ -123,17 +123,16 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             .ipc_get_checkpoint_template(epoch)
             .await
             .map_err(|e| {
-                log::error!(
-                "error getting bottom-up checkpoint template for epoch:{epoch:} in subnet: {:?}",
-                self.child_subnet.id
-            );
-                e
+                anyhow!(
+                    "error getting bottom-up checkpoint template for epoch:{epoch:} in subnet: {:?} due to {e:}",
+                    self.child_subnet.id
+                )
             })?;
         checkpoint.data.children = template.data.children;
         checkpoint.data.cross_msgs = template.data.cross_msgs;
 
         log::info!(
-            "checkpoint at epoch {:} contains {:} number of cross messages",
+            "checkpoint at epoch {:} contains {:} number of cross messages, cid: {:} for manager: {:}",
             checkpoint.data.epoch,
             checkpoint
                 .data
@@ -141,7 +140,9 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
                 .cross_msgs
                 .as_ref()
                 .map(|s| s.len())
-                .unwrap_or_default()
+                .unwrap_or_default(),
+            checkpoint.cid(),
+            self,
         );
 
         // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
