@@ -147,7 +147,7 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
         // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
         // subnet.
         log::debug!(
-            "Getting previous checkpoint bottom-up from parent gateway for {epoch:} in subnet: {:?}",
+            "getting previous checkpoint bottom-up from parent gateway for {epoch:} in subnet: {:?}",
             self.child_subnet.id
         );
         let response = self
@@ -187,11 +187,10 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             .mpool_push_message(message)
             .await
             .map_err(|e| {
-                log::error!(
-                    "error submitting checkpoint for epoch {epoch:} in subnet: {:?}",
+                anyhow!(
+                    "error submitting checkpoint for epoch {epoch:} in subnet: {:?} with reason {e:}",
                     self.child_subnet.id
-                );
-                e
+                )
             })?;
 
         // wait for the checkpoint to be committed before moving on.
@@ -235,7 +234,7 @@ async fn obtain_checkpoint_period<T: LotusClient + Send + Sync>(
     subnet_id: &SubnetID,
     parent_client: &T,
 ) -> anyhow::Result<ChainEpoch> {
-    log::debug!("Getting the bottom up checkpoint period for subnet: {subnet_id:?}");
+    log::debug!("getting the bottom up checkpoint period for subnet: {subnet_id:?}");
 
     // Read the parent's chain head and obtain the tip set CID.
     let parent_head = parent_client.chain_head().await?;
@@ -243,7 +242,7 @@ async fn obtain_checkpoint_period<T: LotusClient + Send + Sync>(
     let parent_tip_set = Cid::try_from(cid_map)?;
 
     // Extract the checkpoint period from the state of the subnet actor in the parent.
-    log::debug!("Get checkpointing period from subnet actor in parent");
+    log::debug!("get checkpointing period from subnet actor in parent");
     let state = parent_client
         .ipc_read_subnet_actor_state(subnet_id, parent_tip_set)
         .await
