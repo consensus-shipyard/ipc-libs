@@ -1,5 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
+use anyhow::anyhow;
 use std::fmt::{Display, Formatter};
 
 use crate::manager::checkpoint::CheckpointManager;
@@ -191,15 +192,16 @@ impl CheckpointManager for TopDownCheckpointManager {
         validator: &Address,
         epoch: ChainEpoch,
     ) -> anyhow::Result<bool> {
-        self.child_client
+        let has_voted = self
+            .child_client
             .ipc_validator_has_voted_topdown(&self.child_subnet.gateway_addr, epoch, validator)
             .await
             .map_err(|e| {
-                log::error!(
-                    "error checking if validator has voted for manager: {self:} due to {e:}"
-                );
-                e
-            })
+                anyhow!("error checking if validator has voted for manager: {self:} due to {e:}")
+            })?;
+
+        // we should vote only when the validator has not voted
+        Ok(!has_voted)
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {

@@ -191,7 +191,7 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
         for validator in &validators {
             log::debug!("submit checkpoint for validator: {validator:?} in manager: {manager:}");
 
-            if manager
+            if !manager
                 .should_submit_in_epoch(validator, next_epoch)
                 .await?
             {

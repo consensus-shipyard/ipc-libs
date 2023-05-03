@@ -155,11 +155,10 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             .ipc_get_prev_checkpoint_for_child(&self.child_subnet.id)
             .await
             .map_err(|e| {
-                log::error!(
-                "error getting previous bottom-up checkpoint for epoch:{epoch:} in subnet: {:?}",
-                self.child_subnet.id
-            );
-                e
+                anyhow!(
+                    "error getting previous bottom-up checkpoint for epoch:{epoch:} in subnet: {:?} due to {e:}",
+                    self.child_subnet.id
+                )
             })?;
 
         // if previous checkpoint is set
@@ -197,6 +196,8 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
         let message_cid = mem_push_response.cid()?;
         log::debug!("checkpoint message published with cid: {message_cid:?}");
 
+        self.parent_client.state_wait_msg(message_cid).await?;
+
         Ok(())
     }
 
@@ -210,9 +211,13 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             self.child_subnet.id
         );
 
-        self.parent_client
+        let has_voted = self
+            .parent_client
             .ipc_validator_has_voted_bottomup(&self.child_subnet.id, epoch, validator)
-            .await
+            .await?;
+
+        // we should vote only when the validator has not voted
+        Ok(!has_voted)
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {
