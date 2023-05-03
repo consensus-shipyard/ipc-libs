@@ -71,9 +71,9 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
     }
 }
 
-fn handle_err_response(response: anyhow::Result<()>) {
+fn handle_err_response(manager: &impl CheckpointManager, response: anyhow::Result<()>) {
     if response.is_err() {
-        // TODO: handle different actor error responses
+        log::error!("manger {manager:} had error: {:}", response.unwrap_err());
     }
 }
 
@@ -144,7 +144,7 @@ async fn process_managers<T: CheckpointManager>(managers: &[T]) -> anyhow::Resul
         .iter()
         .map(|manager| async {
             let response = submit_till_current_epoch(manager).await;
-            handle_err_response(response);
+            handle_err_response(manager, response);
         })
         .collect::<Vec<_>>();
 
