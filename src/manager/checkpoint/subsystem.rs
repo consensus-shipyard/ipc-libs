@@ -1,7 +1,7 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::config::{ReloadableConfig, Subnet};
-use crate::lotus::client::LotusJsonRPCClient;
+use crate::lotus::client::{DefaultLotusJsonRPCClient, LotusJsonRPCClient};
 use crate::lotus::LotusClient;
 use crate::manager::checkpoint::manager::bottomup::BottomUpCheckpointManager;
 use crate::manager::checkpoint::manager::topdown::TopDownCheckpointManager;
@@ -26,6 +26,13 @@ pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
     /// management are those in the latest version of the config.
     config: Arc<ReloadableConfig>,
+}
+
+impl CheckpointSubsystem {
+    /// Creates a new `CheckpointSubsystem` with a configuration `config`.
+    pub fn new(config: Arc<ReloadableConfig>) -> Self {
+        Self { config }
+    }
 }
 
 #[async_trait]
@@ -74,7 +81,7 @@ async fn setup_managers_from_config(
     subnets: &HashMap<SubnetID, Subnet>,
 ) -> Result<(
     Vec<TopDownCheckpointManager>,
-    Vec<BottomUpCheckpointManager>,
+    Vec<BottomUpCheckpointManager<DefaultLotusJsonRPCClient>>,
 )> {
     let mut bottom_up_managers = vec![];
     let mut top_down_managers = vec![];

@@ -17,19 +17,19 @@ use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
 
-pub struct BottomUpCheckpointManager {
+pub struct BottomUpCheckpointManager<T> {
     parent: Subnet,
-    parent_client: DefaultLotusJsonRPCClient,
+    parent_client: T,
     child_subnet: Subnet,
     child_client: DefaultLotusJsonRPCClient,
 
     checkpoint_period: ChainEpoch,
 }
 
-impl BottomUpCheckpointManager {
+impl<T: LotusClient + Send + Sync> BottomUpCheckpointManager<T> {
     pub fn new_with_period(
         parent: Subnet,
-        parent_client: DefaultLotusJsonRPCClient,
+        parent_client: T,
         child_subnet: Subnet,
         child_client: DefaultLotusJsonRPCClient,
         checkpoint_period: ChainEpoch,
@@ -44,7 +44,7 @@ impl BottomUpCheckpointManager {
     }
 
     pub async fn new(
-        parent_client: DefaultLotusJsonRPCClient,
+        parent_client: T,
         parent: Subnet,
         child_client: DefaultLotusJsonRPCClient,
         child_subnet: Subnet,
@@ -61,8 +61,8 @@ impl BottomUpCheckpointManager {
 }
 
 #[async_trait]
-impl CheckpointManager for BottomUpCheckpointManager {
-    type LotusClient = DefaultLotusJsonRPCClient;
+impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManager<T> {
+    type LotusClient = T;
 
     fn parent_client(&self) -> &Self::LotusClient {
         &self.parent_client
@@ -221,7 +221,7 @@ impl CheckpointManager for BottomUpCheckpointManager {
     }
 }
 
-impl Display for BottomUpCheckpointManager {
+impl<T> Display for BottomUpCheckpointManager<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -231,9 +231,9 @@ impl Display for BottomUpCheckpointManager {
     }
 }
 
-async fn obtain_checkpoint_period(
+async fn obtain_checkpoint_period<T: LotusClient + Send + Sync>(
     subnet_id: &SubnetID,
-    parent_client: &DefaultLotusJsonRPCClient,
+    parent_client: &T,
 ) -> anyhow::Result<ChainEpoch> {
     log::debug!("Getting the bottom up checkpoint period for subnet: {subnet_id:?}");
 
