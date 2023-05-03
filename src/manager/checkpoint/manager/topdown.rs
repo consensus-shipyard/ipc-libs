@@ -208,7 +208,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 }
 
-async fn obtain_checkpoint_period(
+async fn get_checkpoint_period(
     subnet_id: &SubnetID,
     child_client: &DefaultLotusJsonRPCClient,
 ) -> anyhow::Result<ChainEpoch> {
