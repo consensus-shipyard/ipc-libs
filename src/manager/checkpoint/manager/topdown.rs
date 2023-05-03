@@ -66,7 +66,7 @@ impl TopDownCheckpointManager {
             .await
     }
 
-    async fn parent_tipset(&self) -> anyhow::Result<Cid> {
+    async fn parent_head(&self) -> anyhow::Result<Cid> {
         let parent_head = self.parent_client.chain_head().await?;
         let cid_map = parent_head.cids.first().unwrap().clone();
         Cid::try_from(cid_map)
