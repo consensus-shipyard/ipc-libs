@@ -3,10 +3,9 @@
 use anyhow::anyhow;
 use std::fmt::{Display, Formatter};
 
-use crate::manager::checkpoint::CheckpointManager;
+use crate::manager::checkpoint::{chain_head_cid, CheckpointManager};
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_sdk::subnet_id::SubnetID;
 
 use crate::config::Subnet;
 use crate::lotus::client::DefaultLotusJsonRPCClient;
@@ -35,7 +34,10 @@ impl TopDownCheckpointManager {
         child_client: DefaultLotusJsonRPCClient,
         child_subnet: Subnet,
     ) -> anyhow::Result<Self> {
-        let checkpoint_period = obtain_checkpoint_period(&child_subnet.id, &child_client).await?;
+        let child_tip_set = chain_head_cid(&child_client).await?;
+        let state = child_client.ipc_read_gateway_state(child_tip_set).await?;
+        let checkpoint_period = state.top_down_check_period;
+
         Ok(Self {
             parent,
             parent_client,
@@ -57,7 +59,7 @@ impl Display for TopDownCheckpointManager {
 }
 
 impl TopDownCheckpointManager {
-    async fn sync_subnet_gateway_state(&self) -> anyhow::Result<IPCReadGatewayStateResponse> {
+    async fn child_gateway_state(&self) -> anyhow::Result<IPCReadGatewayStateResponse> {
         let child_head = self.child_client.chain_head().await?;
         let cid_map = child_head.cids.first().unwrap().clone();
         let child_tip_set = Cid::try_from(cid_map)?;
@@ -68,21 +70,17 @@ impl TopDownCheckpointManager {
     }
 
     async fn parent_head(&self) -> anyhow::Result<Cid> {
-        let parent_head = self.parent_client.chain_head().await?;
-        let cid_map = parent_head.cids.first().unwrap().clone();
-        Cid::try_from(cid_map)
+        chain_head_cid(&self.parent_client).await
     }
 
     async fn child_head(&self) -> anyhow::Result<Cid> {
-        let child_head = self.child_client.chain_head().await?;
-        let cid_map = child_head.cids.first().unwrap().clone();
-        Cid::try_from(cid_map)
+        chain_head_cid(&self.child_client).await
     }
 
     async fn submission_tipset(&self, epoch: ChainEpoch) -> anyhow::Result<Cid> {
         let submission_tip_set = self
             .parent_client
-            .get_tipset_by_height(epoch, self.parent_tipset().await?)
+            .get_tipset_by_height(epoch, self.parent_head().await?)
             .await?;
         let cid_map = submission_tip_set.cids.first().unwrap().clone();
         Cid::try_from(cid_map)
@@ -110,7 +108,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
-        let child_gw_state = self.sync_subnet_gateway_state().await?;
+        let child_gw_state = self.child_gateway_state().await?;
         Ok(child_gw_state
             .top_down_checkpoint_voting
             .last_voting_executed)
@@ -128,7 +126,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     ) -> anyhow::Result<()> {
         let nonce = self
             .child_client
-            .ipc_read_gateway_state(self.child_tipset().await?)
+            .ipc_read_gateway_state(self.child_head().await?)
             .await?
             .applied_topdown_nonce;
 
@@ -205,25 +203,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {
-        let state = self.sync_subnet_gateway_state().await?;
+        let state = self.child_gateway_state().await?;
         Ok(state.initialized)
     }
-}
-
-async fn get_checkpoint_period(
-    subnet_id: &SubnetID,
-    child_client: &DefaultLotusJsonRPCClient,
-) -> anyhow::Result<ChainEpoch> {
-    log::debug!("Getting the top down checkpoint period for subnet: {subnet_id:?}");
-
-    // Read the child's chain head and obtain the tip set CID.
-    log::debug!("Getting child tipset and starting top-down checkpointing manager");
-    let child_head = child_client.chain_head().await?;
-    let cid_map = child_head.cids.first().unwrap().clone();
-    let child_tip_set = Cid::try_from(cid_map)?;
-
-    // Read the child's chain head and obtain the topdown checkpoint period
-    // and genesis epoch.
-    let state = child_client.ipc_read_gateway_state(child_tip_set).await?;
-    Ok(state.top_down_check_period)
 }

@@ -8,6 +8,7 @@ use crate::config::Subnet;
 use crate::lotus::LotusClient;
 use anyhow::Result;
 use async_trait::async_trait;
+use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use std::fmt::Display;
@@ -51,4 +52,11 @@ pub trait CheckpointManager: Display {
     /// Performs checks to see if the subnet is ready for checkpoint submission. If `true` means the
     /// subnet is ready for submission, else means the subnet is not ready.
     async fn presubmission_check(&self) -> anyhow::Result<bool>;
+}
+
+/// Returns the first cid in the chain head
+pub(crate) async fn chain_head_cid(client: &(impl LotusClient + Sync)) -> anyhow::Result<Cid> {
+    let child_head = client.chain_head().await?;
+    let cid_map = child_head.cids.first().unwrap();
+    Cid::try_from(cid_map)
 }

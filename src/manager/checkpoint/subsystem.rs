@@ -192,6 +192,11 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
         current_epoch,
         SUBMISSION_LOOK_AHEAD_EPOCH + last_executed_epoch,
     );
+
+    // Instead of loop all the way to `current_epoch`, we loop till `cut_off_epoch`.
+    // Reason because if the current epoch is significantly greater than last_executed_epoch and there
+    // are lots of validators in the network, loop all the way to current epoch might have some outdated
+    // data. Set a cut off epoch such that validators can sync with chain more regularly.
     while next_epoch < cut_off_epoch {
         // now we process each validator
         for validator in &validators {
