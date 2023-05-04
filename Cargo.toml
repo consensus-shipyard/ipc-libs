@@ -53,7 +53,7 @@ serde_ipld_dagcbor = "0.2"
 libc = "0.2"
 quickcheck = { workspace = true }
 quickcheck_macros = { workspace = true }
-bls-signatures = { version = "0.13", default-features = false, features = ["blst"] }
+bls-signatures = { version = "0.12", default-features = false, features = ["blst"] }
 
 fvm_shared = { workspace = true }
 fil_actors_runtime = { workspace = true }
@@ -82,7 +82,7 @@ rand = "0.8"
 
 fvm_ipld_blockstore = "0.1"
 fvm_ipld_encoding = "0.3"
-fvm_shared = { version = "=3.0.0-alpha.17", default-features = false }
+fvm_shared = { version = "=3.0.0-alpha.17", default-features = false, features = ["crypto"] }
 fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }
 ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git", tag = "v0.2.0" }
 ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], tag = "v0.2.0" }
