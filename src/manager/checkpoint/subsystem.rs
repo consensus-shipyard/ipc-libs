@@ -207,7 +207,8 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
                 .await?
             {
                 log::info!(
-                    "next submission epoch {next_epoch:?} already voted for validator: {validator:?} in manager: {manager:}"
+                    "next submission epoch {next_epoch:?} already voted for validator: {:?} in manager: {manager:}",
+                    validator.to_string()
                 );
                 continue;
             }
