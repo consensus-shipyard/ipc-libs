@@ -67,13 +67,13 @@ impl TopDownCheckpointManager {
             .await
     }
 
-    async fn parent_tipset(&self) -> anyhow::Result<Cid> {
+    async fn parent_head(&self) -> anyhow::Result<Cid> {
         let parent_head = self.parent_client.chain_head().await?;
         let cid_map = parent_head.cids.first().unwrap().clone();
         Cid::try_from(cid_map)
     }
 
-    async fn child_tipset(&self) -> anyhow::Result<Cid> {
+    async fn child_head(&self) -> anyhow::Result<Cid> {
         let child_head = self.child_client.chain_head().await?;
         let cid_map = child_head.cids.first().unwrap().clone();
         Cid::try_from(cid_map)
@@ -210,7 +210,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 }
 
-async fn obtain_checkpoint_period(
+async fn get_checkpoint_period(
     subnet_id: &SubnetID,
     child_client: &DefaultLotusJsonRPCClient,
 ) -> anyhow::Result<ChainEpoch> {
