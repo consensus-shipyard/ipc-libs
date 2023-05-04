@@ -58,6 +58,28 @@ impl<T: LotusClient + Send + Sync> BottomUpCheckpointManager<T> {
             checkpoint_period,
         ))
     }
+
+    async fn proof(&self, epoch: ChainEpoch) -> anyhow::Result<Vec<u8>> {
+        let child_chain_head_tip_sets = self.child_client.chain_head().await?.cids;
+        if child_chain_head_tip_sets.is_empty() {
+            return Err(anyhow!(
+                "chain head has empty cid: {:}",
+                self.child_subnet.id
+            ));
+        }
+        let tip_sets_at_height = self
+            .child_client
+            .get_tipset_by_height(epoch, Cid::try_from(&child_chain_head_tip_sets[0])?)
+            .await?
+            .cids;
+        if tip_sets_at_height.is_empty() {
+            return Err(anyhow!(
+                "tip set at height has empty cid: {:} at epoch {epoch:}",
+                self.child_subnet.id
+            ));
+        };
+        Ok(Cid::try_from(&tip_sets_at_height[0])?.to_bytes())
+    }
 }
 
 #[async_trait]
@@ -130,6 +152,7 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             })?;
         checkpoint.data.children = template.data.children;
         checkpoint.data.cross_msgs = template.data.cross_msgs;
+        checkpoint.data.proof = self.proof(epoch).await?;
 
         // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
         // subnet.
@@ -153,13 +176,6 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             let cid = Cid::try_from(response.unwrap())?;
             checkpoint.data.prev_check = TCid::from(cid);
         }
-
-        let child_chain_head = self.child_client.chain_head().await?;
-        let child_tip_set = child_chain_head
-            .cids
-            .first()
-            .ok_or_else(|| anyhow!("chain head has empty cid: {:}", self.child_subnet.id))?;
-        checkpoint.data.proof = Cid::try_from(child_tip_set)?.to_bytes();
 
         log::info!(
             "checkpoint at epoch {:} contains {:} number of cross messages, cid: {:} for manager: {:} and validator: {:}",
