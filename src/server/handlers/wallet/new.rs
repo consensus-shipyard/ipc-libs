@@ -4,7 +4,6 @@
 
 use crate::identity::Wallet;
 use crate::lotus::message::wallet::WalletKeyType;
-use crate::manager::wallet::WalletManager;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;

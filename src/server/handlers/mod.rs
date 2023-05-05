@@ -37,6 +37,8 @@ use crate::server::net_addr::SetValidatorNetAddrHandler;
 use crate::server::JsonRPCRequestHandler;
 
 use self::topdown_executed::LastTopDownExecHandler;
+use self::wallet::export::WalletExportHandler;
+use self::wallet::import::WalletImportHandler;
 
 mod config;
 mod manager;
@@ -86,7 +88,6 @@ impl Handlers {
             config.clone(),
         )?)));
 
-
         // subnet manager methods
         let pool = Arc::new(SubnetManagerPool::from_reload_config(config.clone()));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
@@ -118,6 +119,12 @@ impl Handlers {
 
         let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(wallet.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_NEW), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletImportHandler::new(wallet.clone()));
+        handlers.insert(String::from(json_rpc_methods::WALLET_IMPORT), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(wallet.clone()));
+        handlers.insert(String::from(json_rpc_methods::WALLET_EXPORT), h);
 
         let h: Box<dyn HandlerWrapper> =
             Box::new(WalletBalancesHandler::new(pool.clone(), wallet.clone()));
