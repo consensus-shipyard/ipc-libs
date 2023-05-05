@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 //! wallet handlers and parameters
 
-use crate::identity::Wallet;
 use crate::identity::json::KeyInfoJson;
+use crate::identity::Wallet;
 use crate::server::JsonRPCRequestHandler;
 use async_trait::async_trait;
 use fvm_shared::address::Address;

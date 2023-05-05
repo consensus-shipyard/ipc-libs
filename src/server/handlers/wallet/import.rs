@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 //! wallet handlers and parameters
 
-use crate::identity::{Wallet, KeyInfo};
 use crate::identity::json::KeyInfoJson;
+use crate::identity::{KeyInfo, Wallet};
 use crate::server::JsonRPCRequestHandler;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WalletImportParams {
-    pub key_info: KeyInfoJson
+    pub key_info: KeyInfoJson,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,7 +37,7 @@ impl JsonRPCRequestHandler for WalletImportHandler {
 
     async fn handle(&self, request: Self::Request) -> anyhow::Result<Self::Response> {
         let mut wallet = self.wallet.write().unwrap();
-        let key_info = KeyInfo::try_from(request.key_info)?;    
+        let key_info = KeyInfo::try_from(request.key_info)?;
         let address = wallet.import(key_info)?;
 
         Ok(WalletImportResponse {
