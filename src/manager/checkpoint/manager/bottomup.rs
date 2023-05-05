@@ -142,7 +142,7 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
         );
         let template = self
             .child_client
-            .ipc_get_checkpoint_template(epoch)
+            .ipc_get_checkpoint_template(&self.child_subnet.gateway_addr, epoch)
             .await
             .map_err(|e| {
                 anyhow!(
@@ -162,7 +162,7 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
         );
         let response = self
             .parent_client
-            .ipc_get_prev_checkpoint_for_child(&self.child_subnet.id)
+            .ipc_get_prev_checkpoint_for_child(&self.child_subnet.gateway_addr, &self.child_subnet.id)
             .await
             .map_err(|e| {
                 anyhow!(

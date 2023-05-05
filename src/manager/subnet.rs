@@ -107,7 +107,7 @@ pub trait SubnetManager {
     async fn wallet_balance(&self, address: &Address) -> Result<TokenAmount>;
 
     /// Returns the epoch of the latest top-down checkpoint executed
-    async fn last_topdown_executed(&self) -> Result<ChainEpoch>;
+    async fn last_topdown_executed(&self, gateway_addr: &Address) -> Result<ChainEpoch>;
 
     /// Returns the list of checkpoints from a subnet actor for the given epoch range.
     async fn list_checkpoints(

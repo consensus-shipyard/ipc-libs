@@ -20,7 +20,6 @@ use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
-use crate::constants::GATEWAY_ACTOR_ADDRESS;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
@@ -306,12 +305,13 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
+        gateway_addr: &Address,
         child_subnet_id: &SubnetID,
     ) -> Result<Option<CIDMap>> {
         if child_subnet_id.parent().is_none() {
             return Err(anyhow!("The child_subnet_id must be a valid child subnet"));
         }
-        let params = json!([GATEWAY_ACTOR_ADDRESS, child_subnet_id.to_json()]);
+        let params = json!([gateway_addr.to_string(), child_subnet_id.to_json()]);
 
         let r = self
             .client
@@ -320,12 +320,16 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r)
     }
 
-    async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<BottomUpCheckpoint> {
+    async fn ipc_get_checkpoint_template(
+        &self,
+        gateway_addr: &Address,
+        epoch: ChainEpoch,
+    ) -> Result<BottomUpCheckpoint> {
         let r = self
             .client
             .request::<String>(
                 methods::IPC_GET_CHECKPOINT_TEMPLATE,
-                json!([GATEWAY_ACTOR_ADDRESS, epoch]),
+                json!([gateway_addr.to_string(), epoch]),
             )
             .await?;
 
@@ -359,8 +363,12 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(checkpoint)
     }
 
-    async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse> {
-        let params = json!([GATEWAY_ACTOR_ADDRESS, [CIDMap::from(tip_set)]]);
+    async fn ipc_read_gateway_state(
+        &self,
+        gateway_addr: &Address,
+        tip_set: Cid,
+    ) -> Result<IPCReadGatewayStateResponse> {
+        let params = json!([gateway_addr.to_string(), [CIDMap::from(tip_set)]]);
         let r = self
             .client
             .request::<IPCReadGatewayStateResponse>(methods::IPC_READ_GATEWAY_STATE, params)
