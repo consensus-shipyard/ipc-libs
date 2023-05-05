@@ -93,11 +93,16 @@ pub trait LotusClient {
 
     async fn ipc_get_prev_checkpoint_for_child(
         &self,
+        gateway_addr: &Address,
         child_subnet_id: &SubnetID,
     ) -> Result<Option<CIDMap>>;
 
     /// Returns the checkpoint template at `epoch`.
-    async fn ipc_get_checkpoint_template(&self, epoch: ChainEpoch) -> Result<BottomUpCheckpoint>;
+    async fn ipc_get_checkpoint_template(
+        &self,
+        gateway_addr: &Address,
+        epoch: ChainEpoch,
+    ) -> Result<BottomUpCheckpoint>;
 
     /// Returns the checkpoint committed for an epoch in a child subnet.
     async fn ipc_get_checkpoint(
@@ -107,7 +112,11 @@ pub trait LotusClient {
     ) -> Result<BottomUpCheckpoint>;
 
     /// Returns the state of the gateway actor at `tip_set`.
-    async fn ipc_read_gateway_state(&self, tip_set: Cid) -> Result<IPCReadGatewayStateResponse>;
+    async fn ipc_read_gateway_state(
+        &self,
+        gateway_addr: &Address,
+        tip_set: Cid,
+    ) -> Result<IPCReadGatewayStateResponse>;
 
     /// Returns the state of the subnet actor at `tip_set`.
     async fn ipc_read_subnet_actor_state(
