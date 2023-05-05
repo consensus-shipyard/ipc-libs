@@ -25,7 +25,6 @@ impl CommandLineHandler for WalletNew {
         let json_rpc_client = JsonRpcClientImpl::new(url, None);
 
         let params = WalletNewParams {
-            subnet: arguments.subnet.clone(),
             key_type: arguments.key_type.clone(),
         };
 
