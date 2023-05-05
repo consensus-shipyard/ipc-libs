@@ -8,9 +8,9 @@ use crate::config::Subnet;
 use crate::lotus::LotusClient;
 use anyhow::Result;
 use async_trait::async_trait;
+use cid::Cid;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
-use ipc_sdk::subnet_id::SubnetID;
 use std::fmt::Display;
 
 /// Checkpoint manager that handles a specific parent - child - checkpoint type tuple.
@@ -24,7 +24,7 @@ pub trait CheckpointManager: Display {
     fn parent_client(&self) -> &Self::LotusClient;
 
     /// Getter for the parent subnet this checkpoint manager is handling
-    fn parent_subnet_id(&self) -> &SubnetID;
+    fn parent_subnet(&self) -> &Subnet;
 
     /// Getter for the target subnet this checkpoint manager is handling
     fn child_subnet(&self) -> &Subnet;
@@ -40,12 +40,7 @@ pub trait CheckpointManager: Display {
 
     /// Submit the checkpoint based on the current epoch to submit and the previous epoch that was
     /// already submitted.
-    async fn submit_checkpoint(
-        &self,
-        epoch: ChainEpoch,
-        previous_epoch: ChainEpoch,
-        validator: &Address,
-    ) -> Result<()>;
+    async fn submit_checkpoint(&self, epoch: ChainEpoch, validator: &Address) -> Result<()>;
 
     /// Checks if the validator has already submitted in the epoch
     async fn should_submit_in_epoch(
@@ -57,4 +52,11 @@ pub trait CheckpointManager: Display {
     /// Performs checks to see if the subnet is ready for checkpoint submission. If `true` means the
     /// subnet is ready for submission, else means the subnet is not ready.
     async fn presubmission_check(&self) -> anyhow::Result<bool>;
+}
+
+/// Returns the first cid in the chain head
+pub(crate) async fn chain_head_cid(client: &(impl LotusClient + Sync)) -> anyhow::Result<Cid> {
+    let child_head = client.chain_head().await?;
+    let cid_map = child_head.cids.first().unwrap();
+    Cid::try_from(cid_map)
 }

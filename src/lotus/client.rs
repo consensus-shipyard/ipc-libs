@@ -426,7 +426,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     async fn ipc_get_topdown_msgs(
         &self,
         subnet_id: &SubnetID,
-        gateway_addr: Address,
+        gateway_addr: &Address,
         tip_set: Cid,
         nonce: u64,
     ) -> Result<Vec<CrossMsg>> {

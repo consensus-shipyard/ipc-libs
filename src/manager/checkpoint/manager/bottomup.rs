@@ -5,7 +5,7 @@ use crate::config::Subnet;
 use crate::lotus::client::DefaultLotusJsonRPCClient;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
-use crate::manager::checkpoint::CheckpointManager;
+use crate::manager::checkpoint::{chain_head_cid, CheckpointManager};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use cid::Cid;
@@ -17,25 +17,25 @@ use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
 
-pub struct BottomUpCheckpointManager {
-    parent: SubnetID,
-    parent_client: DefaultLotusJsonRPCClient,
+pub struct BottomUpCheckpointManager<T> {
+    parent: Subnet,
+    parent_client: T,
     child_subnet: Subnet,
     child_client: DefaultLotusJsonRPCClient,
 
     checkpoint_period: ChainEpoch,
 }
 
-impl BottomUpCheckpointManager {
+impl<T: LotusClient + Send + Sync> BottomUpCheckpointManager<T> {
     pub fn new_with_period(
-        parent_subnet: SubnetID,
-        parent_client: DefaultLotusJsonRPCClient,
+        parent: Subnet,
+        parent_client: T,
         child_subnet: Subnet,
         child_client: DefaultLotusJsonRPCClient,
         checkpoint_period: ChainEpoch,
     ) -> Self {
         Self {
-            parent: parent_subnet,
+            parent,
             parent_client,
             child_subnet,
             child_client,
@@ -44,8 +44,8 @@ impl BottomUpCheckpointManager {
     }
 
     pub async fn new(
-        parent_client: DefaultLotusJsonRPCClient,
-        parent: SubnetID,
+        parent_client: T,
+        parent: Subnet,
         child_client: DefaultLotusJsonRPCClient,
         child_subnet: Subnet,
     ) -> anyhow::Result<Self> {
@@ -58,17 +58,39 @@ impl BottomUpCheckpointManager {
             checkpoint_period,
         ))
     }
+
+    async fn proof(&self, epoch: ChainEpoch) -> anyhow::Result<Vec<u8>> {
+        let child_chain_head_tip_sets = self.child_client.chain_head().await?.cids;
+        if child_chain_head_tip_sets.is_empty() {
+            return Err(anyhow!(
+                "chain head has empty cid: {:}",
+                self.child_subnet.id
+            ));
+        }
+        let tip_sets_at_height = self
+            .child_client
+            .get_tipset_by_height(epoch, Cid::try_from(&child_chain_head_tip_sets[0])?)
+            .await?
+            .cids;
+        if tip_sets_at_height.is_empty() {
+            return Err(anyhow!(
+                "tip set at height has empty cid: {:} at epoch {epoch:}",
+                self.child_subnet.id
+            ));
+        };
+        Ok(Cid::try_from(&tip_sets_at_height[0])?.to_bytes())
+    }
 }
 
 #[async_trait]
-impl CheckpointManager for BottomUpCheckpointManager {
-    type LotusClient = DefaultLotusJsonRPCClient;
+impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManager<T> {
+    type LotusClient = T;
 
     fn parent_client(&self) -> &Self::LotusClient {
         &self.parent_client
     }
 
-    fn parent_subnet_id(&self) -> &SubnetID {
+    fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }
 
@@ -108,7 +130,6 @@ impl CheckpointManager for BottomUpCheckpointManager {
     async fn submit_checkpoint(
         &self,
         epoch: ChainEpoch,
-        _previous_epoch: ChainEpoch,
         validator: &Address,
     ) -> anyhow::Result<()> {
         let mut checkpoint = BottomUpCheckpoint::new(self.child_subnet.id.clone(), epoch);
@@ -124,31 +145,19 @@ impl CheckpointManager for BottomUpCheckpointManager {
             .ipc_get_checkpoint_template(epoch)
             .await
             .map_err(|e| {
-                log::error!(
-                "error getting bottom-up checkpoint template for epoch:{epoch:} in subnet: {:?}",
-                self.child_subnet.id
-            );
-                e
+                anyhow!(
+                    "error getting bottom-up checkpoint template for epoch:{epoch:} in subnet: {:?} due to {e:}",
+                    self.child_subnet.id
+                )
             })?;
         checkpoint.data.children = template.data.children;
         checkpoint.data.cross_msgs = template.data.cross_msgs;
-
-        log::info!(
-            "checkpoint at epoch {:} contains {:} number of cross messages",
-            checkpoint.data.epoch,
-            checkpoint
-                .data
-                .cross_msgs
-                .cross_msgs
-                .as_ref()
-                .map(|s| s.len())
-                .unwrap_or_default()
-        );
+        checkpoint.data.proof = self.proof(epoch).await?;
 
         // Get the CID of previous checkpoint of the child subnet from the gateway actor of the parent
         // subnet.
         log::debug!(
-            "Getting previous checkpoint bottom-up from parent gateway for {epoch:} in subnet: {:?}",
+            "getting previous checkpoint bottom-up from parent gateway for {epoch:} in subnet: {:?}",
             self.child_subnet.id
         );
         let response = self
@@ -156,11 +165,10 @@ impl CheckpointManager for BottomUpCheckpointManager {
             .ipc_get_prev_checkpoint_for_child(&self.child_subnet.id)
             .await
             .map_err(|e| {
-                log::error!(
-                "error getting previous bottom-up checkpoint for epoch:{epoch:} in subnet: {:?}",
-                self.child_subnet.id
-            );
-                e
+                anyhow!(
+                    "error getting previous bottom-up checkpoint for epoch:{epoch:} in subnet: {:?} due to {e:}",
+                    self.child_subnet.id
+                )
             })?;
 
         // if previous checkpoint is set
@@ -169,12 +177,20 @@ impl CheckpointManager for BottomUpCheckpointManager {
             checkpoint.data.prev_check = TCid::from(cid);
         }
 
-        let child_chain_head = self.child_client.chain_head().await?;
-        let child_tip_set = child_chain_head
-            .cids
-            .first()
-            .ok_or_else(|| anyhow!("chain head has empty cid: {:}", self.child_subnet.id))?;
-        checkpoint.data.proof = Cid::try_from(child_tip_set)?.to_bytes();
+        log::info!(
+            "checkpoint at epoch {:} contains {:} number of cross messages, cid: {:} for manager: {:} and validator: {:}",
+            checkpoint.data.epoch,
+            checkpoint
+                .data
+                .cross_msgs
+                .cross_msgs
+                .as_ref()
+                .map(|s| s.len())
+                .unwrap_or_default(),
+            checkpoint.cid(),
+            self,
+            validator,
+        );
 
         let to = self.child_subnet.id.subnet_actor();
         let message = MpoolPushMessage::new(
@@ -188,16 +204,17 @@ impl CheckpointManager for BottomUpCheckpointManager {
             .mpool_push_message(message)
             .await
             .map_err(|e| {
-                log::error!(
-                    "error submitting checkpoint for epoch {epoch:} in subnet: {:?}",
+                anyhow!(
+                    "error submitting checkpoint for epoch {epoch:} in subnet: {:?} with reason {e:}",
                     self.child_subnet.id
-                );
-                e
+                )
             })?;
 
         // wait for the checkpoint to be committed before moving on.
         let message_cid = mem_push_response.cid()?;
         log::debug!("checkpoint message published with cid: {message_cid:?}");
+
+        self.parent_client.state_wait_msg(message_cid).await?;
 
         Ok(())
     }
@@ -212,9 +229,13 @@ impl CheckpointManager for BottomUpCheckpointManager {
             self.child_subnet.id
         );
 
-        self.parent_client
+        let has_voted = self
+            .parent_client
             .ipc_validator_has_voted_bottomup(&self.child_subnet.id, epoch, validator)
-            .await
+            .await?;
+
+        // we should vote only when the validator has not voted
+        Ok(!has_voted)
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {
@@ -222,29 +243,21 @@ impl CheckpointManager for BottomUpCheckpointManager {
     }
 }
 
-impl Display for BottomUpCheckpointManager {
+impl<T> Display for BottomUpCheckpointManager<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "bottom-up, parent: {:}, child: {:}",
-            self.parent, self.child_subnet.id
+            self.parent.id, self.child_subnet.id
         )
     }
 }
 
-async fn obtain_checkpoint_period(
+async fn obtain_checkpoint_period<T: LotusClient + Send + Sync>(
     subnet_id: &SubnetID,
-    parent_client: &DefaultLotusJsonRPCClient,
+    parent_client: &T,
 ) -> anyhow::Result<ChainEpoch> {
-    log::debug!("Getting the bottom up checkpoint period for subnet: {subnet_id:?}");
-
-    // Read the parent's chain head and obtain the tip set CID.
-    let parent_head = parent_client.chain_head().await?;
-    let cid_map = parent_head.cids.first().unwrap().clone();
-    let parent_tip_set = Cid::try_from(cid_map)?;
-
-    // Extract the checkpoint period from the state of the subnet actor in the parent.
-    log::debug!("Get checkpointing period from subnet actor in parent");
+    let parent_tip_set = chain_head_cid(parent_client).await?;
     let state = parent_client
         .ipc_read_subnet_actor_state(subnet_id, parent_tip_set)
         .await
