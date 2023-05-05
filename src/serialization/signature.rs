@@ -48,6 +48,7 @@ pub mod json {
         })
     }
 
+    #[allow(dead_code)]
     pub mod opt {
         use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 

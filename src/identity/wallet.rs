@@ -12,7 +12,7 @@ use fvm_shared::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::keystore::{errors::Error, wallet_helpers, KeyInfo, KeyStore};
+use crate::identity::{errors::Error, wallet_helpers, KeyInfo, KeyStore};
 
 /// A key, this contains a `KeyInfo`, an address, and a public key.
 #[derive(Clone, PartialEq, Debug, Eq, Serialize, Deserialize)]
@@ -24,7 +24,7 @@ pub struct Key {
 }
 
 impl TryFrom<KeyInfo> for Key {
-    type Error = crate::keystore::errors::Error;
+    type Error = crate::identity::errors::Error;
 
     fn try_from(key_info: KeyInfo) -> Result<Self, Self::Error> {
         let public_key = wallet_helpers::to_public(*key_info.key_type(), key_info.private_key())?;
@@ -238,12 +238,12 @@ pub fn import(key_info: KeyInfo, keystore: &mut KeyStore) -> anyhow::Result<Addr
 
 #[cfg(test)]
 mod tests {
-    use crate::keystore::blake2b_256;
+    use crate::identity::blake2b_256;
     use anyhow::ensure;
     use libsecp256k1::{Message as SecpMessage, SecretKey as SecpPrivate};
 
     use super::*;
-    use crate::keystore::{generate, KeyStoreConfig};
+    use crate::identity::{generate, KeyStoreConfig};
 
     fn construct_priv_keys() -> Vec<Key> {
         let mut secp_keys = Vec::new();

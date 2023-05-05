@@ -34,6 +34,9 @@ impl CommandLineHandler for LaunchDaemon {
 
         let reloadable_config = Arc::new(ReloadableConfig::new(global.config_path())?);
 
+        // TODO: Initialize the keystore from config
+        // let keystore = Keystore::new(reloadable_config.clone()).await?;
+
         // Start subsystems.
         let checkpointing = CheckpointSubsystem::new(reloadable_config.clone());
         let server = JsonRPCServer::new(reloadable_config.clone());

@@ -343,7 +343,7 @@ impl KeyStore {
 
                 // Restrict permissions on files containing private keys
                 #[cfg(unix)]
-                crate::keystore::utils::set_user_perm(&file)?;
+                crate::identity::utils::set_user_perm(&file)?;
 
                 let mut writer = BufWriter::new(file);
 
@@ -505,8 +505,8 @@ mod test {
 
     use super::*;
     use crate::{
-        keystore::json::{KeyInfoJson, KeyInfoJsonRef},
-        keystore::wallet,
+        identity::json::{KeyInfoJson, KeyInfoJsonRef},
+        identity::wallet,
     };
 
     const PASSPHRASE: &str = "foobarbaz";
@@ -549,7 +549,7 @@ mod test {
 
     #[test]
     fn test_read_old_encrypted_keystore() -> Result<()> {
-        let dir: PathBuf = "src/keystore/tests/keystore_encrypted_old".into();
+        let dir: PathBuf = "src/identity/tests/keystore_encrypted_old".into();
         ensure!(dir.exists());
         let ks = KeyStore::new(KeyStoreConfig::Encrypted(dir, PASSPHRASE.to_string()))?;
         ensure!(ks.persistence.is_some());
