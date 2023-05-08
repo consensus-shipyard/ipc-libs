@@ -126,8 +126,7 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(wallet.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_EXPORT), h);
 
-        let h: Box<dyn HandlerWrapper> =
-            Box::new(WalletBalancesHandler::new(pool.clone(), wallet.clone()));
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletBalancesHandler::new(pool.clone(), wallet));
         handlers.insert(String::from(json_rpc_methods::WALLET_BALANCES), h);
 
         let h: Box<dyn HandlerWrapper> = Box::new(SetValidatorNetAddrHandler::new(pool.clone()));

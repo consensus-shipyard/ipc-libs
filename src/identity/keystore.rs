@@ -179,8 +179,7 @@ pub enum EncryptedKeyStoreError {
 impl KeyStore {
     pub fn new_from_agent_config(config: Arc<ReloadableConfig>) -> Result<Self, Error> {
         let repo_str = config.get_config_repo();
-        if repo_str.is_some() {
-            let repo_str = repo_str.unwrap();
+        if let Some(repo_str) = repo_str {
             let repo = Path::new(&repo_str);
             // TODO: we currently only support persistent keystore in the default repo directory.
             let keystore_config = KeyStoreConfig::Persistent(repo.join(KEYSTORE_NAME));
