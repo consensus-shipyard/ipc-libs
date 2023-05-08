@@ -18,7 +18,6 @@ pub struct StateWaitMsgResponse {
     pub(crate) receipt: Receipt,
     #[allow(dead_code)]
     tip_set: Vec<CIDMap>,
-    #[allow(dead_code)]
     pub height: u64,
 }
 
