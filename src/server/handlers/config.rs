@@ -44,11 +44,15 @@ impl JsonRPCRequestHandler for ReloadConfigHandler {
 pub(crate) fn new_keystore_from_config(config: Arc<ReloadableConfig>) -> anyhow::Result<KeyStore> {
     let repo_str = config.get_config_repo();
     if let Some(repo_str) = repo_str {
-        let repo = Path::new(&repo_str);
-        // TODO: we currently only support persistent keystore in the default repo directory.
-        let keystore_config = KeyStoreConfig::Persistent(repo.join(KEYSTORE_NAME));
-        KeyStore::new(keystore_config).map_err(|e| anyhow!("Failed to create keystore: {}", e))
+        new_keystore_from_path(&repo_str)
     } else {
         Err(anyhow!("No keystore repo found in config"))
     }
+}
+
+pub fn new_keystore_from_path(repo_str: &str) -> anyhow::Result<KeyStore> {
+    let repo = Path::new(&repo_str);
+    let keystore_config = KeyStoreConfig::Persistent(repo.join(KEYSTORE_NAME));
+    // TODO: we currently only support persistent keystore in the default repo directory.
+    KeyStore::new(keystore_config).map_err(|e| anyhow!("Failed to create keystore: {}", e))
 }

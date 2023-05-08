@@ -36,6 +36,7 @@ use crate::server::JsonRPCRequestHandler;
 use ipc_identity::Wallet;
 
 use self::config::new_keystore_from_config;
+pub use self::config::new_keystore_from_path;
 use self::topdown_executed::LastTopDownExecHandler;
 use self::wallet::export::WalletExportHandler;
 use self::wallet::import::WalletImportHandler;
@@ -123,8 +124,11 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(WalletImportHandler::new(wallet.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_IMPORT), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(wallet.clone()));
-        handlers.insert(String::from(json_rpc_methods::WALLET_EXPORT), h);
+        let _h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(wallet.clone()));
+        // FIXME: For security reasons currently not exposing the ability to export wallet
+        // remotely through the RPC API, only directly through the CLI.
+        // We can consider re-enabling once we have RPC authentication in the agent.
+        // handlers.insert(String::from(json_rpc_methods::WALLET_EXPORT), h);
 
         let h: Box<dyn HandlerWrapper> = Box::new(WalletBalancesHandler::new(pool.clone(), wallet));
         handlers.insert(String::from(json_rpc_methods::WALLET_BALANCES), h);
