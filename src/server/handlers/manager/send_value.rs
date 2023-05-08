@@ -68,6 +68,7 @@ impl JsonRPCRequestHandler for SendValueHandler {
 
 fn f64_to_token_amount(f: f64) -> TokenAmount {
     let precision = TokenAmount::PRECISION as f64;
+    // no rounding, just the integer part
     TokenAmount::from_atto(f64::trunc(f * precision) as u64)
 }
 
