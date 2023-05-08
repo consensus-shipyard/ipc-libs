@@ -1,4 +1,4 @@
-use crate::identity::Wallet;
+use ipc_identity::Wallet;
 use std::collections::HashMap;
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT

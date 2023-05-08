@@ -5,7 +5,6 @@
 //! json serialization.
 
 mod checkpoint;
-pub mod signature;
 
 /// A helper struct to serialize struct to json.
 ///

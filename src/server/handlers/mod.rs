@@ -20,8 +20,6 @@ pub use manager::*;
 
 use crate::config::json_rpc_methods;
 use crate::config::ReloadableConfig;
-use crate::identity::KeyStore;
-use crate::identity::Wallet;
 use crate::server::handlers::config::ReloadConfigHandler;
 use crate::server::handlers::manager::fund::FundHandler;
 use crate::server::handlers::manager::list_subnets::ListSubnetsHandler;
@@ -35,7 +33,9 @@ use crate::server::handlers::wallet::new::WalletNewHandler;
 use crate::server::list_checkpoints::ListBottomUpCheckpointsHandler;
 use crate::server::net_addr::SetValidatorNetAddrHandler;
 use crate::server::JsonRPCRequestHandler;
+use ipc_identity::Wallet;
 
+use self::config::new_keystore_from_config;
 use self::topdown_executed::LastTopDownExecHandler;
 use self::wallet::export::WalletExportHandler;
 use self::wallet::import::WalletImportHandler;
@@ -84,7 +84,7 @@ impl Handlers {
         handlers.insert(String::from(json_rpc_methods::RELOAD_CONFIG), h);
 
         // Load the wallet manager from keystore
-        let wallet = Arc::new(RwLock::new(Wallet::new(KeyStore::new_from_agent_config(
+        let wallet = Arc::new(RwLock::new(Wallet::new(new_keystore_from_config(
             config.clone(),
         )?)));
 

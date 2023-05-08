@@ -4,7 +4,6 @@
 pub mod cli;
 pub mod config;
 pub mod constants;
-pub mod identity;
 pub mod jsonrpc;
 pub mod lotus;
 pub mod manager;

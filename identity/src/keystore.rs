@@ -8,7 +8,6 @@ use std::{
     fs::{self, create_dir, File},
     io::{BufReader, BufWriter, ErrorKind, Read, Write},
     path::{Path, PathBuf},
-    sync::Arc,
 };
 
 use ahash::{HashMap, HashMapExt};
@@ -25,8 +24,6 @@ use xsalsa20poly1305::{
     aead::{generic_array::GenericArray, Aead},
     KeyInit, XSalsa20Poly1305, NONCE_SIZE,
 };
-
-use crate::config::ReloadableConfig;
 
 use super::errors::Error;
 
@@ -76,7 +73,7 @@ impl KeyInfo {
 }
 
 pub mod json {
-    use crate::serialization::signature::json::signature_type::SignatureTypeJson;
+    use crate::serialization::json::signature_type::SignatureTypeJson;
     use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
     use super::*;
@@ -177,18 +174,6 @@ pub enum EncryptedKeyStoreError {
 }
 
 impl KeyStore {
-    pub fn new_from_agent_config(config: Arc<ReloadableConfig>) -> Result<Self, Error> {
-        let repo_str = config.get_config_repo();
-        if let Some(repo_str) = repo_str {
-            let repo = Path::new(&repo_str);
-            // TODO: we currently only support persistent keystore in the default repo directory.
-            let keystore_config = KeyStoreConfig::Persistent(repo.join(KEYSTORE_NAME));
-            Self::new(keystore_config)
-        } else {
-            Err(Error::Other("No config repo found".to_string()))
-        }
-    }
-
     pub fn new(config: KeyStoreConfig) -> Result<Self, Error> {
         match config {
             KeyStoreConfig::Memory => Ok(Self {
@@ -358,7 +343,7 @@ impl KeyStore {
 
                 // Restrict permissions on files containing private keys
                 #[cfg(unix)]
-                crate::identity::utils::set_user_perm(&file)?;
+                crate::utils::set_user_perm(&file)?;
 
                 let mut writer = BufWriter::new(file);
 
@@ -520,8 +505,8 @@ mod test {
 
     use super::*;
     use crate::{
-        identity::json::{KeyInfoJson, KeyInfoJsonRef},
-        identity::wallet,
+        json::{KeyInfoJson, KeyInfoJsonRef},
+        wallet,
     };
 
     const PASSPHRASE: &str = "foobarbaz";
@@ -564,7 +549,7 @@ mod test {
 
     #[test]
     fn test_read_old_encrypted_keystore() -> Result<()> {
-        let dir: PathBuf = "src/identity/tests/keystore_encrypted_old".into();
+        let dir: PathBuf = "tests/keystore_encrypted_old".into();
         ensure!(dir.exists());
         let ks = KeyStore::new(KeyStoreConfig::Encrypted(dir, PASSPHRASE.to_string()))?;
         ensure!(ks.persistence.is_some());
