@@ -8,6 +8,7 @@ use std::{
     fs::{self, create_dir, File},
     io::{BufReader, BufWriter, ErrorKind, Read, Write},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use ahash::{HashMap, HashMapExt};
@@ -24,6 +25,8 @@ use xsalsa20poly1305::{
     aead::{generic_array::GenericArray, Aead},
     KeyInit, XSalsa20Poly1305, NONCE_SIZE,
 };
+
+use crate::config::ReloadableConfig;
 
 use super::errors::Error;
 
@@ -174,6 +177,18 @@ pub enum EncryptedKeyStoreError {
 }
 
 impl KeyStore {
+    pub fn new_from_agent_config(config: Arc<ReloadableConfig>) -> Result<Self, Error> {
+        let repo_str = config.get_config_repo();
+        if let Some(repo_str) = repo_str {
+            let repo = Path::new(&repo_str);
+            // TODO: we currently only support persistent keystore in the default repo directory.
+            let keystore_config = KeyStoreConfig::Persistent(repo.join(KEYSTORE_NAME));
+            Self::new(keystore_config)
+        } else {
+            Err(Error::Other("No config repo found".to_string()))
+        }
+    }
+
     pub fn new(config: KeyStoreConfig) -> Result<Self, Error> {
         match config {
             KeyStoreConfig::Memory => Ok(Self {

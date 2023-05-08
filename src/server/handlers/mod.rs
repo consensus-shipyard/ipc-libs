@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::RwLock;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -19,6 +20,8 @@ pub use manager::*;
 
 use crate::config::json_rpc_methods;
 use crate::config::ReloadableConfig;
+use crate::identity::KeyStore;
+use crate::identity::Wallet;
 use crate::server::handlers::config::ReloadConfigHandler;
 use crate::server::handlers::manager::fund::FundHandler;
 use crate::server::handlers::manager::list_subnets::ListSubnetsHandler;
@@ -27,13 +30,15 @@ use crate::server::handlers::manager::release::ReleaseHandler;
 use crate::server::handlers::manager::whitelist::WhitelistPropagatorHandler;
 use crate::server::handlers::send_value::SendValueHandler;
 use crate::server::handlers::validator::QueryValidatorSetHandler;
-use crate::server::handlers::wallet::list::WalletListHandler;
+use crate::server::handlers::wallet::balances::WalletBalancesHandler;
 use crate::server::handlers::wallet::new::WalletNewHandler;
 use crate::server::list_checkpoints::ListBottomUpCheckpointsHandler;
 use crate::server::net_addr::SetValidatorNetAddrHandler;
 use crate::server::JsonRPCRequestHandler;
 
 use self::topdown_executed::LastTopDownExecHandler;
+use self::wallet::export::WalletExportHandler;
+use self::wallet::import::WalletImportHandler;
 
 mod config;
 mod manager;
@@ -78,6 +83,11 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(ReloadConfigHandler::new(config.clone()));
         handlers.insert(String::from(json_rpc_methods::RELOAD_CONFIG), h);
 
+        // Load the wallet manager from keystore
+        let wallet = Arc::new(RwLock::new(Wallet::new(KeyStore::new_from_agent_config(
+            config.clone(),
+        )?)));
+
         // subnet manager methods
         let pool = Arc::new(SubnetManagerPool::from_reload_config(config.clone()));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
@@ -107,11 +117,17 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(SendValueHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::SEND_VALUE), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(pool.clone()));
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(wallet.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_NEW), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(WalletListHandler::new(pool.clone()));
-        handlers.insert(String::from(json_rpc_methods::WALLET_LIST), h);
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletImportHandler::new(wallet.clone()));
+        handlers.insert(String::from(json_rpc_methods::WALLET_IMPORT), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(wallet.clone()));
+        handlers.insert(String::from(json_rpc_methods::WALLET_EXPORT), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletBalancesHandler::new(pool.clone(), wallet));
+        handlers.insert(String::from(json_rpc_methods::WALLET_BALANCES), h);
 
         let h: Box<dyn HandlerWrapper> = Box::new(SetValidatorNetAddrHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::SET_VALIDATOR_NET_ADDR), h);
