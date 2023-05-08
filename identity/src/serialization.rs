@@ -116,7 +116,6 @@ pub mod json {
 mod tests {
     use fvm_shared::crypto::signature::{Signature, SignatureType};
     use quickcheck_macros::quickcheck;
-    use serde_json;
 
     use super::json::{signature_type::SignatureTypeJson, SignatureJson, SignatureJsonRef};
 
