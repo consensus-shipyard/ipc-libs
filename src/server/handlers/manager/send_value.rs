@@ -20,7 +20,8 @@ pub struct SendValueParams {
     pub subnet: String,
     pub from: Option<String>,
     pub to: String,
-    pub amount: u64,
+    /// In FIL, not atto
+    pub amount: f64,
 }
 
 /// Send value between two addresses within a subnet
@@ -46,7 +47,10 @@ impl JsonRPCRequestHandler for SendValueHandler {
             Some(conn) => conn,
         };
 
-        let amount = TokenAmount::from_whole(request.amount); // In FIL, not atto
+        let amount = f64_to_token_amount(request.amount);
+        if !amount.is_positive() {
+            return Err(anyhow!("invalid amount to send: {:}", request.amount));
+        }
 
         let subnet_config = conn.subnet();
         check_subnet(subnet_config)?;
@@ -54,7 +58,27 @@ impl JsonRPCRequestHandler for SendValueHandler {
         let from = parse_from(subnet_config, request.from)?;
         let to = Address::from_str(&request.to)?;
 
+        log::debug!("json rpc: received request to send amount: {amount:} from {from:} to {to:}");
+
         conn.manager().send_value(from, to, amount).await?;
+
         Ok(())
+    }
+}
+
+fn f64_to_token_amount(f: f64) -> TokenAmount {
+    let precision = TokenAmount::PRECISION as f64;
+    TokenAmount::from_atto(f64::trunc(f * precision) as u64)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::server::send_value::f64_to_token_amount;
+    use fvm_shared::econ::TokenAmount;
+
+    #[test]
+    fn test_amount() {
+        let amount = f64_to_token_amount(1.2f64);
+        assert_eq!(amount, TokenAmount::from_atto(1200000000000000000u64));
     }
 }
