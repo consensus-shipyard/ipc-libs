@@ -2918,14 +2918,10 @@ dependencies = [
 name = "ipc-agent"
 version = "0.1.0"
 dependencies = [
- "ahash 0.8.3",
  "anyhow",
- "argon2",
  "async-channel",
  "async-trait",
  "base64 0.21.0",
- "blake2b_simd",
- "bls-signatures",
  "bytes",
  "cid",
  "clap",
@@ -2938,21 +2934,16 @@ dependencies = [
  "fvm_shared 3.0.0-alpha.17",
  "indoc",
  "ipc-gateway",
+ "ipc-identity",
  "ipc-sdk",
  "ipc-subnet-actor",
- "libc",
- "libsecp256k1",
  "log",
  "num-derive",
  "num-traits",
  "primitives",
- "quickcheck",
- "quickcheck_macros",
- "rand 0.8.5",
  "reqwest",
  "serde",
  "serde_bytes",
- "serde_ipld_dagcbor",
  "serde_json",
  "serde_tuple",
  "strum",
@@ -2964,7 +2955,6 @@ dependencies = [
  "toml 0.7.3",
  "url",
  "warp",
- "xsalsa20poly1305",
 ]
 
 [[package]]
@@ -2995,6 +2985,33 @@ dependencies = [
  "unsigned-varint",
  "wasm-builder",
  "wasmtime",
+]
+
+[[package]]
+name = "ipc-identity"
+version = "0.1.0"
+dependencies = [
+ "ahash 0.8.3",
+ "anyhow",
+ "argon2",
+ "base64 0.21.0",
+ "blake2b_simd",
+ "bls-signatures",
+ "fvm_shared 3.0.0-alpha.17",
+ "ipc-sdk",
+ "libc",
+ "libsecp256k1",
+ "log",
+ "quickcheck",
+ "quickcheck_macros",
+ "rand 0.8.5",
+ "serde",
+ "serde_ipld_dagcbor",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "xsalsa20poly1305",
 ]
 
 [[package]]

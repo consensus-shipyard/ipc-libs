@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 mod errors;
 mod keystore;
+mod serialization;
 mod utils;
 mod wallet;
 mod wallet_helpers;

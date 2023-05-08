@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MIT
 //! wallet handlers and parameters
 
-use crate::identity::Wallet;
 use crate::lotus::message::wallet::WalletKeyType;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use fvm_shared::crypto::signature::SignatureType;
+use ipc_identity::Wallet;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};

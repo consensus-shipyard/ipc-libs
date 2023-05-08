@@ -4,9 +4,11 @@
 
 use crate::config::ReloadableConfig;
 use crate::server::JsonRPCRequestHandler;
+use anyhow::anyhow;
 use async_trait::async_trait;
+use ipc_identity::{KeyStore, KeyStoreConfig, KEYSTORE_NAME};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ReloadConfigParams {
@@ -36,5 +38,17 @@ impl JsonRPCRequestHandler for ReloadConfigHandler {
             self.config.set_path(request.path.unwrap());
         }
         self.config.reload().await
+    }
+}
+
+pub(crate) fn new_keystore_from_config(config: Arc<ReloadableConfig>) -> anyhow::Result<KeyStore> {
+    let repo_str = config.get_config_repo();
+    if let Some(repo_str) = repo_str {
+        let repo = Path::new(&repo_str);
+        // TODO: we currently only support persistent keystore in the default repo directory.
+        let keystore_config = KeyStoreConfig::Persistent(repo.join(KEYSTORE_NAME));
+        KeyStore::new(keystore_config).map_err(|e| anyhow!("Failed to create keystore: {}", e))
+    } else {
+        Err(anyhow!("No keystore repo found in config"))
     }
 }
