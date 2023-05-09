@@ -13,8 +13,10 @@ use fvm_ipld_encoding::RawBytes;
 use fvm_shared::address::Address;
 use fvm_shared::bigint::BigInt;
 use fvm_shared::clock::ChainEpoch;
+use fvm_shared::crypto::signature::Signature;
 use fvm_shared::econ::TokenAmount;
 use ipc_gateway::{BottomUpCheckpoint, CrossMsg};
+use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
 use serde::de::DeserializeOwned;
@@ -37,6 +39,7 @@ use crate::manager::SubnetInfo;
 // RPC methods
 mod methods {
     pub const MPOOL_PUSH_MESSAGE: &str = "Filecoin.MpoolPushMessage";
+    pub const MPOOL_PUSH: &str = "Filecoin.MpoolPush";
     pub const STATE_WAIT_MSG: &str = "Filecoin.StateWaitMsg";
     pub const STATE_NETWORK_NAME: &str = "Filecoin.StateNetworkName";
     pub const STATE_NETWORK_VERSION: &str = "Filecoin.StateNetworkVersion";
@@ -91,11 +94,15 @@ const STATE_WAIT_ALLOW_REPLACE: bool = true;
 /// ```
 pub struct LotusJsonRPCClient<T: JsonRpcClient> {
     client: T,
+    wallet_store: Option<Wallet>,
 }
 
 impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
     pub fn new(client: T) -> Self {
-        Self { client }
+        Self {
+            client,
+            wallet_store: None,
+        }
     }
 }
 
@@ -144,6 +151,22 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         let r = self
             .client
             .request::<MpoolPushMessageResponse>(methods::MPOOL_PUSH_MESSAGE, params)
+            .await?;
+        log::debug!("received mpool_push_message response: {r:?}");
+
+        Ok(r.message)
+    }
+
+    async fn mpool_push(&self, mut msg: MpoolPushMessage) -> Result<MpoolPushMessageResponseInner> {
+        self.populate_mpool_message(&mut msg).await?;
+
+        let signature = self.sign_mpool_message(&msg)?;
+
+        let params = create_signed_message_params(msg, signature);
+
+        let r = self
+            .client
+            .request::<MpoolPushMessageResponse>(methods::MPOOL_PUSH, params)
             .await?;
         log::debug!("received mpool_push_message response: {r:?}");
 
@@ -491,6 +514,49 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     }
 }
 
+impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
+    fn sign_mpool_message(&self, msg: &MpoolPushMessage) -> anyhow::Result<Signature> {
+        let wallet_store = if let Some(ws) = &self.wallet_store {
+            ws
+        } else {
+            return Err(anyhow!("key store not set, function not supported"));
+        };
+
+        let to_be_signed = (
+            &msg.version,
+            &msg.to,
+            &msg.from,
+            &msg.nonce,
+            &msg.value,
+            &msg.gas_limit
+                .as_ref()
+                .ok_or_else(|| anyhow!("gas_limit should not be empty"))?,
+            &msg.gas_fee_cap
+                .as_ref()
+                .ok_or_else(|| anyhow!("gas_fee_cap should not be empty"))?,
+            &msg.gas_premium
+                .as_ref()
+                .ok_or_else(|| anyhow!("gas_premium should not be empty"))?,
+            &msg.method,
+            &msg.params,
+        );
+        let wallet_store = unsafe {
+            let const_ptr = wallet_store as *const Wallet;
+            let mut_ptr = const_ptr as *mut Wallet;
+            &mut *mut_ptr
+        };
+        let sig = wallet_store.sign(
+            &msg.from,
+            cbor::serialize(&to_be_signed, "mem pool sign")?.bytes(),
+        )?;
+        Ok(sig)
+    }
+
+    async fn populate_mpool_message(&self, _msg: &mut MpoolPushMessage) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 impl LotusJsonRPCClient<JsonRpcClientImpl> {
     /// A constructor that returns a `LotusJsonRPCClient` from a `Subnet`. The returned
     /// `LotusJsonRPCClient` makes requests to the URL defined in the `Subnet`.
@@ -500,4 +566,47 @@ impl LotusJsonRPCClient<JsonRpcClientImpl> {
         let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token);
         LotusJsonRPCClient::new(jsonrpc_client)
     }
+}
+
+fn create_signed_message_params(msg: MpoolPushMessage, signature: Signature) -> serde_json::Value {
+    let nonce = msg
+        .nonce
+        .map(|n| serde_json::Value::Number(n.into()))
+        .unwrap_or(serde_json::Value::Null);
+
+    let to_value = |t: Option<TokenAmount>| {
+        t.map(|n| serde_json::Value::Number(n.atto().to_u64().unwrap().into()))
+            .unwrap_or(serde_json::Value::Null)
+    };
+
+    let gas_limit = to_value(msg.gas_limit);
+    let gas_premium = to_value(msg.gas_premium);
+    let gas_fee_cap = to_value(msg.gas_fee_cap);
+
+    let Signature { sig_type, bytes } = signature;
+    let sig_encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
+
+    // refer to: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpush
+    json!([
+    {
+        "Message": {
+              "To": msg.to.to_string(),
+              "From": msg.from.to_string(),
+              "Value": msg.value.atto().to_string(),
+              "Method": msg.method,
+              "Params": msg.params,
+
+              // THESE ALL WILL AUTO POPULATE if null
+              "Nonce": nonce,
+              "GasLimit": gas_limit,
+              "GasFeeCap": gas_fee_cap,
+              "GasPremium": gas_premium,
+              "CID": CIDMap::from(msg.cid),
+            },
+            "Signature": {
+              "Type": sig_type as u8,
+              "Data": sig_encoded,
+            }
+          }
+    ])
 }
