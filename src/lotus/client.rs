@@ -40,6 +40,7 @@ use crate::manager::SubnetInfo;
 mod methods {
     pub const MPOOL_PUSH_MESSAGE: &str = "Filecoin.MpoolPushMessage";
     pub const MPOOL_PUSH: &str = "Filecoin.MpoolPush";
+    pub const MPOOL_GET_NONCE: &str = "Filecoin.MPOOL_GET_NONCE";
     pub const STATE_WAIT_MSG: &str = "Filecoin.StateWaitMsg";
     pub const STATE_NETWORK_NAME: &str = "Filecoin.StateNetworkName";
     pub const STATE_NETWORK_VERSION: &str = "Filecoin.StateNetworkVersion";
@@ -51,6 +52,7 @@ mod methods {
     pub const STATE_READ_STATE: &str = "Filecoin.StateReadState";
     pub const CHAIN_HEAD: &str = "Filecoin.ChainHead";
     pub const GET_TIPSET_BY_HEIGHT: &str = "Filecoin.ChainGetTipSetByHeight";
+    pub const ESTIMATE_MESSAGE_GAS: &str = "Filecoin.GAS_ESTIMATE_MESSAGE_GAS";
     pub const IPC_GET_PREV_CHECKPOINT_FOR_CHILD: &str = "Filecoin.IPCGetPrevCheckpointForChild";
     pub const IPC_GET_CHECKPOINT_TEMPLATE: &str = "Filecoin.IPCGetCheckpointTemplateSerialized";
     pub const IPC_GET_CHECKPOINT: &str = "Filecoin.IPCGetCheckpointSerialized";
@@ -158,7 +160,15 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     }
 
     async fn mpool_push(&self, mut msg: MpoolPushMessage) -> Result<MpoolPushMessageResponseInner> {
-        self.populate_mpool_message(&mut msg).await?;
+        self.estimate_message_gas(&mut msg).await?;
+
+        if msg.nonce.is_none() {
+            let nonce = self.mpool_nonce(&msg.from).await?;
+            log::info!("sender: {:} with nonce: {nonce:}", msg.from);
+            msg.nonce = Some(nonce);
+        }
+
+        log::debug!("message to push to mpool: {msg:?}");
 
         let signature = self.sign_mpool_message(&msg)?;
 
@@ -552,8 +562,43 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
         Ok(sig)
     }
 
-    async fn populate_mpool_message(&self, _msg: &mut MpoolPushMessage) -> anyhow::Result<()> {
+    async fn estimate_message_gas(&self, msg: &mut MpoolPushMessage) -> anyhow::Result<()> {
+        let params = json!([
+            {
+                "To": msg.to.to_string(),
+                "From": msg.from.to_string(),
+                "Value": msg.value.atto().to_string(),
+                "Method": msg.method,
+                "Params": msg.params,
+                "Nonce": msg.nonce,
+
+                "GasLimit": serde_json::Value::Null,
+                "GasFeeCap": serde_json::Value::Null,
+                "GasPremium": serde_json::Value::Null,
+
+                "CID": CIDMap::from(msg.cid),
+            }
+        ]);
+
+        let populated = self
+            .client
+            .request::<MpoolPushMessage>(methods::ESTIMATE_MESSAGE_GAS, params)
+            .await?;
+
+        msg.gas_fee_cap = populated.gas_fee_cap;
+        msg.gas_limit = populated.gas_limit;
+        msg.gas_premium = populated.gas_premium;
+
         Ok(())
+    }
+
+    async fn mpool_nonce(&self, address: &Address) -> anyhow::Result<u64> {
+        let params = json!([address.to_string()]);
+        let nonce = self
+            .client
+            .request::<u64>(methods::MPOOL_GET_NONCE, params)
+            .await?;
+        Ok(nonce)
     }
 }
 
@@ -588,25 +633,25 @@ fn create_signed_message_params(msg: MpoolPushMessage, signature: Signature) -> 
 
     // refer to: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpush
     json!([
-    {
-        "Message": {
-              "To": msg.to.to_string(),
-              "From": msg.from.to_string(),
-              "Value": msg.value.atto().to_string(),
-              "Method": msg.method,
-              "Params": msg.params,
+        {
+            "Message": {
+                "To": msg.to.to_string(),
+                "From": msg.from.to_string(),
+                "Value": msg.value.atto().to_string(),
+                "Method": msg.method,
+                "Params": msg.params,
 
-              // THESE ALL WILL AUTO POPULATE if null
-              "Nonce": nonce,
-              "GasLimit": gas_limit,
-              "GasFeeCap": gas_fee_cap,
-              "GasPremium": gas_premium,
-              "CID": CIDMap::from(msg.cid),
+                // THESE ALL WILL AUTO POPULATE if null
+                "Nonce": nonce,
+                "GasLimit": gas_limit,
+                "GasFeeCap": gas_fee_cap,
+                "GasPremium": gas_premium,
+                "CID": CIDMap::from(msg.cid),
             },
             "Signature": {
-              "Type": sig_type as u8,
-              "Data": sig_encoded,
+                "Type": sig_type as u8,
+                "Data": sig_encoded,
             }
-          }
+        }
     ])
 }
