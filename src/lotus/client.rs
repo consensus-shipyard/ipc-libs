@@ -597,11 +597,18 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
 
     async fn mpool_nonce(&self, address: &Address) -> anyhow::Result<u64> {
         let params = json!([address.to_string()]);
-        let nonce = self
+        let r = self
             .client
             .request::<u64>(methods::MPOOL_GET_NONCE, params)
-            .await?;
-        Ok(nonce)
+            .await;
+        if r.is_err() {
+            let e = r.unwrap_err();
+            if e.to_string().starts_with("resolution lookup failed") {
+                return Ok(0);
+            }
+            return Err(e);
+        }
+        Ok(r.unwrap())
     }
 }
 
