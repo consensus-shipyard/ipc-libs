@@ -321,6 +321,15 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         self.lotus_client.wallet_balance(address).await
     }
 
+    async fn last_topdown_executed(&self) -> Result<ChainEpoch> {
+        let head = self.lotus_client.chain_head().await?;
+        let cid_map = head.cids.first().unwrap().clone();
+        let tip_set = Cid::try_from(cid_map)?;
+        let gw_state = self.lotus_client.ipc_read_gateway_state(tip_set).await?;
+
+        Ok(gw_state.top_down_checkpoint_voting.last_voting_executed)
+    }
+
     async fn list_checkpoints(
         &self,
         subnet_id: SubnetID,
@@ -332,15 +341,6 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             .ipc_list_checkpoints(subnet_id, from_epoch, to_epoch)
             .await?;
         Ok(checkpoints)
-    }
-
-    async fn last_topdown_executed(&self) -> Result<ChainEpoch> {
-        let head = self.lotus_client.chain_head().await?;
-        let cid_map = head.cids.first().unwrap().clone();
-        let tip_set = Cid::try_from(cid_map)?;
-        let gw_state = self.lotus_client.ipc_read_gateway_state(tip_set).await?;
-
-        Ok(gw_state.top_down_checkpoint_voting.last_voting_executed)
     }
 }
 
