@@ -573,7 +573,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 "Params": msg.params,
                 "Nonce": msg.nonce,
 
-                "GasLimit": "0",
+                "GasLimit": 0,
                 "GasFeeCap": "0",
                 "GasPremium": "0",
 
@@ -603,7 +603,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
             .await;
         if r.is_err() {
             let e = r.unwrap_err();
-            if e.to_string().starts_with("resolution lookup failed") {
+            if e.to_string().contains("resolution lookup failed") {
                 return Ok(0);
             }
             return Err(e);

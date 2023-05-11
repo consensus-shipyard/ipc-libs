@@ -1,7 +1,8 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::lotus::message::deserialize::{
-    deserialize_some_token_amount_from_str, deserialize_token_amount_from_str,
+    deserialize_address_from_str, deserialize_some_token_amount_from_str,
+    deserialize_token_amount_from_str,
 };
 use crate::lotus::message::CIDMap;
 use cid::Cid;
@@ -59,7 +60,9 @@ impl MpoolPushMessageResponseInner {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct MpoolPushMessage {
+    #[serde(deserialize_with = "deserialize_address_from_str")]
     pub to: Address,
+    #[serde(deserialize_with = "deserialize_address_from_str")]
     pub from: Address,
     #[serde(deserialize_with = "deserialize_token_amount_from_str")]
     pub value: TokenAmount,
