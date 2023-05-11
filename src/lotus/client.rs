@@ -40,7 +40,7 @@ use crate::manager::SubnetInfo;
 mod methods {
     pub const MPOOL_PUSH_MESSAGE: &str = "Filecoin.MpoolPushMessage";
     pub const MPOOL_PUSH: &str = "Filecoin.MpoolPush";
-    pub const MPOOL_GET_NONCE: &str = "Filecoin.MPOOL_GET_NONCE";
+    pub const MPOOL_GET_NONCE: &str = "Filecoin.MpoolGetNonce";
     pub const STATE_WAIT_MSG: &str = "Filecoin.StateWaitMsg";
     pub const STATE_NETWORK_NAME: &str = "Filecoin.StateNetworkName";
     pub const STATE_NETWORK_VERSION: &str = "Filecoin.StateNetworkVersion";
