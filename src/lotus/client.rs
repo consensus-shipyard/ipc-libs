@@ -573,8 +573,17 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 .clone(),
         };
 
+        use cid::multihash::MultihashDigest;
+        let data = &to_vec(&message)?;
+        let hash = cid::multihash::Code::Blake2b256.digest(data);
+
         let mut wallet_store = self.wallet_store.as_ref().unwrap().write().unwrap();
-        let sig = wallet_store.sign(&msg.from, &to_vec(&message)?)?;
+        let sig = wallet_store.sign(
+            &msg.from,
+            Cid::new_v1(fvm_ipld_encoding::DAG_CBOR, hash)
+                .to_bytes()
+                .as_slice(),
+        )?;
 
         Ok(sig)
     }
