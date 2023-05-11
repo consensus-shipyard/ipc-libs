@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use base64::Engine;
 use cid::Cid;
 use fil_actors_runtime::cbor;
-use fvm_ipld_encoding::RawBytes;
+use fvm_ipld_encoding::{to_vec, RawBytes};
 use fvm_shared::address::Address;
 use fvm_shared::bigint::BigInt;
 use fvm_shared::clock::ChainEpoch;
@@ -172,6 +172,10 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             let nonce = self.mpool_nonce(&msg.from).await?;
             log::info!("sender: {:} with nonce: {nonce:}", msg.from);
             msg.nonce = Some(nonce);
+        }
+
+        if msg.version.is_none() {
+            msg.version = Some(42);
         }
 
         self.estimate_message_gas(&mut msg).await?;
@@ -538,30 +542,39 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
             return Err(anyhow!("key store not set, function not supported"));
         }
 
-        let to_be_signed = (
-            &42,
-            &msg.to,
-            &msg.from,
-            &msg.nonce,
-            &msg.value,
-            &msg.gas_limit
+        let message = fvm_shared::message::Message {
+            version: msg
+                .version
+                .ok_or_else(|| anyhow!("version should not be empty"))? as i64,
+            from: msg.from,
+            to: msg.to,
+            sequence: msg
+                .nonce
+                .ok_or_else(|| anyhow!("nonce should not be empty"))?,
+            value: msg.value.clone(),
+            method_num: msg.method,
+            params: RawBytes::from(msg.params.clone()),
+            gas_limit: msg
+                .gas_limit
                 .as_ref()
-                .ok_or_else(|| anyhow!("gas_limit should not be empty"))?,
-            &msg.gas_fee_cap
+                .ok_or_else(|| anyhow!("gas_limit should not be empty"))?
+                .atto()
+                .to_u64()
+                .unwrap() as i64,
+            gas_fee_cap: msg
+                .gas_fee_cap
                 .as_ref()
-                .ok_or_else(|| anyhow!("gas_fee_cap should not be empty"))?,
-            &msg.gas_premium
+                .ok_or_else(|| anyhow!("gas_fee_cap should not be empty"))?
+                .clone(),
+            gas_premium: msg
+                .gas_premium
                 .as_ref()
-                .ok_or_else(|| anyhow!("gas_premium should not be empty"))?,
-            &msg.method,
-            &msg.params,
-        );
+                .ok_or_else(|| anyhow!("gas_premium should not be empty"))?
+                .clone(),
+        };
 
         let mut wallet_store = self.wallet_store.as_ref().unwrap().write().unwrap();
-        let sig = wallet_store.sign(
-            &msg.from,
-            cbor::serialize(&to_be_signed, "mem pool sign")?.bytes(),
-        )?;
+        let sig = wallet_store.sign(&msg.from, &to_vec(&message)?)?;
 
         Ok(sig)
     }
@@ -569,7 +582,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
     async fn estimate_message_gas(&self, msg: &mut MpoolPushMessage) -> anyhow::Result<()> {
         let params = json!([
             {
-                "Version": 42,
+                "Version": msg.version.unwrap_or(0),
                 "To": msg.to.to_string(),
                 "From": msg.from.to_string(),
                 "Value": msg.value.atto().to_string(),
@@ -683,3 +696,45 @@ fn create_signed_message_params(msg: MpoolPushMessage, signature: Signature) -> 
         }
     ])
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use fvm_ipld_encoding::{RawBytes, to_vec};
+//     use fvm_shared::address::Address;
+//     use fvm_shared::econ::TokenAmount;
+//     use num_traits::ToPrimitive;
+//     use crate::lotus::message::mpool::MpoolPushMessage;
+//
+//     #[test]
+//     fn test_sign() {
+//         let m = MpoolPushMessage {
+//             to: Address::new_id(1),
+//             from: Address::new_id(2),
+//             value: TokenAmount::from_atto(1000),
+//             method: 1,
+//             params: vec![1,2,3,4,5],
+//             nonce: Some(1),
+//             gas_limit: Some(TokenAmount::from_atto(100)),
+//             gas_fee_cap: Some(TokenAmount::from_atto(100)),
+//             gas_premium: Some(TokenAmount::from_atto(100)),
+//             cid: None,
+//             version: Some(42),
+//             max_fee: None
+//         };
+//         let message = fvm_shared::message::Message{
+//             version: m.version.unwrap() as i64,
+//             from: m.from.clone(),
+//             to: m.to.clone(),
+//             sequence: m.nonce.unwrap(),
+//             value: m.value.clone(),
+//             method_num: m.method,
+//             params: RawBytes::from(m.params.clone()),
+//             gas_limit: m.gas_limit.as_ref().unwrap().atto().to_u64().unwrap() as i64,
+//             gas_fee_cap: m.gas_limit.clone().unwrap(),
+//             gas_premium: m.gas_premium.clone().unwrap()
+//         };
+//         to_vec(&message)
+//
+//         assert_eq!(to_vec(&message).unwrap(), vec![0u8])
+//     }
+// }
