@@ -574,7 +574,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 "Nonce": msg.nonce,
 
                 "GasLimit": "0",
-                "GasFeeCap": "0"
+                "GasFeeCap": "0",
                 "GasPremium": "0",
 
                 "CID": CIDMap::from(msg.cid),
