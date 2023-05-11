@@ -578,7 +578,9 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 "GasPremium": serde_json::Value::Null,
 
                 "CID": CIDMap::from(msg.cid),
-            }
+            },
+            {},
+            []
         ]);
 
         let populated = self
