@@ -351,9 +351,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
 
     /// Publish the message to memory pool and wait for the response
     async fn mpool_push_and_wait(&self, message: MpoolPushMessage) -> Result<StateWaitMsgResponse> {
-        let mem_push_response = self.lotus_client.mpool_push(message).await?;
-
-        let message_cid = mem_push_response.cid()?;
+        let message_cid = self.lotus_client.mpool_push(message).await?;
         log::debug!("message published with cid: {message_cid:?}");
 
         self.lotus_client.state_wait_msg(message_cid).await

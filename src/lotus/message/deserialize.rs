@@ -143,6 +143,32 @@ where
     deserializer.deserialize_str(TokenAmountVisitor)
 }
 
+/// A serde deserialization method to deserialize a token amount from i64
+pub fn deserialize_some_token_amount_from_i64<'de, D>(
+    deserializer: D,
+) -> anyhow::Result<Option<TokenAmount>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct TokenAmountVisitor;
+    impl<'de> serde::de::Visitor<'de> for TokenAmountVisitor {
+        type Value = Option<TokenAmount>;
+
+        fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+            formatter.write_str("an i64")
+        }
+
+        fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+        where
+            E: Error,
+        {
+            let u = BigInt::from(v);
+            Ok(Some(TokenAmount::from_atto(u)))
+        }
+    }
+    deserializer.deserialize_i64(TokenAmountVisitor)
+}
+
 /// A serde deserialization method to deserialize an address from string
 pub fn deserialize_address_from_str<'de, D>(deserializer: D) -> anyhow::Result<Address, D::Error>
 where

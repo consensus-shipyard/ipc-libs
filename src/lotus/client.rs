@@ -159,7 +159,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         Ok(r.message)
     }
 
-    async fn mpool_push(&self, mut msg: MpoolPushMessage) -> Result<MpoolPushMessageResponseInner> {
+    async fn mpool_push(&self, mut msg: MpoolPushMessage) -> Result<Cid> {
         if msg.nonce.is_none() {
             let nonce = self.mpool_nonce(&msg.from).await?;
             log::info!("sender: {:} with nonce: {nonce:}", msg.from);
@@ -177,11 +177,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
         let r = self
             .client
-            .request::<MpoolPushMessageResponse>(methods::MPOOL_PUSH, params)
+            .request::<CIDMap>(methods::MPOOL_PUSH, params)
             .await?;
         log::debug!("received mpool_push_message response: {r:?}");
 
-        Ok(r.message)
+        Cid::try_from(r)
     }
 
     async fn state_wait_msg(&self, cid: Cid) -> Result<StateWaitMsgResponse> {
