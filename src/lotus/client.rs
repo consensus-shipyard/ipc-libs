@@ -160,14 +160,14 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
     }
 
     async fn mpool_push(&self, mut msg: MpoolPushMessage) -> Result<MpoolPushMessageResponseInner> {
-        self.estimate_message_gas(&mut msg).await?;
-        log::info!("estimated gas for message: {msg:?}");
-
         if msg.nonce.is_none() {
             let nonce = self.mpool_nonce(&msg.from).await?;
             log::info!("sender: {:} with nonce: {nonce:}", msg.from);
             msg.nonce = Some(nonce);
         }
+
+        self.estimate_message_gas(&mut msg).await?;
+        log::info!("estimated gas for message: {msg:?}");
 
         log::debug!("message to push to mpool: {msg:?}");
 
@@ -573,9 +573,9 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 "Params": msg.params,
                 "Nonce": msg.nonce,
 
-                "GasLimit": serde_json::Value::Null,
-                "GasFeeCap": serde_json::Value::Null,
-                "GasPremium": serde_json::Value::Null,
+                "GasLimit": "0",
+                "GasFeeCap": "0"
+                "GasPremium": "0",
 
                 "CID": CIDMap::from(msg.cid),
             },
