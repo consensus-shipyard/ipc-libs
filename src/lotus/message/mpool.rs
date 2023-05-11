@@ -1,7 +1,7 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::lotus::message::deserialize::{
-    deserialize_address_from_str, deserialize_some_token_amount_from_i64,
+    deserialize_address_from_str, deserialize_some_token_amount_from_num,
     deserialize_some_token_amount_from_str, deserialize_token_amount_from_str,
 };
 use crate::lotus::message::CIDMap;
@@ -70,7 +70,7 @@ pub struct MpoolPushMessage {
     pub params: Vec<u8>,
 
     pub nonce: Option<u64>,
-    #[serde(deserialize_with = "deserialize_some_token_amount_from_i64")]
+    #[serde(deserialize_with = "deserialize_some_token_amount_from_num")]
     pub gas_limit: Option<TokenAmount>,
     #[serde(deserialize_with = "deserialize_some_token_amount_from_str")]
     pub gas_fee_cap: Option<TokenAmount>,
@@ -98,4 +98,15 @@ impl MpoolPushMessage {
             max_fee: None,
         }
     }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct EstimateGasResponse {
+    #[serde(deserialize_with = "deserialize_some_token_amount_from_num")]
+    pub gas_limit: Option<TokenAmount>,
+    #[serde(deserialize_with = "deserialize_some_token_amount_from_str")]
+    pub gas_fee_cap: Option<TokenAmount>,
+    #[serde(deserialize_with = "deserialize_some_token_amount_from_str")]
+    pub gas_premium: Option<TokenAmount>,
 }

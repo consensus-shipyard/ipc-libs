@@ -144,7 +144,7 @@ where
 }
 
 /// A serde deserialization method to deserialize a token amount from i64
-pub fn deserialize_some_token_amount_from_i64<'de, D>(
+pub fn deserialize_some_token_amount_from_num<'de, D>(
     deserializer: D,
 ) -> anyhow::Result<Option<TokenAmount>, D::Error>
 where

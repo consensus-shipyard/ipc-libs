@@ -27,9 +27,7 @@ use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
 use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
-use crate::lotus::message::mpool::{
-    MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
-};
+use crate::lotus::message::mpool::{EstimateGasResponse, MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner};
 use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
@@ -583,14 +581,14 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
             []
         ]);
 
-        let populated = self
+        let gas = self
             .client
-            .request::<MpoolPushMessage>(methods::ESTIMATE_MESSAGE_GAS, params)
+            .request::<EstimateGasResponse>(methods::ESTIMATE_MESSAGE_GAS, params)
             .await?;
 
-        msg.gas_fee_cap = populated.gas_fee_cap;
-        msg.gas_limit = populated.gas_limit;
-        msg.gas_premium = populated.gas_premium;
+        msg.gas_fee_cap = gas.gas_fee_cap;
+        msg.gas_limit = gas.gas_limit;
+        msg.gas_premium = gas.gas_premium;
 
         Ok(())
     }
