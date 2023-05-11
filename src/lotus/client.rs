@@ -161,6 +161,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
     async fn mpool_push(&self, mut msg: MpoolPushMessage) -> Result<MpoolPushMessageResponseInner> {
         self.estimate_message_gas(&mut msg).await?;
+        log::info!("estimated gas for message: {msg:?}");
 
         if msg.nonce.is_none() {
             let nonce = self.mpool_nonce(&msg.from).await?;
