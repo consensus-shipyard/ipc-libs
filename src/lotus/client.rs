@@ -176,11 +176,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
         self.estimate_message_gas(&mut msg).await?;
         log::debug!("estimated gas for message: {msg:?}");
-        log::debug!("message to push to mpool: {msg:?}");
 
         let signature = self.sign_mpool_message(&msg)?;
 
         let params = create_signed_message_params(msg, signature);
+        log::debug!("message to push to mpool: {params:?}");
 
         let r = self
             .client
@@ -539,7 +539,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
         }
 
         let to_be_signed = (
-            &msg.version,
+            &42,
             &msg.to,
             &msg.from,
             &msg.nonce,
@@ -569,6 +569,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
     async fn estimate_message_gas(&self, msg: &mut MpoolPushMessage) -> anyhow::Result<()> {
         let params = json!([
             {
+                "Version": 42,
                 "To": msg.to.to_string(),
                 "From": msg.from.to_string(),
                 "Value": msg.value.atto().to_string(),
