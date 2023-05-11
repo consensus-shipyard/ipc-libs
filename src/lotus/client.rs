@@ -175,8 +175,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         }
 
         self.estimate_message_gas(&mut msg).await?;
-        log::info!("estimated gas for message: {msg:?}");
-
+        log::debug!("estimated gas for message: {msg:?}");
         log::debug!("message to push to mpool: {msg:?}");
 
         let signature = self.sign_mpool_message(&msg)?;
@@ -643,14 +642,18 @@ fn create_signed_message_params(msg: MpoolPushMessage, signature: Signature) -> 
         .map(|n| serde_json::Value::Number(n.into()))
         .unwrap_or(serde_json::Value::Null);
 
+    let to_value_str = |t: Option<TokenAmount>| {
+        t.map(|n| serde_json::Value::String(n.atto().to_u64().unwrap().to_string()))
+            .unwrap_or(serde_json::Value::Null)
+    };
     let to_value = |t: Option<TokenAmount>| {
         t.map(|n| serde_json::Value::Number(n.atto().to_u64().unwrap().into()))
             .unwrap_or(serde_json::Value::Null)
     };
 
     let gas_limit = to_value(msg.gas_limit);
-    let gas_premium = to_value(msg.gas_premium);
-    let gas_fee_cap = to_value(msg.gas_fee_cap);
+    let gas_premium = to_value_str(msg.gas_premium);
+    let gas_fee_cap = to_value_str(msg.gas_fee_cap);
 
     let Signature { sig_type, bytes } = signature;
     let sig_encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
