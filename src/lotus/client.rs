@@ -672,15 +672,17 @@ fn create_signed_message_params(msg: MpoolPushMessage, signature: Signature) -> 
     let Signature { sig_type, bytes } = signature;
     let sig_encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
 
+    let params_encoded = base64::engine::general_purpose::STANDARD.encode(msg.params);
     // refer to: https://lotus.filecoin.io/reference/lotus/mpool/#mpoolpush
     json!([
         {
             "Message": {
+                "Version": msg.version.unwrap_or(0),
                 "To": msg.to.to_string(),
                 "From": msg.from.to_string(),
                 "Value": msg.value.atto().to_string(),
                 "Method": msg.method,
-                "Params": msg.params,
+                "Params": params_encoded,
 
                 // THESE ALL WILL AUTO POPULATE if null
                 "Nonce": nonce,
