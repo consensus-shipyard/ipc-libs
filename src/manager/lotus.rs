@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::{Arc, RwLock};
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -12,6 +13,7 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::METHOD_SEND;
 use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
 use ipc_gateway::{BottomUpCheckpoint, PropagateParams, WhitelistPropagatorParams};
+use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
 
@@ -388,6 +390,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusSubnetManager<T> {
 impl LotusSubnetManager<JsonRpcClientImpl> {
     pub fn from_subnet(subnet: &Subnet) -> Self {
         let client = LotusJsonRPCClient::from_subnet(subnet);
+        LotusSubnetManager::new(client)
+    }
+
+    pub fn from_subnet_with_wallet_store(subnet: &Subnet, wallet: Arc<RwLock<Wallet>>) -> Self {
+        let client = LotusJsonRPCClient::from_subnet_with_wallet_store(subnet, wallet);
         LotusSubnetManager::new(client)
     }
 }

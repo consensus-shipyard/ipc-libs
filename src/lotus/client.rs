@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::str::FromStr;
+use std::sync::{Arc, RwLock};
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -27,7 +28,9 @@ use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
 use crate::lotus::message::chain::ChainHeadResponse;
 use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
-use crate::lotus::message::mpool::{EstimateGasResponse, MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner};
+use crate::lotus::message::mpool::{
+    EstimateGasResponse, MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
+};
 use crate::lotus::message::state::{ReadStateResponse, StateWaitMsgResponse};
 use crate::lotus::message::wallet::{WalletKeyType, WalletListResponse};
 use crate::lotus::message::CIDMap;
@@ -94,7 +97,7 @@ const STATE_WAIT_ALLOW_REPLACE: bool = true;
 /// ```
 pub struct LotusJsonRPCClient<T: JsonRpcClient> {
     client: T,
-    wallet_store: Option<Wallet>,
+    wallet_store: Option<Arc<RwLock<Wallet>>>,
 }
 
 impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
@@ -102,6 +105,13 @@ impl<T: JsonRpcClient> LotusJsonRPCClient<T> {
         Self {
             client,
             wallet_store: None,
+        }
+    }
+
+    pub fn new_with_wallet_store(client: T, wallet_store: Arc<RwLock<Wallet>>) -> Self {
+        Self {
+            client,
+            wallet_store: Some(wallet_store),
         }
     }
 }
@@ -525,11 +535,9 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
 
 impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
     fn sign_mpool_message(&self, msg: &MpoolPushMessage) -> anyhow::Result<Signature> {
-        let wallet_store = if let Some(ws) = &self.wallet_store {
-            ws
-        } else {
+        if self.wallet_store.is_none() {
             return Err(anyhow!("key store not set, function not supported"));
-        };
+        }
 
         let to_be_signed = (
             &msg.version,
@@ -549,15 +557,13 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
             &msg.method,
             &msg.params,
         );
-        let wallet_store = unsafe {
-            let const_ptr = wallet_store as *const Wallet;
-            let mut_ptr = const_ptr as *mut Wallet;
-            &mut *mut_ptr
-        };
+
+        let mut wallet_store = self.wallet_store.as_ref().unwrap().write().unwrap();
         let sig = wallet_store.sign(
             &msg.from,
             cbor::serialize(&to_be_signed, "mem pool sign")?.bytes(),
         )?;
+
         Ok(sig)
     }
 
@@ -618,6 +624,16 @@ impl LotusJsonRPCClient<JsonRpcClientImpl> {
         let auth_token = subnet.auth_token.as_deref();
         let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token);
         LotusJsonRPCClient::new(jsonrpc_client)
+    }
+
+    pub fn from_subnet_with_wallet_store(
+        subnet: &crate::config::Subnet,
+        wallet_store: Arc<RwLock<Wallet>>,
+    ) -> Self {
+        let url = subnet.jsonrpc_api_http.clone();
+        let auth_token = subnet.auth_token.as_deref();
+        let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token);
+        LotusJsonRPCClient::new_with_wallet_store(jsonrpc_client, wallet_store)
     }
 }
 
