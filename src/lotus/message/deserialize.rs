@@ -150,23 +150,16 @@ pub fn deserialize_some_token_amount_from_i64<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    struct TokenAmountVisitor;
-    impl<'de> serde::de::Visitor<'de> for TokenAmountVisitor {
-        type Value = Option<TokenAmount>;
-
-        fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-            formatter.write_str("an i64")
-        }
-
-        fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
-        where
-            E: Error,
-        {
-            let u = BigInt::from(v);
+    let val: serde_json::Value = serde::Deserialize::deserialize(deserializer)?;
+    match val {
+        serde_json::Value::Number(n) => {
+            let u = n
+                .as_u64()
+                .ok_or_else(|| D::Error::custom("cannot parse to u64"))?;
             Ok(Some(TokenAmount::from_atto(u)))
         }
+        _ => Err(D::Error::custom("unknown type: {val:?}")),
     }
-    deserializer.deserialize_i64(TokenAmountVisitor)
 }
 
 /// A serde deserialization method to deserialize an address from string
