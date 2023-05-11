@@ -175,7 +175,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         }
 
         if msg.version.is_none() {
-            msg.version = Some(42);
+            msg.version = Some(0);
         }
 
         self.estimate_message_gas(&mut msg).await?;
