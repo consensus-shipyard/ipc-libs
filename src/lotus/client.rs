@@ -634,7 +634,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
             }
             return Err(e);
         }
-        Ok(r.unwrap() + 1)
+        Ok(r.unwrap())
     }
 }
 
