@@ -30,11 +30,11 @@ impl CommandLineHandler for Release {
             from: arguments.from.clone(),
             amount: arguments.amount,
         };
-        json_rpc_client
+        let epoch = json_rpc_client
             .request::<()>(json_rpc_methods::RELEASE, serde_json::to_value(params)?)
             .await?;
 
-        log::info!("released subnet: {:}", arguments.subnet);
+        log::info!("released subnet: {:} at epoch: {epoch:?}", arguments.subnet);
 
         Ok(())
     }
@@ -49,6 +49,6 @@ pub(crate) struct ReleaseArgs {
     pub from: Option<String>,
     #[arg(long, short, help = "The subnet to release funds from")]
     pub subnet: String,
-    #[arg(help = "The amount to release in FIL")]
-    pub amount: u64,
+    #[arg(help = "The amount to release in FIL, in whole FIL")]
+    pub amount: f64,
 }
