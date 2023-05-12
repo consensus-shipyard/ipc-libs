@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 pub use config::ReloadConfigParams;
+use fvm_shared::econ::TokenAmount;
 use manager::create::CreateSubnetHandler;
 use manager::join::JoinSubnetHandler;
 use manager::kill::KillSubnetHandler;
@@ -90,7 +91,7 @@ impl Handlers {
         )?)));
 
         // subnet manager methods
-        let pool = Arc::new(SubnetManagerPool::from_reload_config(config.clone()));
+        let pool = Arc::new(SubnetManagerPool::new(config.clone(), wallet.clone()));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::CREATE_SUBNET), h);
 
@@ -159,5 +160,29 @@ impl Handlers {
         } else {
             Err(anyhow!("method not supported"))
         }
+    }
+}
+
+pub(crate) fn f64_to_token_amount(f: f64) -> anyhow::Result<TokenAmount> {
+    let precision = TokenAmount::PRECISION as f64;
+    // no rounding, just the integer part
+    let amount = TokenAmount::from_atto(f64::trunc(f * precision) as u64);
+
+    if !amount.is_positive() {
+        Err(anyhow!("invalid token amount: {f:}"))
+    } else {
+        Ok(amount)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::server::handlers::f64_to_token_amount;
+    use fvm_shared::econ::TokenAmount;
+
+    #[test]
+    fn test_amount() {
+        let amount = f64_to_token_amount(1.2f64).unwrap();
+        assert_eq!(amount, TokenAmount::from_atto(1200000000000000000u64));
     }
 }

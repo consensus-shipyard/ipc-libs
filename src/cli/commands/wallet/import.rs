@@ -32,9 +32,7 @@ impl CommandLineHandler for WalletImport {
             return Err(anyhow::anyhow!("stdin not supported yet"));
         };
 
-        let params = WalletImportParams {
-            key_info: serde_json::from_str(&keyinfo)?,
-        };
+        let params: WalletImportParams = serde_json::from_str(&keyinfo)?;
 
         let addr = json_rpc_client
             .request::<WalletImportResponse>(
