@@ -91,7 +91,7 @@ impl Handlers {
         )?)));
 
         // subnet manager methods
-        let pool = Arc::new(SubnetManagerPool::from_reload_config(config.clone()));
+        let pool = Arc::new(SubnetManagerPool::new(config.clone(), wallet.clone()));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::CREATE_SUBNET), h);
 
