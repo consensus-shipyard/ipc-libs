@@ -8,6 +8,7 @@ use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use base64::Engine;
+use cid::multihash::MultihashDigest;
 use cid::Cid;
 use fil_actors_runtime::cbor;
 use fvm_ipld_encoding::{to_vec, RawBytes};
@@ -573,19 +574,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 .clone(),
         };
 
-        use cid::multihash::MultihashDigest;
-        let data = &to_vec(&message)?;
-        let hash = cid::multihash::Code::Blake2b256.digest(data);
+        let hash = cid::multihash::Code::Blake2b256.digest(&to_vec(&message)?);
+        let msg_cid = Cid::new_v1(fvm_ipld_encoding::DAG_CBOR, hash).to_bytes();
 
         let mut wallet_store = self.wallet_store.as_ref().unwrap().write().unwrap();
-        let sig = wallet_store.sign(
-            &msg.from,
-            Cid::new_v1(fvm_ipld_encoding::DAG_CBOR, hash)
-                .to_bytes()
-                .as_slice(),
-        )?;
-
-        Ok(sig)
+        Ok(wallet_store.sign(&msg.from, &msg_cid)?)
     }
 
     async fn estimate_message_gas(&self, msg: &mut MpoolPushMessage) -> anyhow::Result<()> {
