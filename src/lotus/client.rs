@@ -8,6 +8,7 @@ use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use base64::Engine;
+use cid::multihash::MultihashDigest;
 use cid::Cid;
 use fil_actors_runtime::cbor;
 use fvm_ipld_encoding::{to_vec, RawBytes};
@@ -573,17 +574,11 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 .clone(),
         };
 
-        use cid::multihash::MultihashDigest;
-        let data = &to_vec(&message)?;
-        let hash = cid::multihash::Code::Blake2b256.digest(data);
+        let hash = cid::multihash::Code::Blake2b256.digest(&to_vec(&message)?);
+        let msg_cid = Cid::new_v1(fvm_ipld_encoding::DAG_CBOR, hash).to_bytes();
 
         let mut wallet_store = self.wallet_store.as_ref().unwrap().write().unwrap();
-        let sig = wallet_store.sign(
-            &msg.from,
-            Cid::new_v1(fvm_ipld_encoding::DAG_CBOR, hash)
-                .to_bytes()
-                .as_slice(),
-        )?;
+        let sig = wallet_store.sign(&msg.from, &msg_cid)?;
 
         Ok(sig)
     }
@@ -707,45 +702,3 @@ fn create_signed_message_params(msg: MpoolPushMessage, signature: Signature) -> 
         }
     ])
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use fvm_ipld_encoding::{RawBytes, to_vec};
-//     use fvm_shared::address::Address;
-//     use fvm_shared::econ::TokenAmount;
-//     use num_traits::ToPrimitive;
-//     use crate::lotus::message::mpool::MpoolPushMessage;
-//
-//     #[test]
-//     fn test_sign() {
-//         let m = MpoolPushMessage {
-//             to: Address::new_id(1),
-//             from: Address::new_id(2),
-//             value: TokenAmount::from_atto(1000),
-//             method: 1,
-//             params: vec![1,2,3,4,5],
-//             nonce: Some(1),
-//             gas_limit: Some(TokenAmount::from_atto(100)),
-//             gas_fee_cap: Some(TokenAmount::from_atto(100)),
-//             gas_premium: Some(TokenAmount::from_atto(100)),
-//             cid: None,
-//             version: Some(42),
-//             max_fee: None
-//         };
-//         let message = fvm_shared::message::Message{
-//             version: m.version.unwrap() as i64,
-//             from: m.from.clone(),
-//             to: m.to.clone(),
-//             sequence: m.nonce.unwrap(),
-//             value: m.value.clone(),
-//             method_num: m.method,
-//             params: RawBytes::from(m.params.clone()),
-//             gas_limit: m.gas_limit.as_ref().unwrap().atto().to_u64().unwrap() as i64,
-//             gas_fee_cap: m.gas_limit.clone().unwrap(),
-//             gas_premium: m.gas_premium.clone().unwrap()
-//         };
-//         to_vec(&message)
-//
-//         assert_eq!(to_vec(&message).unwrap(), vec![0u8])
-//     }
-// }
