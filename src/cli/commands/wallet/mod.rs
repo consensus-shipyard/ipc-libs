@@ -6,7 +6,12 @@ use crate::cli::commands::wallet::balances::{WalletBalances, WalletBalancesArgs}
 use crate::cli::commands::wallet::new::{WalletNew, WalletNewArgs};
 use clap::{Args, Subcommand};
 
+use self::export::{WalletExport, WalletExportArgs};
+use self::import::{WalletImport, WalletImportArgs};
+
 mod balances;
+mod export;
+mod import;
 mod new;
 
 #[derive(Debug, Args)]
@@ -22,6 +27,8 @@ impl WalletCommandsArgs {
         match &self.command {
             Commands::New(args) => WalletNew::handle(global, args).await,
             Commands::Balances(args) => WalletBalances::handle(global, args).await,
+            Commands::Import(args) => WalletImport::handle(global, args).await,
+            Commands::Export(args) => WalletExport::handle(global, args).await,
         }
     }
 }
@@ -30,4 +37,6 @@ impl WalletCommandsArgs {
 pub(crate) enum Commands {
     New(WalletNewArgs),
     Balances(WalletBalancesArgs),
+    Import(WalletImportArgs),
+    Export(WalletExportArgs),
 }
