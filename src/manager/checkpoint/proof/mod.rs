@@ -4,12 +4,22 @@
 
 mod v1;
 
-pub use crate::manager::checkpoint::proof::v1::create_proof;
+use crate::lotus::LotusClient;
 pub use crate::manager::checkpoint::proof::v1::V1Proof;
+use fvm_shared::clock::ChainEpoch;
 use serde::{Deserialize, Serialize};
 
 /// The different version of checkpoint proofs
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CheckpointProof {
     V1(V1Proof),
+}
+
+/// Create the checkpoint proof
+pub async fn create_proof<L: LotusClient>(
+    client: &L,
+    height: ChainEpoch,
+) -> anyhow::Result<CheckpointProof> {
+    let v1_proof = v1::create_proof(client, height).await?;
+    Ok(CheckpointProof::V1(v1_proof))
 }
