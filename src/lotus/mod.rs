@@ -14,6 +14,7 @@ use ipc_gateway::{BottomUpCheckpoint, CrossMsg};
 use ipc_sdk::subnet_id::SubnetID;
 use serde::de::DeserializeOwned;
 
+use crate::lotus::message::chain::GetTipSetByHeightResponse;
 use message::chain::ChainHeadResponse;
 use message::mpool::{MpoolPushMessage, MpoolPushMessageResponseInner};
 use message::state::{ReadStateResponse, StateWaitMsgResponse};
@@ -89,7 +90,7 @@ pub trait LotusClient {
         &self,
         epoch: ChainEpoch,
         tip_set: Cid,
-    ) -> Result<ChainHeadResponse>;
+    ) -> Result<GetTipSetByHeightResponse>;
 
     async fn ipc_get_prev_checkpoint_for_child(
         &self,

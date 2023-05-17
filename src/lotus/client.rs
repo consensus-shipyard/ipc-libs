@@ -22,7 +22,7 @@ use serde_json::json;
 
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl, NO_PARAMS};
 use crate::lotus::json::ToJson;
-use crate::lotus::message::chain::ChainHeadResponse;
+use crate::lotus::message::chain::{ChainHeadResponse, GetTipSetByHeightResponse};
 use crate::lotus::message::ipc::{IPCReadGatewayStateResponse, IPCReadSubnetActorStateResponse};
 use crate::lotus::message::mpool::{
     MpoolPushMessage, MpoolPushMessageResponse, MpoolPushMessageResponseInner,
@@ -291,10 +291,10 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
         &self,
         epoch: ChainEpoch,
         tip_set: Cid,
-    ) -> Result<ChainHeadResponse> {
+    ) -> Result<GetTipSetByHeightResponse> {
         let r = self
             .client
-            .request::<ChainHeadResponse>(
+            .request::<GetTipSetByHeightResponse>(
                 methods::GET_TIPSET_BY_HEIGHT,
                 json!([epoch, [CIDMap::from(tip_set)]]),
             )
