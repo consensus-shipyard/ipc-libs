@@ -9,7 +9,7 @@ pub use crate::manager::checkpoint::proof::v1::V1Proof;
 use fvm_shared::clock::ChainEpoch;
 use serde::{Deserialize, Serialize};
 
-/// The different versions of checkpoint proof
+/// The different versions of checkpoint proofs supported
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CheckpointProof {
     V1(V1Proof),
