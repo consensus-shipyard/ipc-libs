@@ -21,6 +21,7 @@ This RPC endpoint and `chainID will be the ones needed to configure any EVM tool
 
 
 ### Example: Connect Metamask to your subnet
+
 To connect Metamask to your subnet, you need to add it as a new network. To do this you need to: 
 
 - Click `Add network` in networks section of Metamask.
