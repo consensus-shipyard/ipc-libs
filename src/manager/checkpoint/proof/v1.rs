@@ -32,6 +32,8 @@ pub async fn create_proof<L: LotusClient>(
 
     Ok(V1Proof {
         tip_set: response.tip_set_cids()?,
+        // we assume tipsets with a single block in subnets.
+        // we can directly get the `parent_state` for the only block.
         state: blocks[0],
     })
 }
