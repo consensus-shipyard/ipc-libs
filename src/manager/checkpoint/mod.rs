@@ -24,6 +24,7 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
 pub use manager::*;
 mod manager;
+mod proof;
 
 const TASKS_PROCESS_THRESHOLD_SEC: u64 = 15;
 const SUBMISSION_LOOK_AHEAD_EPOCH: ChainEpoch = 50;
