@@ -178,7 +178,7 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
 
     // we might have to obtain the list of validators as some validators might leave the subnet
     // we can improve the performance by caching if this slows down the process significantly.
-    let validators = obtain_validators(manager).await?;
+    let validators = child_validators(manager).await?;
     let period = manager.checkpoint_period();
 
     let last_executed_epoch = manager.last_executed_epoch().await?;
@@ -236,7 +236,7 @@ async fn submit_till_current_epoch(manager: &impl CheckpointManager) -> Result<(
 }
 
 /// Obtain the validators in the subnet from the parent subnet of the manager
-async fn obtain_validators(manager: &impl CheckpointManager) -> anyhow::Result<Vec<Address>> {
+async fn child_validators(manager: &impl CheckpointManager) -> anyhow::Result<Vec<Address>> {
     let parent_client = manager.parent_client();
     let parent_head = parent_client.chain_head().await?;
 
