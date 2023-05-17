@@ -1554,7 +1554,7 @@ checksum = "e825f6987101665dea6ec934c09ec6d721de7bc1bf92248e1d5810c8cd636b77"
 [[package]]
 name = "fil_actors_runtime"
 version = "0.0.1"
-source = "git+https://github.com/consensus-shipyard/fvm-utils#e44b33ec6b74862078f2ada9f4103eeffebe995d"
+source = "git+https://github.com/consensus-shipyard/fvm-utils#bdebcd3bf258fb7398a71bef4eef0cfe72d2d088"
 dependencies = [
  "anyhow",
  "base64 0.13.1",
@@ -4254,7 +4254,7 @@ dependencies = [
 [[package]]
 name = "primitives"
 version = "0.1.0"
-source = "git+https://github.com/consensus-shipyard/fvm-utils#e44b33ec6b74862078f2ada9f4103eeffebe995d"
+source = "git+https://github.com/consensus-shipyard/fvm-utils#bdebcd3bf258fb7398a71bef4eef0cfe72d2d088"
 dependencies = [
  "anyhow",
  "cid",
@@ -4263,6 +4263,7 @@ dependencies = [
  "fvm_ipld_encoding 0.3.3",
  "fvm_ipld_hamt 0.5.1",
  "fvm_shared 3.0.0-alpha.17",
+ "hex",
  "indexmap",
  "integer-encoding",
  "lazy_static",
@@ -4270,6 +4271,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "serde",
+ "uint",
 ]
 
 [[package]]

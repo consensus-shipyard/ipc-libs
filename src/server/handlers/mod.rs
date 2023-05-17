@@ -34,6 +34,7 @@ use crate::server::list_checkpoints::ListBottomUpCheckpointsHandler;
 use crate::server::net_addr::SetValidatorNetAddrHandler;
 use crate::server::JsonRPCRequestHandler;
 
+use self::rpc::RPCSubnetHandler;
 use self::topdown_executed::LastTopDownExecHandler;
 
 mod config;
@@ -92,6 +93,9 @@ impl Handlers {
 
         let h: Box<dyn HandlerWrapper> = Box::new(JoinSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::JOIN_SUBNET), h);
+
+        let h: Box<dyn HandlerWrapper> = Box::new(RPCSubnetHandler::new(pool.clone()));
+        handlers.insert(String::from(json_rpc_methods::RPC_SUBNET), h);
 
         let h: Box<dyn HandlerWrapper> = Box::new(FundHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::FUND), h);
