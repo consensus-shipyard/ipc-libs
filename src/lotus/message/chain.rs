@@ -24,7 +24,15 @@ pub struct GetTipSetByHeightResponse {
 
 impl GetTipSetByHeightResponse {
     pub fn tip_set_cids(&self) -> anyhow::Result<Vec<Cid>> {
-        self.cids.iter().map(|cid| Cid::try_from(cid)).collect()
+        let r: Result<Vec<_>, _> = self
+            .cids
+            .iter()
+            .map(|cid_map| {
+                let cid = Cid::try_from(cid_map)?;
+                Ok(cid)
+            })
+            .collect();
+        r
     }
 
     pub fn blocks_state_roots(&self) -> anyhow::Result<Vec<Cid>> {
