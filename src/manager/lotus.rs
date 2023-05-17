@@ -170,8 +170,8 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         );
         message.value = amount;
 
-        let response = self.mpool_push_and_wait(message).await?;
-        Ok(response.height as ChainEpoch)
+        let r = self.mpool_push_and_wait(message).await?;
+        Ok(r.height as ChainEpoch)
     }
 
     async fn release(
@@ -196,8 +196,8 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         );
         message.value = amount;
 
-        let response = self.mpool_push_and_wait(message).await?;
-        Ok(response.height as ChainEpoch)
+        let r = self.mpool_push_and_wait(message).await?;
+        Ok(r.height as ChainEpoch)
     }
 
     async fn propagate(
