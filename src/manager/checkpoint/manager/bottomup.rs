@@ -190,19 +190,12 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
             ipc_subnet_actor::Method::SubmitCheckpoint as MethodNum,
             cbor::serialize(&checkpoint, "checkpoint")?.to_vec(),
         );
-        let mem_push_response = self
-            .parent_client
-            .mpool_push(message)
-            .await
-            .map_err(|e| {
-                anyhow!(
-                    "error submitting checkpoint for epoch {epoch:} in subnet: {:?} with reason {e:}",
-                    self.child_subnet.id
-                )
-            })?;
-
-        // wait for the checkpoint to be committed before moving on.
-        let message_cid = mem_push_response.cid()?;
+        let message_cid = self.parent_client.mpool_push(message).await.map_err(|e| {
+            anyhow!(
+                "error submitting checkpoint for epoch {epoch:} in subnet: {:?} with reason {e:}",
+                self.child_subnet.id
+            )
+        })?;
         log::debug!("checkpoint message published with cid: {message_cid:?}");
 
         self.parent_client.state_wait_msg(message_cid).await?;

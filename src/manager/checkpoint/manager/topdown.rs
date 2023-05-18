@@ -159,17 +159,10 @@ impl CheckpointManager for TopDownCheckpointManager {
             ipc_gateway::Method::SubmitTopDownCheckpoint as MethodNum,
             cbor::serialize(&topdown_checkpoint, "topdown_checkpoint")?.to_vec(),
         );
-        let mem_push_response = self
-            .child_client
-            .mpool_push(message)
-            .await
-            .map_err(|e| {
-                log::error!("error submitting checkpoint at epoch {epoch:} for manager: {self:}");
-                e
-            })?;
-
-        // wait for the checkpoint to be committed before moving on.
-        let message_cid = mem_push_response.cid()?;
+        let message_cid = self.child_client.mpool_push(message).await.map_err(|e| {
+            log::error!("error submitting checkpoint at epoch {epoch:} for manager: {self:}");
+            e
+        })?;
         log::debug!(
             "checkpoint at epoch {:} for manager: {:} published with cid: {:?}, wait for execution",
             epoch,
