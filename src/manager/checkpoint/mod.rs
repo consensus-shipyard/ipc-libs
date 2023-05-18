@@ -13,10 +13,11 @@ use cid::Cid;
 use futures_util::future::join_all;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
+use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use tokio::select;
 use tokio::time::sleep;
@@ -33,12 +34,16 @@ pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
     /// management are those in the latest version of the config.
     config: Arc<ReloadableConfig>,
+    wallet_store: Arc<RwLock<Wallet>>,
 }
 
 impl CheckpointSubsystem {
     /// Creates a new `CheckpointSubsystem` with a configuration `config`.
-    pub fn new(config: Arc<ReloadableConfig>) -> Self {
-        Self { config }
+    pub fn new(config: Arc<ReloadableConfig>, wallet_store: Arc<RwLock<Wallet>>) -> Self {
+        Self {
+            config,
+            wallet_store,
+        }
     }
 }
 
@@ -52,7 +57,7 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
             // Load the latest config.
             let config = self.config.get_config();
             let (top_down_managers, bottom_up_managers) =
-                setup_managers_from_config(&config.subnets).await?;
+                setup_managers_from_config(&config.subnets, self.wallet_store.clone()).await?;
 
             loop {
                 select! {
@@ -86,6 +91,7 @@ fn handle_err_response(manager: &impl CheckpointManager, response: anyhow::Resul
 
 async fn setup_managers_from_config(
     subnets: &HashMap<SubnetID, Subnet>,
+    wallet_store: Arc<RwLock<Wallet>>,
 ) -> Result<(
     Vec<TopDownCheckpointManager>,
     Vec<BottomUpCheckpointManager<DefaultLotusJsonRPCClient>>,
@@ -112,9 +118,9 @@ async fn setup_managers_from_config(
 
         bottom_up_managers.push(
             BottomUpCheckpointManager::new(
-                LotusJsonRPCClient::from_subnet(parent),
+                LotusJsonRPCClient::from_subnet_with_wallet_store(parent, wallet_store.clone()),
                 parent.clone(),
-                LotusJsonRPCClient::from_subnet(s),
+                LotusJsonRPCClient::from_subnet_with_wallet_store(s, wallet_store.clone()),
                 s.clone(),
             )
             .await?,
@@ -122,9 +128,9 @@ async fn setup_managers_from_config(
 
         top_down_managers.push(
             TopDownCheckpointManager::new(
-                LotusJsonRPCClient::from_subnet(parent),
+                LotusJsonRPCClient::from_subnet_with_wallet_store(parent, wallet_store.clone()),
                 parent.clone(),
-                LotusJsonRPCClient::from_subnet(s),
+                LotusJsonRPCClient::from_subnet_with_wallet_store(s, wallet_store.clone()),
                 s.clone(),
             )
             .await?,

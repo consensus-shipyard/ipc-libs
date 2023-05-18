@@ -1,10 +1,11 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use bytes::Bytes;
+use ipc_identity::Wallet;
 use tokio::sync::Notify;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 use warp::http::StatusCode;
@@ -50,11 +51,15 @@ type ArcHandlers = Arc<Handlers>;
 /// ```
 pub struct JsonRPCServer {
     config: Arc<ReloadableConfig>,
+    wallet_store: Arc<RwLock<Wallet>>,
 }
 
 impl JsonRPCServer {
-    pub fn new(config: Arc<ReloadableConfig>) -> Self {
-        Self { config }
+    pub fn new(config: Arc<ReloadableConfig>, wallet_store: Arc<RwLock<Wallet>>) -> Self {
+        Self {
+            config,
+            wallet_store,
+        }
     }
 }
 
@@ -72,7 +77,10 @@ impl IntoSubsystem<anyhow::Error> for JsonRPCServer {
         let notify_recv = notify_send.clone();
 
         // Start the server.
-        let handlers = Arc::new(Handlers::new(self.config.clone())?);
+        let handlers = Arc::new(Handlers::new(
+            self.config.clone(),
+            self.wallet_store.clone(),
+        )?);
         let (_, server) = warp::serve(json_rpc_filter(handlers)).bind_with_graceful_shutdown(
             self.config.get_config().server.json_rpc_address,
             async move { notify_recv.notified().await },
