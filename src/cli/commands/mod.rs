@@ -64,7 +64,7 @@ struct IPCAgentCliCommands {
     #[clap(flatten)]
     global_params: GlobalArguments,
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 /// The `cli` method exposed to handle all the cli commands, ideally from main.
@@ -105,17 +105,21 @@ pub async fn cli() -> anyhow::Result<()> {
         Ok(())
     } else {
         let global = &args.global_params;
-        let r = match &args.command {
-            Commands::Daemon(args) => LaunchDaemon::handle(global, args).await,
-            Commands::Config(args) => args.handle(global).await,
-            Commands::Subnet(args) => args.handle(global).await,
-            Commands::CrossMsg(args) => args.handle(global).await,
-            Commands::Wallet(args) => args.handle(global).await,
-            Commands::Checkpoint(args) => args.handle(global).await,
-            Commands::Util(args) => args.handle(global).await,
-        };
+        if let Some(c) = &args.command {
+            let r = match &c {
+                Commands::Daemon(args) => LaunchDaemon::handle(global, args).await,
+                Commands::Config(args) => args.handle(global).await,
+                Commands::Subnet(args) => args.handle(global).await,
+                Commands::CrossMsg(args) => args.handle(global).await,
+                Commands::Wallet(args) => args.handle(global).await,
+                Commands::Checkpoint(args) => args.handle(global).await,
+                Commands::Util(args) => args.handle(global).await,
+            };
 
-        r.with_context(|| format!("error processing command {:?}", args.command))
+            r.with_context(|| format!("error processing command {:?}", args.command))
+        } else {
+            Ok(())
+        }
     }
 }
 
