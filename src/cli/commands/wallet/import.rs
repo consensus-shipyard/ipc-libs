@@ -7,6 +7,7 @@ use clap::Args;
 use fvm_shared::crypto::signature::SignatureType;
 use serde::Deserialize;
 use std::fmt::Debug;
+use std::str::FromStr;
 
 use crate::cli::commands::get_ipc_agent_url;
 use crate::cli::{CommandLineHandler, GlobalArguments};
@@ -40,7 +41,8 @@ impl CommandLineHandler for WalletImport {
             .request::<WalletImportResponse>(
                 json_rpc_methods::WALLET_IMPORT,
                 serde_json::to_value(WalletImportParams {
-                    key_type: SignatureType::try_from(params.r#type)? as u8,
+                    key_type: SignatureType::try_from(WalletKeyType::from_str(&params.r#type)?)?
+                        as u8,
                     private_key: params.private_key,
                 })?,
             )
@@ -64,6 +66,6 @@ pub(crate) struct WalletImportArgs {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 struct LotusJsonKeyType {
-    r#type: WalletKeyType,
+    r#type: String,
     private_key: String,
 }
