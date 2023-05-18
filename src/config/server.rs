@@ -13,6 +13,7 @@ pub struct Server {
 pub mod json_rpc_methods {
     pub const CREATE_SUBNET: &str = "ipc_createSubnet";
     pub const JOIN_SUBNET: &str = "ipc_joinSubnet";
+    pub const RPC_SUBNET: &str = "ipc_rpcSubnet";
     pub const LEAVE_SUBNET: &str = "ipc_leaveSubnet";
     pub const KILL_SUBNET: &str = "ipc_killSubnet";
     pub const FUND: &str = "ipc_fund";
@@ -25,7 +26,9 @@ pub mod json_rpc_methods {
     pub const SET_VALIDATOR_NET_ADDR: &str = "ipc_setValidatorNetAddr";
     pub const SEND_VALUE: &str = "ipc_sendValue";
     pub const WALLET_NEW: &str = "ipc_walletNew";
-    pub const WALLET_LIST: &str = "ipc_walletList";
+    pub const WALLET_IMPORT: &str = "ipc_walletImport";
+    pub const WALLET_EXPORT: &str = "ipc_walletExport";
+    pub const WALLET_BALANCES: &str = "ipc_walletBalances";
     pub const LIST_BOTTOMUP_CHECKPOINTS: &str = "ipc_listBottomUpCheckpoints";
     pub const LAST_TOPDOWN_EXECUTED: &str = "ipc_lastTopDownCheckpointExecuted";
 }
