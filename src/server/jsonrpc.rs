@@ -28,19 +28,22 @@ type ArcHandlers = Arc<Handlers>;
 ///
 /// # Examples
 /// ```no_run
-/// use std::sync::Arc;
+/// use std::sync::{Arc, RwLock};
 /// use std::time::Duration;
 ///
 /// use tokio_graceful_shutdown::{IntoSubsystem, Toplevel};
 ///
 /// use ipc_agent::config::ReloadableConfig;
 /// use ipc_agent::server::jsonrpc::JsonRPCServer;
+/// use ipc_agent::server::new_keystore_from_config;
+/// use ipc_identity::Wallet;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let path = "PATH TO YOUR CONFIG FILE";
+/// let path = "PATH TO YOUR CONFIG FILE";
 ///     let config = Arc::new(ReloadableConfig::new(path.to_string()).unwrap());
-///     let server = JsonRPCServer::new(config);
+///     let wallet = Arc::new(RwLock::new(Wallet::new(new_keystore_from_config(config.clone()).unwrap())));
+///     let server = JsonRPCServer::new(config, wallet);
 ///     Toplevel::new()
 ///         .start("JSON-RPC server subsystem", server.into_subsystem())
 ///         .catch_signals()
