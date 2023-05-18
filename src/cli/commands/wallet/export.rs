@@ -21,7 +21,7 @@ impl CommandLineHandler for WalletExport {
     async fn handle(_global: &GlobalArguments, arguments: &Self::Arguments) -> anyhow::Result<()> {
         log::debug!("export wallet with args: {:?}", arguments);
 
-        let mut wallet = Wallet::new(get_keystore(&arguments.path)?);
+        let mut wallet = Wallet::new(get_keystore(arguments.path.clone())?);
 
         let addr = Address::from_str(&arguments.address)?;
         let key_info = wallet.export(&addr)?;

@@ -75,14 +75,13 @@ Let's deploy a eudico instance on Spacenet and configure the IPC Agent to intera
 * Get configuration parameters
 ```bash
 ./lotus/eudico auth create-token --perm admin
-./lotus/eudico wallet new
 ```
 * Configure your IPC Agent
 ```bash
 ./ipc-agent/bin/ipc-agent config init
 nano ~/.ipc-agent/config.toml
 ```
-* Replace the content of `config.toml` with the text below, substituting the token and wallet retrieved above.
+* Replace the content of `config.toml` with the text below, substituting the token retrieved above.
 ```toml
 [server]
 json_rpc_address = "0.0.0.0:3030"
@@ -93,11 +92,27 @@ gateway_addr = "t064"
 network_name = "root"
 jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
 auth_token = "<AUTH_TOKEN_0>"
-accounts = ["<WALLET_0>"]
+accounts = []
 ```
 * [**In a new session**] Start your IPC Agent
 ```bash
 ./ipc-agent/bin/ipc-agent daemon
+```
+
+* Create a new wallet in your agent
+```bash
+./ipc-agent/bin/ipc-agent wallet new --key-type=secp256k1
+```
+
+* Add your new wallet address in the accounts field of your config:
+```toml
+...
+accounts = ["<WALLET_0>"]
+...
+```
+* And reload your config:
+```bash
+./ipc-agent/bin/ipc-agent config reload
 ```
 
 
@@ -121,9 +136,9 @@ Although we set a minimum of 2 active validators in the previous, we'll deploy 3
 
 * First, we'll need to create a wallet for each validator
 ```bash
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1 --subnet /root
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1 --subnet /root
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1 --subnet /root
+./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
 ```
 * Export each wallet (WALLET_1, WALLET_2, and WALLET_3) by substituting their addresses below
 ```bash
