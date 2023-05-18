@@ -192,7 +192,7 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
         );
         let mem_push_response = self
             .parent_client
-            .mpool_push_message(message)
+            .mpool_push(message)
             .await
             .map_err(|e| {
                 anyhow!(

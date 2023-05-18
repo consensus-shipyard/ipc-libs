@@ -161,7 +161,7 @@ impl CheckpointManager for TopDownCheckpointManager {
         );
         let mem_push_response = self
             .child_client
-            .mpool_push_message(message)
+            .mpool_push(message)
             .await
             .map_err(|e| {
                 log::error!("error submitting checkpoint at epoch {epoch:} for manager: {self:}");

@@ -24,7 +24,6 @@ pub async fn create_proof<L: LotusClient>(
     let response = client
         .get_tipset_by_height(height, Cid::try_from(&tip_sets[0])?)
         .await?;
-
     let blocks = response.blocks_state_roots()?;
     if blocks.is_empty() {
         return Err(anyhow!("height {height:} has zero blocks"));
