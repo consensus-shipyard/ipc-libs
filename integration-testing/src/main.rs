@@ -1,7 +1,9 @@
 use ipc_sdk::subnet_id::SubnetID;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::sync::atomic::AtomicU16;
+use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
 
 mod infra;
 
@@ -21,5 +23,8 @@ async fn main() {
     let r = infra::subnet::spawn_child_subnet(&topology).await;
     if r.is_err() {
         log::error!("cannot spawn subnet: {:}", r.unwrap_err());
+    } else {
+        log::info!("subnet created, sleep");
+        sleep(Duration::from_sec(30));
     }
 }

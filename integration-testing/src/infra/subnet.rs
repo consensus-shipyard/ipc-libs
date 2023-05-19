@@ -1,11 +1,11 @@
 use crate::infra::SubnetTopology;
 use anyhow::{anyhow, Result};
-use ipc_sdk::subnet_id::SubnetID;
-use std::process::{Child, Command};
 use ipc_agent::cli::CreateSubnetArgs;
 use ipc_agent::config::json_rpc_methods;
 use ipc_agent::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use ipc_agent::server::create::{CreateSubnetParams, CreateSubnetResponse};
+use ipc_sdk::subnet_id::SubnetID;
+use std::process::{Child, Command};
 
 /// Spawn child subnet according to the topology
 pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()> {
@@ -25,12 +25,16 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
         topology.root_address.clone(),
         parent,
         topology.name.clone(),
-        topology.number_of_nodes as u64
-    ).await?;
+        topology.number_of_nodes as u64,
+    )
+    .await?;
     log::info!("created subnet: {:}", topology.id);
 
     let first_node = spawn_first_node(topology)?;
-    log::info!("node up with net addresses: {:?}", first_node.network_addresses()?);
+    log::info!(
+        "node up with net addresses: {:?}",
+        first_node.network_addresses()?
+    );
 
     Ok(())
 }
@@ -266,7 +270,13 @@ impl SubnetNode {
     }
 }
 
-pub async fn create_subnet(ipc_agent_url: String, from: String, parent: String, name: String, min_validators: u64) -> anyhow::Result<String> {
+pub async fn create_subnet(
+    ipc_agent_url: String,
+    from: String,
+    parent: String,
+    name: String,
+    min_validators: u64,
+) -> anyhow::Result<String> {
     let json_rpc_client = JsonRpcClientImpl::new(ipc_agent_url.parse()?, None);
 
     let params = CreateSubnetParams {
