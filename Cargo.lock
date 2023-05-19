@@ -2858,6 +2858,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bb03732005da905c88227371639bf1ad885cc712789c011c31c5fb3ab3ccf02"
 
 [[package]]
+name = "integration-testing"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ipc-agent",
+ "ipc-sdk",
+ "log",
+]
+
+[[package]]
 name = "interceptor"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
