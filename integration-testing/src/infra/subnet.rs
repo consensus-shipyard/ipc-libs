@@ -45,6 +45,7 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
 fn spawn_first_node(topology: &SubnetTopology) -> anyhow::Result<SubnetNode> {
     let mut node = SubnetNode::new(
         topology.id.clone(),
+        topology.ipc_root_folder.clone(),
         topology.next_port(),
         topology.next_port(),
         topology.eudico_binary_path.clone(),
@@ -59,6 +60,7 @@ fn spawn_first_node(topology: &SubnetTopology) -> anyhow::Result<SubnetNode> {
 
 struct SubnetNode {
     id: SubnetID,
+    ipc_root_folder: String,
     /// The node info
     node: NodeInfo,
     /// The info of the validator
@@ -85,6 +87,7 @@ enum SubnetNodeSpawnStatus {
 impl SubnetNode {
     pub fn new(
         id: SubnetID,
+        ipc_root_folder: String,
         node_api_port: u16,
         validator_api_port: u16,
         eudico_binary_path: String,
@@ -92,6 +95,7 @@ impl SubnetNode {
     ) -> Self {
         Self {
             id,
+            ipc_root_folder,
             node: NodeInfo {
                 api_port: node_api_port,
                 status: SubnetNodeSpawnStatus::Idle,

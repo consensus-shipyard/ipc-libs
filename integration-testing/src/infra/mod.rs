@@ -19,6 +19,7 @@ pub struct SubnetTopology {
     pub eudico_binary_path: String,
     pub parent: Option<SubnetID>,
     pub root_address: String,
+    pub ipc_root_folder: String,
 
     port_starting_seq: Arc<AtomicU16>,
     ipc_agent_url: Option<String>,
@@ -29,6 +30,7 @@ impl SubnetTopology {
         id: SubnetID,
         name: String,
         root_address: String,
+        ipc_root_folder: String,
         number_of_nodes: usize,
         eudico_binary_path: String,
         parent: Option<SubnetID>,
@@ -41,6 +43,7 @@ impl SubnetTopology {
             eudico_binary_path,
             parent,
             root_address,
+            ipc_root_folder,
             port_starting_seq,
             ipc_agent_url: None,
         }
