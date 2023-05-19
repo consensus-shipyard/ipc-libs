@@ -65,8 +65,15 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
                 Ok(r) => r,
                 Err(e) => {
                     log::error!("Please check configuration! Cannot start the checkpoint subsystem due to config error: {e:}. Sleep 15 seconds before retry.");
-                    sleep(Duration::from_secs(15)).await;
-                    continue;
+                    match config_chan.recv().await {
+                        Ok(_) => continue,
+                        Err(e) => {
+                            // this should seldom happen, but good to report it.
+                            return Err(anyhow!(
+                                "config update notification channel closed unexpected: {e:}"
+                            ));
+                        }
+                    }
                 }
             };
 
