@@ -25,6 +25,6 @@ async fn main() {
         log::error!("cannot spawn subnet: {:}", r.unwrap_err());
     } else {
         log::info!("subnet created, sleep");
-        sleep(Duration::from_sec(30));
+        sleep(Duration::from_secs(30));
     }
 }
