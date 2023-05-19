@@ -10,7 +10,12 @@ We provide instructions for running both a [simple single-validator subnet](#run
 
 ### Exporting wallet keys
 
-In order to run a validator in a subnet, we'll need a set of keys to handle that validator. To export the validator key from a wallet that may live in another network into a file (like the wallet address we are using in the rootnet), we can use the following Lotus command:
+In order to run a validator in a subnet, we'll need a set of keys to handle that validator. To export the validator key from your agent you need to run: 
+```bash
+./ipc-agent/bin/ipc-agent wallet export --address=<address-to-export> --output=<output file>
+```
+
+To export a wallet that may live in another network into a file (like the wallet address we are using in the rootnet), we can use the following Lotus command:
 
 *Example*:
 ```bash
@@ -31,8 +36,12 @@ $ docker exec -it ipc_root_1234 eudico wallet export --lotus-json t1cp4q4lqsdhob
 ```
 
 ### Importing wallet keys
+Your agent handles the keys for all of your addresses in IPC and is responsible for signing the transactions to the different networks. To import a key to the agent you need can use: 
+```bash
+`./ipc-agent/bin/ipc-agent wallet import --path=<wallet-key-file-path>`
+```
 
-Depending on whether the subnet is running inside a docker container or not, you may need to import keys into a node. You may use the following commands to import a wallet to a subnet node: 
+Depending on whether the subnet is running inside a docker container or not, you may need to import keys directly into a node to run your validator. You may use the following commands to import a wallet to a subnet node: 
 
 ```bash
 # Bare: Import directly into eudico

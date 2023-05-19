@@ -142,9 +142,9 @@ Although we set a minimum of 2 active validators in the previous, we'll deploy 3
 ```
 * Export each wallet (WALLET_1, WALLET_2, and WALLET_3) by substituting their addresses below
 ```bash
-./lotus/eudico wallet export --lotus-json <WALLET_1> > ~/.ipc-agent/wallet1.key
-./lotus/eudico wallet export --lotus-json <WALLET_2> > ~/.ipc-agent/wallet2.key
-./lotus/eudico wallet export --lotus-json <WALLET_3> > ~/.ipc-agent/wallet3.key
+./ipc-agent/bin/ipc-agent wallet export --address=<WALLET_1> --output=~/.ipc-agent/wallet1.key
+./ipc-agent/bin/ipc-agent wallet export --address=<WALLET_2> --output=~/.ipc-agent/wallet2.key
+./ipc-agent/bin/ipc-agent wallet export --address=<WALLET_3> --output=~/.ipc-agent/wallet3.key
 ```
 * We also need to fund the wallets with enough collateral to; we'll send the funds from our default wallet 
 ```bash
@@ -178,12 +178,7 @@ We can deploy the subnet nodes. Note that each node should be importing a differ
 
 ## Step 7: Configure the IPC agent
 
-For ease of use, we'll import the remaining keys into the first validator, via which the IPC Agent will act on behalf of all.
-
-* Copy the wallet keys into the docker container and import them
-```bash
-docker cp ~/.ipc-agent/wallet2.key <CONTAINER_NAME_1>:/input.key && docker exec -it <CONTAINER_NAME_1> eudico wallet import --format=json-lotus input.key
-docker cp ~/.ipc-agent/wallet3.key <CONTAINER_NAME_1>:/input.key && docker exec -it <CONTAINER_NAME_1> eudico wallet import --format=json-lotus input.key
+For ease of use, we'll import the remaining keys into the first validator, via which the IPC Agent will act on behalf of all. All the keys should already be imported in the wallet of the agent, if for some reason this is not the case you can import it through: `./ipc-agent/bin/ipc-agent wallet import --path=~/.ipc-agent/wallet.key`
 ```
 * Edit the IPC agent configuration `config.toml`
 ```bash
