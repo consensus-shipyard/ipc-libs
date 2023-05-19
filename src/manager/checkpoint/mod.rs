@@ -56,8 +56,19 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
         loop {
             // Load the latest config.
             let config = self.config.get_config();
-            let (top_down_managers, bottom_up_managers) =
-                setup_managers_from_config(&config.subnets, self.wallet_store.clone()).await?;
+            let (top_down_managers, bottom_up_managers) = match setup_managers_from_config(
+                &config.subnets,
+                self.wallet_store.clone(),
+            )
+            .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    log::error!("Please check configuration! Cannot start the checkpoint subsystem due to config error: {e:}. Sleep 15 seconds before retry.");
+                    sleep(Duration::from_secs(15)).await;
+                    continue;
+                }
+            };
 
             loop {
                 select! {
