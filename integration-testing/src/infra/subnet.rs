@@ -139,7 +139,11 @@ impl SubnetNode {
             let s: String = String::from_utf8_lossy(&output.stdout).parse()?;
             Ok(s.split("\n").into_iter().map(|s| s.to_string()).collect())
         } else {
-            Err(anyhow!("cannot create admin token in subnet:{:}", self.id))
+            Err(anyhow!(
+                "cannot get network addresses admin token in subnet:{:} with status: {:?}",
+                self.id,
+                output.status
+            ))
         }
     }
 
