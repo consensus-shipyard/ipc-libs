@@ -9,6 +9,8 @@ mod infra;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     let api_port_sequence = Arc::new(AtomicU16::new(5));
     let topology = infra::SubnetTopology::new(
         SubnetID::from_str("/root/t01002").unwrap(),

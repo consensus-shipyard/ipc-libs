@@ -2862,6 +2862,7 @@ name = "integration-testing"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "env_logger 0.10.0",
  "ipc-agent",
  "ipc-identity",
  "ipc-sdk",
