@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::os::fd::{FromRawFd, IntoRawFd};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::infra::{SubnetTopology, DEFAULT_IPC_AGENT_FOLDER};
@@ -7,7 +9,7 @@ use ipc_agent::config::json_rpc_methods;
 use ipc_agent::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use ipc_agent::server::create::{CreateSubnetParams, CreateSubnetResponse};
 use ipc_sdk::subnet_id::SubnetID;
-use std::process::{Child, Command};
+use std::process::{Child, Command, Stdio};
 
 /// Spawn child subnet according to the topology
 pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()> {
@@ -200,6 +202,10 @@ impl SubnetNode {
 
         let subnet_id = self.subnet_id_cli_string();
 
+        let fd = File::create(format!("./{subnet_id:}.log"))
+            .unwrap()
+            .into_raw_fd();
+
         let child = Command::new(&self.eudico_binary_path)
             .args([
                 "mir",
@@ -211,6 +217,7 @@ impl SubnetNode {
                 "--api",
                 &self.node.api_port.to_string(),
             ])
+            .stdout(unsafe { Stdio::from_raw_fd(fd) })
             .env("LOTUS_PATH", self.lotus_path())
             .spawn()?;
 
