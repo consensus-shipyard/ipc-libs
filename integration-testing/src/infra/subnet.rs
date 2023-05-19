@@ -1,4 +1,4 @@
-use crate::infra::SubnetTopology;
+use crate::infra::{DEFAULT_IPC_AGENT_FOLDER, SubnetTopology};
 use anyhow::{anyhow, Result};
 use ipc_agent::cli::CreateSubnetArgs;
 use ipc_agent::config::json_rpc_methods;
@@ -112,8 +112,8 @@ impl SubnetNode {
         format!("~/.lotus_subnet_{:}", self.subnet_id_cli_string())
     }
 
-    fn genesis_name(&self) -> String {
-        format!("subnet_{:}.car", self.subnet_id_cli_string())
+    fn genesis_path(&self) -> String {
+        format!("{:}/subnet{:}.car", DEFAULT_IPC_AGENT_FOLDER, self.subnet_id_cli_string())
     }
 
     fn network_addresses(&self) -> Result<Vec<String>> {
@@ -155,7 +155,7 @@ impl SubnetNode {
             "{:} genesis new --subnet-id {:} -out {:}",
             self.eudico_binary_path,
             &self.id.to_string(),
-            self.genesis_name()
+            self.genesis_path()
         );
         log::debug!("create genesis command: {command:}");
 

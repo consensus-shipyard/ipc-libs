@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
 
 const DEFAULT_IPC_AGENT_URL: &str = "http://localhost:3030/json_rpc";
+const DEFAULT_IPC_AGENT_FOLDER: &str = "~/.ipc-agent";
 const DEFAULT_NODE_API_BASE_PORT: u16 = 1230;
 
 pub struct SubnetTopology {
