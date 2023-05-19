@@ -222,7 +222,7 @@ impl SubnetNode {
                 "--api",
                 &self.node.api_port.to_string(),
             ])
-            .stdout(Stdio::from(fd))
+            .stdout(Stdio::null())
             .env("LOTUS_PATH", self.lotus_path())
             .spawn()?;
 
