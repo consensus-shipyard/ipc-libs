@@ -1,3 +1,4 @@
+use std::fs;
 use std::fs::File;
 use std::os::fd::{FromRawFd, IntoRawFd};
 // Copyright 2022-2023 Protocol Labs
@@ -164,6 +165,11 @@ impl SubnetNode {
     }
 
     pub fn gen_genesis(&self) -> Result<()> {
+        let genesis_path = self.genesis_path();
+        if fs::metadata(&genesis_path).is_ok() {
+            return Ok(());
+        }
+
         let status = Command::new(&self.eudico_binary_path)
             .args([
                 "genesis",
