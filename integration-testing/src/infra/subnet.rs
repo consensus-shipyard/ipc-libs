@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::infra::{DEFAULT_IPC_AGENT_FOLDER, SubnetTopology};
 use anyhow::{anyhow, Result};
 use ipc_agent::cli::CreateSubnetArgs;
@@ -152,7 +154,7 @@ impl SubnetNode {
 
     pub fn gen_genesis(&self) -> Result<()> {
         let status = Command::new(&self.eudico_binary_path)
-            .args(["genesis", "new", "--subnet-id", self.id.to_string(), "-out", self.genesis_path()])
+            .args(["genesis", "new", "--subnet-id", &self.id.to_string(), "-out", self.genesis_path()])
             .env("LOTUS_PATH", self.lotus_path())
             .status()?;
 
