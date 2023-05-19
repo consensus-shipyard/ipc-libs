@@ -151,15 +151,8 @@ impl SubnetNode {
     }
 
     pub fn gen_genesis(&self) -> Result<()> {
-        let command = format!(
-            "{:} genesis new --subnet-id {:} -out {:}",
-            self.eudico_binary_path,
-            &self.id.to_string(),
-            self.genesis_path()
-        );
-        log::debug!("create genesis command: {command:}");
-
-        let status = Command::new(command)
+        let status = Command::new(&self.eudico_binary_path)
+            .args(["genesis", "new", "--subnet-id", self.id.to_string(), "-out", self.genesis_path()])
             .env("LOTUS_PATH", self.lotus_path())
             .status()?;
 
