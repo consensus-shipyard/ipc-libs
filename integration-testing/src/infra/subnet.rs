@@ -36,10 +36,10 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
     log::info!("created subnet: {:}", topology.id);
 
     let first_node = spawn_first_node(topology)?;
-    log::info!(
-        "node up with net addresses: {:?}",
-        first_node.network_addresses()?
-    );
+    // log::info!(
+    //     "node up with net addresses: {:?}",
+    //     first_node.network_addresses()?
+    // );
 
     Ok(())
 }
@@ -213,7 +213,8 @@ impl SubnetNode {
 
         let subnet_id = self.subnet_id_cli_string();
 
-        let fd = File::create(format!("./{subnet_id:}_node_{:}.log", self.node.api_port))?;
+        let node_std_out = File::create(format!("./{subnet_id:}_node_{:}.log", self.node.api_port))?;
+        let node_std_err = File::create(format!("./{subnet_id:}_node_{:}.err", self.node.api_port))?;
 
         let child = Command::new(&self.eudico_binary_path)
             .args([
@@ -226,7 +227,8 @@ impl SubnetNode {
                 "--api",
                 &self.node.api_port.to_string(),
             ])
-            .stdout(Stdio::null())
+            .stdout(node_std_out)
+            .stderr(node_std_err)
             .env("LOTUS_PATH", self.lotus_path())
             .spawn()?;
 
@@ -291,9 +293,8 @@ impl SubnetNode {
     }
 
     pub async fn create_admin_token(&self) -> Result<String> {
-        let output = Command::new(format!("{:} auth create-token", self.eudico_binary_path))
-            .arg("--perm")
-            .arg("admin")
+        let output = Command::new(&self.eudico_binary_path)
+            .args(["auth", "create-token", "--perm", "admin"])
             .env("LOTUS_PATH", self.lotus_path())
             .output()?;
 
