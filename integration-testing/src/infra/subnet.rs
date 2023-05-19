@@ -202,9 +202,7 @@ impl SubnetNode {
 
         let subnet_id = self.subnet_id_cli_string();
 
-        let fd = File::create(format!("./{subnet_id:}.log"))
-            .unwrap()
-            .into_raw_fd();
+        let fd = File::create(format!("./{subnet_id:}_node_{:}.log", self.node.api_port))?;
 
         let child = Command::new(&self.eudico_binary_path)
             .args([
@@ -217,7 +215,7 @@ impl SubnetNode {
                 "--api",
                 &self.node.api_port.to_string(),
             ])
-            .stdout(unsafe { Stdio::from_raw_fd(fd) })
+            .stdout(Stdio::from(fd))
             .env("LOTUS_PATH", self.lotus_path())
             .spawn()?;
 
