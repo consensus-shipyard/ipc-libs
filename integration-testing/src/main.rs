@@ -18,5 +18,8 @@ async fn main() {
         api_port_sequence,
     );
 
-    infra::subnet::spawn_child_subnet(&topology).await.unwrap();
+    let r = infra::subnet::spawn_child_subnet(&topology).await;
+    if r.is_err() {
+        log::error!("cannot spawn subnet: {e:}");
+    }
 }
