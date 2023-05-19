@@ -130,7 +130,8 @@ impl SubnetNode {
     }
 
     fn network_addresses(&self) -> Result<Vec<String>> {
-        let output = Command::new(format!("{:} net listen", self.eudico_binary_path))
+        let output = Command::new(&self.eudico_binary_path)
+            .args(["net", "listen"])
             .env("LOTUS_PATH", self.lotus_path())
             .output()?;
 
