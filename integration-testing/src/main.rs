@@ -13,10 +13,10 @@ mod infra;
 async fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let eudico_binary_path = std::env::var("EUDICO_BIN")
-        .unwrap_or("/home/admin/lotus/eudico".to_string());
-    let ipc_root_folder = std::env::var("IPC_ROOT_FOLDER")
-        .unwrap_or("/home/admin/.ipc-agent".to_string());
+    let eudico_binary_path =
+        std::env::var("EUDICO_BIN").unwrap_or("/home/admin/lotus/eudico".to_string());
+    let ipc_root_folder =
+        std::env::var("IPC_ROOT_FOLDER").unwrap_or("/home/admin/.ipc-agent".to_string());
 
     let api_port_sequence = Arc::new(AtomicU16::new(5));
     let topology = infra::SubnetTopology::new(

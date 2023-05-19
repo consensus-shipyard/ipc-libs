@@ -1,6 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use crate::infra::{DEFAULT_IPC_AGENT_FOLDER, SubnetTopology};
+use crate::infra::{SubnetTopology, DEFAULT_IPC_AGENT_FOLDER};
 use anyhow::{anyhow, Result};
 use ipc_agent::cli::CreateSubnetArgs;
 use ipc_agent::config::json_rpc_methods;
@@ -119,7 +119,11 @@ impl SubnetNode {
     }
 
     fn genesis_path(&self) -> String {
-        format!("{:}/subnet{:}.car", DEFAULT_IPC_AGENT_FOLDER, self.subnet_id_cli_string())
+        format!(
+            "{:}/subnet{:}.car",
+            self.ipc_root_folder,
+            self.subnet_id_cli_string()
+        )
     }
 
     fn network_addresses(&self) -> Result<Vec<String>> {
@@ -140,7 +144,8 @@ impl SubnetNode {
             return Ok(());
         }
 
-        let output = Command::new(format!("{:} wallet new", self.eudico_binary_path))
+        let output = Command::new(&self.eudico_binary_path)
+            .args(["wallet", "new"])
             .env("LOTUS_PATH", self.lotus_path())
             .output()?;
 
@@ -158,7 +163,14 @@ impl SubnetNode {
 
     pub fn gen_genesis(&self) -> Result<()> {
         let status = Command::new(&self.eudico_binary_path)
-            .args(["genesis", "new", "--subnet-id", &self.id.to_string(), "-out", &self.genesis_path()])
+            .args([
+                "genesis",
+                "new",
+                "--subnet-id",
+                &self.id.to_string(),
+                "-out",
+                &self.genesis_path(),
+            ])
             .env("LOTUS_PATH", self.lotus_path())
             .status()?;
 
@@ -188,13 +200,17 @@ impl SubnetNode {
 
         let subnet_id = self.subnet_id_cli_string();
 
-        let child = Command::new(format!("{:} mir daemon ", self.eudico_binary_path))
-            .arg("--genesis")
-            .arg(format!("subnet_{:}.car", subnet_id))
-            .arg("--bootstrap")
-            .arg("false")
-            .arg("--api")
-            .arg(&self.node.api_port.to_string())
+        let child = Command::new(&self.eudico_binary_path)
+            .args([
+                "mir",
+                "daemon",
+                "--genesis",
+                &format!("subnet_{:}.car", subnet_id),
+                "--bootstrap",
+                "false",
+                "--api",
+                &self.node.api_port.to_string(),
+            ])
             .env("LOTUS_PATH", self.lotus_path())
             .spawn()?;
 
