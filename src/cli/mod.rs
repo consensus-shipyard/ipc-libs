@@ -43,9 +43,7 @@ pub struct GlobalArguments {
 
 impl GlobalArguments {
     pub fn config_path(&self) -> String {
-        self.config_path
-            .clone()
-            .unwrap_or_else(|| default_config_path())
+        self.config_path.clone().unwrap_or_else(default_config_path)
     }
 
     pub fn config(&self) -> Result<Config> {
