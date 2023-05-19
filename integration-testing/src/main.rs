@@ -20,6 +20,6 @@ async fn main() {
 
     let r = infra::subnet::spawn_child_subnet(&topology).await;
     if r.is_err() {
-        log::error!("cannot spawn subnet: {e:}");
+        log::error!("cannot spawn subnet: {:}", r.unwrap_err());
     }
 }
