@@ -64,7 +64,7 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
             {
                 Ok(r) => r,
                 Err(e) => {
-                    log::error!("Please check configuration! Cannot start the checkpoint subsystem due to config error: {e:}. Sleep 15 seconds before retry.");
+                    log::error!("Please check configuration! Cannot start the checkpoint subsystem due to config error: {e:}. Update and reload config.");
                     match config_chan.recv().await {
                         Ok(_) => continue,
                         Err(e) => {
