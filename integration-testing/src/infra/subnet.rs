@@ -117,7 +117,7 @@ impl SubnetNode {
     }
 
     fn lotus_path(&self) -> String {
-        format!("~/.lotus_subnet_{:}", self.subnet_id_cli_string())
+        format!("~/.lotus_subnet{:}", self.subnet_id_cli_string())
     }
 
     fn genesis_path(&self) -> String {
@@ -211,7 +211,7 @@ impl SubnetNode {
                 "mir",
                 "daemon",
                 "--genesis",
-                &format!("subnet_{:}.car", subnet_id),
+                &self.genesis_path(),
                 "--bootstrap",
                 "false",
                 "--api",
