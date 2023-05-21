@@ -9,8 +9,8 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
 
 const DEFAULT_IPC_AGENT_URL: &str = "http://localhost:3030/json_rpc";
-const DEFAULT_IPC_AGENT_FOLDER: &str = "~/.ipc-agent";
 const DEFAULT_NODE_API_BASE_PORT: u16 = 1230;
+const DEFAULT_MIN_STAKE: f64 = 1.0;
 
 pub struct SubnetTopology {
     pub id: SubnetID,
@@ -19,6 +19,7 @@ pub struct SubnetTopology {
     pub eudico_binary_path: String,
     pub parent: Option<SubnetID>,
     pub root_address: String,
+    pub root_lotus_path: String,
     pub ipc_root_folder: String,
 
     port_starting_seq: Arc<AtomicU16>,
@@ -30,6 +31,7 @@ impl SubnetTopology {
         id: SubnetID,
         name: String,
         root_address: String,
+        root_lotus_path: String,
         ipc_root_folder: String,
         number_of_nodes: usize,
         eudico_binary_path: String,
@@ -43,6 +45,7 @@ impl SubnetTopology {
             eudico_binary_path,
             parent,
             root_address,
+            root_lotus_path,
             ipc_root_folder,
             port_starting_seq,
             ipc_agent_url: None,
