@@ -178,8 +178,7 @@ We can deploy the subnet nodes. Note that each node should be importing a differ
 
 ## Step 7: Configure the IPC agent
 
-For ease of use, we'll import the remaining keys into the first validator, via which the IPC Agent will act on behalf of all. All the keys should already be imported in the wallet of the agent, if for some reason this is not the case you can import it through: `./ipc-agent/bin/ipc-agent wallet import --path=~/.ipc-agent/wallet.key`
-```
+For ease of use, we'll import the remaining keys into the first validator, via which the IPC Agent will act on behalf of all.
 * Edit the IPC agent configuration `config.toml`
 ```bash
 nano ~/.ipc-agent/config.toml
