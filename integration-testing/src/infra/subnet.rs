@@ -221,7 +221,7 @@ impl SubnetNode {
     }
 
     fn lotus_path(&self) -> String {
-        format!("~/.lotus_subnet{:}", self.subnet_id_cli_string())
+        format!("~/.lotus_subnet{:}_{:}", self.subnet_id_cli_string(), self.node.tcp_port)
     }
 
     fn genesis_path(&self) -> String {
