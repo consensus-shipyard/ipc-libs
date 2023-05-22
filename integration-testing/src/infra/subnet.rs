@@ -1,18 +1,14 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use crate::infra::{SubnetTopology, DEFAULT_MIN_STAKE};
+use crate::infra::{DEFAULT_MIN_STAKE, SubnetTopology, util};
 use anyhow::{anyhow, Result};
-use ipc_agent::config::json_rpc_methods;
-use ipc_agent::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use ipc_agent::server::create::{CreateSubnetParams, CreateSubnetResponse};
-use ipc_agent::server::join::JoinSubnetParams;
 use ipc_sdk::subnet_id::SubnetID;
 use std::fs;
 use std::fs::File;
 use std::process::{Child, Command};
 use std::thread::sleep;
-use std::time::Duration;
+use crate::infra::util::import_wallet;
 
 /// Spawn child subnet according to the topology
 pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()> {
@@ -27,7 +23,7 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
         return Err(anyhow!("parent cannot be None"));
     };
 
-    create_subnet(
+    util::create_subnet(
         topology.ipc_agent_url(),
         topology.root_address.clone(),
         parent,
@@ -42,7 +38,7 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
 
     nodes.push(first_node);
 
-    fund_nodes(
+    util::fund_nodes(
         &topology.eudico_binary_path,
         &topology.root_lotus_path,
         &nodes,
@@ -56,6 +52,7 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
             node.validator.net_addr
         );
 
+        node.export_wallet_to_ipc_key_store().await?;
         node.join_subnet().await?;
         log::info!(
             "validator: {:?} joined subnet: {:}",
@@ -78,39 +75,6 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
     Ok(())
 }
 
-pub fn send_token(
-    eudico_binary_path: &str,
-    lotus_path: &str,
-    addr: &str,
-    amount: u8,
-) -> Result<()> {
-    let status = Command::new(eudico_binary_path)
-        .args(["send", addr, &amount.to_string()])
-        .env("LOTUS_PATH", lotus_path)
-        .status()?;
-
-    if status.success() {
-        log::info!("funded wallet: {:} with amount: {:} fil", addr, amount);
-        Ok(())
-    } else {
-        Err(anyhow!("cannot send token to wallet:{:}", addr))
-    }
-}
-
-fn fund_nodes(eudico_binary_path: &str, lotus_path: &str, nodes: &[SubnetNode], amount: u8) -> Result<()> {
-    for node in nodes.iter() {
-        send_token(
-            eudico_binary_path,
-            lotus_path,
-            node.wallet_address.as_ref().unwrap(),
-            amount,
-        )?;
-        // for nonce to be updated
-        sleep(Duration::from_secs(5));
-    }
-    Ok(())
-}
-
 fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
     SubnetNode::new(
         topology.id.clone(),
@@ -124,30 +88,13 @@ fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
     )
 }
 
-fn create_wallet(node: &mut SubnetNode) -> anyhow::Result<()> {
-    loop {
-        match node.new_wallet_address() {
-            Ok(_) => {
-                log::info!("one wallet created in node: {:?}", node.id);
-                break;
-            }
-            Err(e) => {
-                log::warn!("cannot create wallet: {e:}, wait and sleep to retry");
-                sleep(Duration::from_secs(10))
-            }
-        }
-    }
-
-    Ok(())
-}
-
 /// Spawn the first node, then subsequent node will connect to this node.
 fn spawn_first_node(topology: &SubnetTopology) -> anyhow::Result<SubnetNode> {
     let mut node = node_from_topology(topology);
     node.gen_genesis()?;
     node.spawn_node()?;
 
-    create_wallet(&mut node)?;
+    util::create_wallet(&mut node)?;
     node.config_default_wallet()?;
     Ok(node)
 }
@@ -162,7 +109,7 @@ fn spawn_other_nodes(
 
         node.spawn_node()?;
 
-        create_wallet(&mut node)?;
+        util::create_wallet(&mut node)?;
 
         node.config_default_wallet()?;
 
@@ -181,8 +128,8 @@ fn spawn_other_nodes(
         }
     };
 
-    let mut first_node_addr = tcp_address(addrs)?;
-    trim_newline(&mut first_node_addr);
+    let mut first_node_addr = util::tcp_address(addrs)?;
+    util::trim_newline(&mut first_node_addr);
 
     log::info!("first node net addr: {:?}", first_node_addr);
 
@@ -193,8 +140,8 @@ fn spawn_other_nodes(
     Ok(nodes)
 }
 
-struct SubnetNode {
-    id: SubnetID,
+pub struct SubnetNode {
+    pub id: SubnetID,
     ipc_root_folder: String,
     /// The node info
     node: NodeInfo,
@@ -202,7 +149,7 @@ struct SubnetNode {
     validator: NodeInfo,
     eudico_binary_path: String,
     ipc_agent_url: String,
-    wallet_address: Option<String>,
+    pub(crate) wallet_address: Option<String>,
 }
 
 struct NodeInfo {
@@ -303,9 +250,34 @@ impl SubnetNode {
 
         if output.status.success() {
             let mut wallet = String::from_utf8_lossy(&output.stdout).parse()?;
-            trim_newline(&mut wallet);
+            util::trim_newline(&mut wallet);
             self.wallet_address = Some(wallet);
             Ok(())
+        } else {
+            Err(anyhow!(
+                "cannot create new wallet address in subnet:{:} with error: {:?}",
+                self.id,
+                String::from_utf8_lossy(&output.stderr).parse::<String>()?
+            ))
+        }
+    }
+
+    pub async fn export_wallet_to_ipc_key_store(&mut self) -> Result<()> {
+        if self.wallet_address.is_none() {
+            return Err(anyhow!("wallet not created"));
+        }
+
+        let output = Command::new(&self.eudico_binary_path)
+            .args(["wallet", "export", "--lotus-json", &self.wallet_address.as_ref().unwrap()])
+            .env("LOTUS_PATH", self.lotus_path())
+            .output()?;
+
+        log::debug!("wallet export status: {:?}", output.status);
+
+        if output.status.success() {
+            let mut private_key_json: String = String::from_utf8_lossy(&output.stdout).parse()?;
+            util::trim_newline(&mut private_key_json);
+            import_wallet(&self.ipc_agent_url, private_key_json).await
         } else {
             Err(anyhow!(
                 "cannot create new wallet address in subnet:{:} with error: {:?}",
@@ -441,7 +413,7 @@ impl SubnetNode {
     }
 
     pub async fn join_subnet(&self) -> Result<()> {
-        join_subnet(
+        util::join_subnet(
             self.ipc_agent_url.clone(),
             self.wallet_address.clone().unwrap(),
             self.id.to_string(),
@@ -486,8 +458,8 @@ impl SubnetNode {
                 .map(|s| s.to_string())
                 .collect();
 
-            let mut tcp_addr = tcp_address(addresses)?;
-            trim_newline(&mut tcp_addr);
+            let mut tcp_addr = util::tcp_address(addresses)?;
+            util::trim_newline(&mut tcp_addr);
             self.validator.net_addr = Some(tcp_addr);
 
             Ok(())
@@ -550,74 +522,4 @@ impl SubnetNode {
             Err(anyhow!("cannot create admin token in subnet:{:}", self.id))
         }
     }
-}
-
-fn trim_newline(s: &mut String) {
-    if s.ends_with('\n') {
-        s.pop();
-        if s.ends_with('\r') {
-            s.pop();
-        }
-    }
-}
-
-/// Filter and get the tcp address, input must contain tcp address
-fn tcp_address(addrs: Vec<String>) -> Result<String> {
-    addrs
-        .into_iter()
-        .filter(|a| a.contains("tcp"))
-        .next()
-        .ok_or_else(|| anyhow!("no tcp address found"))
-}
-
-pub async fn create_subnet(
-    ipc_agent_url: String,
-    from: String,
-    parent: String,
-    name: String,
-    min_validators: u64,
-) -> anyhow::Result<String> {
-    let json_rpc_client = JsonRpcClientImpl::new(ipc_agent_url.parse()?, None);
-
-    let params = CreateSubnetParams {
-        from: Some(from),
-        parent,
-        name,
-        min_validator_stake: DEFAULT_MIN_STAKE,
-        min_validators,
-        bottomup_check_period: 10,
-        topdown_check_period: 10,
-    };
-
-    Ok(json_rpc_client
-        .request::<CreateSubnetResponse>(
-            json_rpc_methods::CREATE_SUBNET,
-            serde_json::to_value(params)?,
-        )
-        .await?
-        .address)
-}
-
-pub async fn join_subnet(
-    ipc_agent_url: String,
-    from: String,
-    subnet: String,
-    collateral: f64,
-    validator_net_addr: String,
-) -> anyhow::Result<()> {
-    let json_rpc_client = JsonRpcClientImpl::new(ipc_agent_url.parse()?, None);
-
-    // The json rpc server will handle directing the request to
-    // the correct parent.
-    let params = JoinSubnetParams {
-        subnet,
-        from: Some(from),
-        collateral,
-        validator_net_addr,
-    };
-
-    json_rpc_client
-        .request::<()>(json_rpc_methods::JOIN_SUBNET, serde_json::to_value(params)?)
-        .await?;
-    Ok(())
 }

@@ -3,6 +3,7 @@
 //! Setup infra for integration testing
 
 pub mod subnet;
+pub mod util;
 
 use ipc_sdk::subnet_id::SubnetID;
 use std::sync::atomic::{AtomicU16, Ordering};

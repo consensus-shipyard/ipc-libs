@@ -65,7 +65,7 @@ pub(crate) struct WalletImportArgs {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
-struct LotusJsonKeyType {
+pub struct LotusJsonKeyType {
     r#type: String,
     private_key: String,
 }
