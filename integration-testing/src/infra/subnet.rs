@@ -457,8 +457,10 @@ impl SubnetNode {
                 "validator",
                 "config",
                 "init",
-                &format!("--quic-libp2p-port={:}", self.validator.quic_port),
-                &format!("--tcp-libp2p-port={:}", self.validator.tcp_port),
+                "--quic-libp2p-port",
+                &self.validator.quic_port.to_string(),
+                "--tcp-libp2p-port",
+                &self.validator.tcp_port.to_string(),
             ])
             .env("LOTUS_PATH", self.lotus_path())
             .status()?;
