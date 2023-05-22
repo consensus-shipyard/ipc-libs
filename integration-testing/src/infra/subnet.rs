@@ -401,12 +401,9 @@ impl SubnetNode {
             .args([
                 "mir",
                 "daemon",
-                "--genesis",
-                &self.genesis_path(),
-                "--bootstrap",
-                "false",
-                "--api",
-                &self.node.tcp_port.to_string(),
+                &format!("--genesis={:}", self.genesis_path()),
+                &format!("--api={:}",self.node.tcp_port),
+                "--bootstrap=false",
             ])
             .stdout(node_std_out)
             .stderr(node_std_err)
