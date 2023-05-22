@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::infra::subnet::SubnetNode;
 use crate::infra::DEFAULT_MIN_STAKE;
 use anyhow::anyhow;
@@ -149,8 +151,7 @@ pub async fn import_wallet(ipc_agent_url: &str, private_key: String) -> anyhow::
 pub fn tcp_address(addrs: Vec<String>) -> anyhow::Result<String> {
     addrs
         .into_iter()
-        .filter(|a| a.contains("tcp"))
-        .next()
+        .find(|a| a.contains("tcp"))
         .ok_or_else(|| anyhow!("no tcp address found"))
 }
 

@@ -14,11 +14,11 @@ async fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let eudico_binary_path =
-        std::env::var("EUDICO_BIN").unwrap_or("/home/admin/lotus/eudico".to_string());
+        std::env::var("EUDICO_BIN").unwrap_or_else(|_| "/home/admin/lotus/eudico".to_string());
     let ipc_root_folder =
-        std::env::var("IPC_ROOT_FOLDER").unwrap_or("/home/admin/.ipc-agent".to_string());
-    let root_lotus_path =
-        std::env::var("ROOT_LOTUS_PATH").unwrap_or("/home/admin/.lotus-local-net0".to_string());
+        std::env::var("IPC_ROOT_FOLDER").unwrap_or_else(|_| "/home/admin/.ipc-agent".to_string());
+    let root_lotus_path = std::env::var("ROOT_LOTUS_PATH")
+        .unwrap_or_else(|_| "/home/admin/.lotus-local-net0".to_string());
 
     let api_port_sequence = Arc::new(AtomicU16::new(10));
     let mut topology = infra::SubnetTopology::new(

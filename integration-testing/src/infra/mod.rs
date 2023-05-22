@@ -28,6 +28,7 @@ pub struct SubnetTopology {
 }
 
 impl SubnetTopology {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
         root_address: String,
@@ -55,7 +56,7 @@ impl SubnetTopology {
     pub fn ipc_agent_url(&self) -> String {
         self.ipc_agent_url
             .clone()
-            .unwrap_or(DEFAULT_IPC_AGENT_URL.to_string())
+            .unwrap_or_else(|| DEFAULT_IPC_AGENT_URL.to_string())
     }
 
     pub fn next_port(&self) -> u16 {

@@ -78,7 +78,10 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
 
     let admin_token = nodes[0].create_admin_token().await?;
     println!("auth_token = {admin_token:}");
-    println!("jsonrpc_api_http = \"http://127.0.0.1:{:}/rpc/v1\"", nodes[0].node.tcp_port);
+    println!(
+        "jsonrpc_api_http = \"http://127.0.0.1:{:}/rpc/v1\"",
+        nodes[0].node.tcp_port
+    );
 
     Ok(())
 }
@@ -177,6 +180,7 @@ enum SubnetNodeSpawnStatus {
 }
 
 impl SubnetNode {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: SubnetID,
         ipc_root_folder: String,
@@ -209,7 +213,7 @@ impl SubnetNode {
     }
 
     fn subnet_id_cli_string(&self) -> String {
-        self.id.to_string().replacen("/", "_", 1000)
+        self.id.to_string().replacen('/', "_", 1000)
     }
 
     fn lotus_path(&self) -> String {
@@ -237,7 +241,7 @@ impl SubnetNode {
 
         if output.status.success() {
             let s: String = String::from_utf8_lossy(&output.stdout).parse()?;
-            Ok(s.split("\n").into_iter().map(|s| s.to_string()).collect())
+            Ok(s.split('\n').into_iter().map(|s| s.to_string()).collect())
         } else {
             Err(anyhow!(
                 "cannot get network addresses admin token in subnet:{:} with status: {:?}",
@@ -283,7 +287,7 @@ impl SubnetNode {
                 "wallet",
                 "export",
                 "--lotus-json",
-                &self.wallet_address.as_ref().unwrap(),
+                self.wallet_address.as_ref().unwrap(),
             ])
             .env("LOTUS_PATH", self.lotus_path())
             .output()?;
@@ -441,7 +445,7 @@ impl SubnetNode {
 
     pub fn config_validator(&mut self) -> Result<()> {
         let status = Command::new(&self.eudico_binary_path)
-            .args(&[
+            .args([
                 "mir",
                 "validator",
                 "config",
@@ -460,7 +464,7 @@ impl SubnetNode {
         }
 
         let output = Command::new(&self.eudico_binary_path)
-            .args(&["mir", "validator", "config", "validator-addr"])
+            .args(["mir", "validator", "config", "validator-addr"])
             .env("LOTUS_PATH", self.lotus_path())
             .output()?;
 
@@ -475,7 +479,7 @@ impl SubnetNode {
             util::trim_newline(&mut tcp_addr);
 
             // the net address starts with wallet address, need to trim it
-            let parts = tcp_addr.split("@").collect::<Vec<_>>();
+            let parts = tcp_addr.split('@').collect::<Vec<_>>();
             self.validator.net_addr = Some(parts[1].to_string());
 
             Ok(())
@@ -507,7 +511,7 @@ impl SubnetNode {
         ))?;
 
         let child = Command::new(&self.eudico_binary_path)
-            .args(&[
+            .args([
                 "mir",
                 "validator",
                 "run",
