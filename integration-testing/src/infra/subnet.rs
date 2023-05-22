@@ -460,7 +460,10 @@ impl SubnetNode {
 
             let mut tcp_addr = util::tcp_address(addresses)?;
             util::trim_newline(&mut tcp_addr);
-            self.validator.net_addr = Some(tcp_addr);
+
+            // the net address starts with wallet address, need to trim it
+            let parts = tcp_addr.split("@").collect::<Vec<_>>();
+            self.validator.net_addr = Some(parts[1].to_string());
 
             Ok(())
         } else {
