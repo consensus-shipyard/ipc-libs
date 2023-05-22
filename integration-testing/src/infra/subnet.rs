@@ -12,6 +12,7 @@ use ipc_agent::server::join::JoinSubnetParams;
 use ipc_sdk::subnet_id::SubnetID;
 use std::process::{Child, Command};
 use std::thread::sleep;
+use std::time::Duration;
 
 /// Spawn child subnet according to the topology
 pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()> {
@@ -119,7 +120,18 @@ fn spawn_first_node(topology: &SubnetTopology) -> anyhow::Result<SubnetNode> {
     node.gen_genesis()?;
     node.spawn_node()?;
 
-    node.new_wallet_address()?;
+    loop {
+         match node.new_wallet_address() {
+             Ok(_) => {
+                 log::info!("one wallet created in node: {:?}", node.id);
+                 break;
+             }
+             Err(e) => {
+                 log::error!("cannot create wallet: {e:}, wait and sleep to retry");
+                 sleep(Duration::from_secs(10))
+             }
+         }
+    }
     node.config_default_wallet()?;
     Ok(node)
 }
