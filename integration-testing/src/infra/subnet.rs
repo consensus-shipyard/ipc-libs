@@ -283,7 +283,8 @@ impl SubnetNode {
         log::debug!("wallet create status: {:?}", output.status);
 
         if output.status.success() {
-            let wallet = String::from_utf8_lossy(&output.stdout).parse()?;
+            let mut wallet = String::from_utf8_lossy(&output.stdout).parse()?;
+            trim_newline(&mut wallet);
             self.wallet_address = Some(wallet);
             Ok(())
         } else {
@@ -509,6 +510,15 @@ impl SubnetNode {
             Ok(String::from_utf8_lossy(&output.stdout).parse()?)
         } else {
             Err(anyhow!("cannot create admin token in subnet:{:}", self.id))
+        }
+    }
+}
+
+fn trim_newline(s: &mut String) {
+    if s.ends_with('\n') {
+        s.pop();
+        if s.ends_with('\r') {
+            s.pop();
         }
     }
 }
