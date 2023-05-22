@@ -1,17 +1,17 @@
-use ipc_agent::config::json_rpc_methods;
-use ipc_agent::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use ipc_agent::server::create::{CreateSubnetParams, CreateSubnetResponse};
-use ipc_agent::server::join::JoinSubnetParams;
-use std::process::Command;
-use std::thread::sleep;
-use std::time::Duration;
+use crate::infra::subnet::SubnetNode;
+use crate::infra::DEFAULT_MIN_STAKE;
 use anyhow::anyhow;
 use fvm_shared::crypto::signature::SignatureType;
+use ipc_agent::config::json_rpc_methods;
+use ipc_agent::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use ipc_agent::lotus::message::wallet::WalletKeyType;
+use ipc_agent::server::create::{CreateSubnetParams, CreateSubnetResponse};
+use ipc_agent::server::join::JoinSubnetParams;
 use ipc_agent::server::wallet::import::{WalletImportParams, WalletImportResponse};
-use crate::infra::DEFAULT_MIN_STAKE;
-use crate::infra::subnet::SubnetNode;
+use std::process::Command;
 use std::str::FromStr;
+use std::thread::sleep;
+use std::time::Duration;
 
 pub async fn create_subnet(
     ipc_agent_url: String,
@@ -84,7 +84,12 @@ pub fn send_token(
     }
 }
 
-pub fn fund_nodes(eudico_binary_path: &str, lotus_path: &str, nodes: &[SubnetNode], amount: u8) -> anyhow::Result<()> {
+pub fn fund_nodes(
+    eudico_binary_path: &str,
+    lotus_path: &str,
+    nodes: &[SubnetNode],
+    amount: u8,
+) -> anyhow::Result<()> {
     for node in nodes.iter() {
         send_token(
             eudico_binary_path,
@@ -131,8 +136,7 @@ pub async fn import_wallet(ipc_agent_url: &str, private_key: String) -> anyhow::
         .request::<WalletImportResponse>(
             json_rpc_methods::WALLET_IMPORT,
             serde_json::to_value(WalletImportParams {
-                key_type: SignatureType::try_from(WalletKeyType::from_str(&params.r#type)?)?
-                    as u8,
+                key_type: SignatureType::try_from(WalletKeyType::from_str(&params.r#type)?)? as u8,
                 private_key: params.private_key,
             })?,
         )

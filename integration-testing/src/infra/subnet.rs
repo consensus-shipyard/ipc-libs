@@ -1,16 +1,16 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use crate::infra::{DEFAULT_MIN_STAKE, SubnetTopology, util};
+use crate::infra::util::import_wallet;
+use crate::infra::{util, SubnetTopology, DEFAULT_MIN_STAKE};
 use anyhow::{anyhow, Result};
+use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use std::fs;
 use std::fs::File;
 use std::process::{Child, Command};
 use std::str::FromStr;
 use std::thread::sleep;
-use fvm_shared::address::Address;
-use crate::infra::util::import_wallet;
 
 /// Spawn child subnet according to the topology
 pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result<()> {
@@ -30,7 +30,10 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
     )
     .await?;
 
-    topology.id = Some(SubnetID::new_from_parent(&topology.parent, Address::from_str(&actor_addr)?));
+    topology.id = Some(SubnetID::new_from_parent(
+        &topology.parent,
+        Address::from_str(&actor_addr)?,
+    ));
 
     log::info!("created subnet: {:?}", topology.id);
 
@@ -68,10 +71,14 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
     let accounts = nodes
         .iter()
         .map(|n| n.wallet_address.clone().unwrap())
-        .map(|s| format!("\"{:}\"", s))
         .collect::<Vec<_>>()
         .join(",");
-    println!("accounts: {accounts:?}");
+
+    println!("accounts = [{accounts:?}]");
+
+    let admin_token = nodes[0].create_admin_token().await?;
+    println!("auth_token = {admin_token:}");
+    println!("jsonrpc_api_http = \"http://127.0.0.1:{:}/rpc/v1\"", nodes[0].node.tcp_port);
 
     Ok(())
 }
@@ -162,7 +169,10 @@ struct NodeInfo {
 
 /// The subnet node spawn status
 enum SubnetNodeSpawnStatus {
-    Running { process: Child },
+    Running {
+        #[allow(dead_code)]
+        process: Child,
+    },
     Idle,
 }
 
@@ -269,7 +279,12 @@ impl SubnetNode {
         }
 
         let output = Command::new(&self.eudico_binary_path)
-            .args(["wallet", "export", "--lotus-json", &self.wallet_address.as_ref().unwrap()])
+            .args([
+                "wallet",
+                "export",
+                "--lotus-json",
+                &self.wallet_address.as_ref().unwrap(),
+            ])
             .env("LOTUS_PATH", self.lotus_path())
             .output()?;
 
@@ -382,7 +397,7 @@ impl SubnetNode {
                 "mir",
                 "daemon",
                 &format!("--genesis={:}", self.genesis_path()),
-                &format!("--api={:}",self.node.tcp_port),
+                &format!("--api={:}", self.node.tcp_port),
                 "--bootstrap=false",
             ])
             .stdout(node_std_out)
@@ -435,7 +450,7 @@ impl SubnetNode {
                 &self.validator.quic_port.to_string(),
                 "--tcp-libp2p-port",
                 &self.validator.tcp_port.to_string(),
-                "-f"
+                "-f",
             ])
             .env("LOTUS_PATH", self.lotus_path())
             .status()?;
@@ -454,10 +469,7 @@ impl SubnetNode {
 
             log::debug!("raw addresses: {:?}", raw_addresses);
 
-            let addresses = raw_addresses
-                .lines()
-                .map(|s| s.to_string())
-                .collect();
+            let addresses = raw_addresses.lines().map(|s| s.to_string()).collect();
 
             let mut tcp_addr = util::tcp_address(addresses)?;
             util::trim_newline(&mut tcp_addr);
