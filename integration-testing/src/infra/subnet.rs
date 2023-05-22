@@ -260,14 +260,17 @@ impl SubnetNode {
             .env("LOTUS_PATH", self.lotus_path())
             .output()?;
 
+        log::debug!("wallet create status: {:?}", output.status);
+
         if output.status.success() {
             let wallet = String::from_utf8_lossy(&output.stdout).parse()?;
             self.wallet_address = Some(wallet);
             Ok(())
         } else {
             Err(anyhow!(
-                "cannot create new wallet address in subnet:{:}",
-                self.id
+                "cannot create new wallet address in subnet:{:} with error: {:?}",
+                self.id,
+                String::from_utf8_lossy(&output.stderr).parse()?
             ))
         }
     }
