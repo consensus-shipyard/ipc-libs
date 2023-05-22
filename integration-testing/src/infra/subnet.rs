@@ -473,15 +473,19 @@ impl SubnetNode {
 
         let output = Command::new(&self.eudico_binary_path)
             .args(&["mir", "validator", "config", "validator-addr"])
+            .env("LOTUS_PATH", self.lotus_path())
             .output()?;
 
         if output.status.success() {
             let raw_addresses = String::from_utf8_lossy(&output.stdout).to_string();
+
+            log::debug!("raw addresses: {:?}", raw_addresses);
+
             let addresses = raw_addresses
-                .split("\n")
-                .into_iter()
+                .lines()
                 .map(|s| s.to_string())
                 .collect();
+
             let mut tcp_addr = tcp_address(addresses)?;
             trim_newline(&mut tcp_addr);
             self.validator.net_addr = Some(tcp_addr);
