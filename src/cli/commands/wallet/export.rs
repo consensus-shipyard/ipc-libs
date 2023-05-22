@@ -29,9 +29,8 @@ impl CommandLineHandler for WalletExport {
 
         let addr = Address::from_str(&arguments.address)?;
         let key_info = wallet.export(&addr)?;
-        let t = key_info.key_type().clone();
         let ser_key = serde_json::to_string(&LotusJsonKeyType {
-            r#type: WalletKeyType::try_from(t)?.to_string(),
+            r#type: WalletKeyType::try_from(*key_info.key_type())?.to_string(),
             private_key: BASE64_STANDARD.encode(key_info.private_key()),
         })?;
 
