@@ -1,8 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use std::fs;
-use std::fs::File;
 use crate::infra::{SubnetTopology, DEFAULT_MIN_STAKE};
 use anyhow::{anyhow, Result};
 use ipc_agent::config::json_rpc_methods;
@@ -10,6 +8,8 @@ use ipc_agent::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use ipc_agent::server::create::{CreateSubnetParams, CreateSubnetResponse};
 use ipc_agent::server::join::JoinSubnetParams;
 use ipc_sdk::subnet_id::SubnetID;
+use std::fs;
+use std::fs::File;
 use std::process::{Child, Command};
 use std::thread::sleep;
 use std::time::Duration;
@@ -52,16 +52,24 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
 
     for node in nodes.iter_mut() {
         node.config_validator()?;
-        log::info!("configured validator for node: {:?}", node.validator.net_addr);
+        log::info!(
+            "configured validator for node: {:?}",
+            node.validator.net_addr
+        );
 
         node.join_subnet().await?;
-        log::info!("validator: {:?} joined subnet: {:}", node.validator.net_addr, node.id);
+        log::info!(
+            "validator: {:?} joined subnet: {:}",
+            node.validator.net_addr,
+            node.id
+        );
 
         node.spawn_validator()?;
         log::info!("validator: {:?} spawned", node.validator.net_addr);
     }
 
-    let accounts = nodes.iter()
+    let accounts = nodes
+        .iter()
         .map(|n| n.wallet_address.clone().unwrap())
         .map(|s| format!("\"{:}\"", s))
         .collect::<Vec<_>>()
@@ -122,7 +130,7 @@ fn create_wallet(node: &mut SubnetNode) -> anyhow::Result<()> {
                 break;
             }
             Err(e) => {
-                log::error!("cannot create wallet: {e:}, wait and sleep to retry");
+                log::warn!("cannot create wallet: {e:}, wait and sleep to retry");
                 sleep(Duration::from_secs(10))
             }
         }
@@ -241,7 +249,11 @@ impl SubnetNode {
     }
 
     fn lotus_path(&self) -> String {
-        format!("~/.lotus_subnet{:}_{:}", self.subnet_id_cli_string(), self.node.tcp_port)
+        format!(
+            "~/.lotus_subnet{:}_{:}",
+            self.subnet_id_cli_string(),
+            self.node.tcp_port
+        )
     }
 
     fn genesis_path(&self) -> String {
@@ -301,7 +313,10 @@ impl SubnetNode {
             return Err(anyhow!("wallet not created yet"));
         }
 
-        log::info!("setting wallet: {:} as default", self.wallet_address.as_ref().unwrap());
+        log::info!(
+            "setting wallet: {:} as default",
+            self.wallet_address.as_ref().unwrap()
+        );
 
         let status = Command::new(&self.eudico_binary_path)
             .args([
@@ -313,7 +328,10 @@ impl SubnetNode {
             .status()?;
 
         if status.success() {
-            log::info!("set wallet: {:} as default", self.wallet_address.as_ref().unwrap());
+            log::info!(
+                "set wallet: {:} as default",
+                self.wallet_address.as_ref().unwrap()
+            );
             Ok(())
         } else {
             Err(anyhow!(
@@ -371,6 +389,13 @@ impl SubnetNode {
             File::create(format!("./{subnet_id:}_node_{:}.log", self.node.tcp_port))?;
         let node_std_err =
             File::create(format!("./{subnet_id:}_node_{:}.err", self.node.tcp_port))?;
+
+        log::info!(
+            "spawning node with api: {:}, genesis: {:}, lotus path: {:}",
+            self.node.tcp_port,
+            self.genesis_path(),
+            self.lotus_path()
+        );
 
         let child = Command::new(&self.eudico_binary_path)
             .args([
@@ -473,10 +498,14 @@ impl SubnetNode {
 
         let subnet_id = self.subnet_id_cli_string();
 
-        let validator_std_out =
-            File::create(format!("./{subnet_id:}_validator_{:}.log", self.validator.tcp_port))?;
-        let validator_std_err =
-            File::create(format!("./{subnet_id:}_validator_{:}.err", self.validator.tcp_port))?;
+        let validator_std_out = File::create(format!(
+            "./{subnet_id:}_validator_{:}.log",
+            self.validator.tcp_port
+        ))?;
+        let validator_std_err = File::create(format!(
+            "./{subnet_id:}_validator_{:}.err",
+            self.validator.tcp_port
+        ))?;
 
         let child = Command::new(&self.eudico_binary_path)
             .args(&[
