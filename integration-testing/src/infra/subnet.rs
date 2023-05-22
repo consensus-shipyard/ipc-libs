@@ -48,7 +48,6 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
         &nodes,
         10,
     )?;
-    log::info!("funded nodes");
 
     for node in nodes.iter_mut() {
         node.config_validator()?;
@@ -461,6 +460,7 @@ impl SubnetNode {
                 &format!("--quic-libp2p-port={:}", self.validator.quic_port),
                 &format!("--tcp-libp2p-port={:}", self.validator.tcp_port),
             ])
+            .env("LOTUS_PATH", self.lotus_path())
             .status()?;
 
         if !status.success() {
