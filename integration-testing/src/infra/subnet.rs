@@ -98,10 +98,10 @@ pub fn send_token(
     }
 }
 
-fn fund_nodes(root_addr: &str, lotus_path: &str, nodes: &[SubnetNode], amount: u8) -> Result<()> {
+fn fund_nodes(eudico_binary_path: &str, lotus_path: &str, nodes: &[SubnetNode], amount: u8) -> Result<()> {
     for node in nodes.iter() {
         send_token(
-            root_addr,
+            eudico_binary_path,
             lotus_path,
             node.wallet_address.as_ref().unwrap(),
             amount,
