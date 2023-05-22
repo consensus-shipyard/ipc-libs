@@ -397,7 +397,7 @@ impl SubnetNode {
             self.lotus_path()
         );
 
-        let command = Command::new(&self.eudico_binary_path)
+        let child = Command::new(&self.eudico_binary_path)
             .args([
                 "mir",
                 "daemon",
@@ -410,10 +410,8 @@ impl SubnetNode {
             ])
             .stdout(node_std_out)
             .stderr(node_std_err)
-            .env("LOTUS_PATH", self.lotus_path());
-        log::debug!("command to spawn node: {:?}", command.get_args());
-
-        let child = command.spawn()?;
+            .env("LOTUS_PATH", self.lotus_path())
+            .spawn()?;
 
         self.node.status = SubnetNodeSpawnStatus::Running { process: child };
 
