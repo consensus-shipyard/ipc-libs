@@ -256,7 +256,8 @@ impl SubnetNode {
 
     fn lotus_path(&self) -> String {
         format!(
-            "~/.lotus_subnet{:}_{:}",
+            "{:}/.lotus_subnet{:}_{:}",
+            std::env::var("HOME")?,
             self.subnet_id_cli_string(),
             self.node.tcp_port
         )
