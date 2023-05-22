@@ -300,6 +300,8 @@ impl SubnetNode {
             return Err(anyhow!("wallet not created yet"));
         }
 
+        log::info!("setting wallet: {:} as default", self.wallet_address.as_ref().unwrap());
+
         let status = Command::new(&self.eudico_binary_path)
             .args([
                 "wallet",
@@ -310,6 +312,7 @@ impl SubnetNode {
             .status()?;
 
         if status.success() {
+            log::info!("set wallet: {:} as default", self.wallet_address.as_ref().unwrap());
             Ok(())
         } else {
             Err(anyhow!(
