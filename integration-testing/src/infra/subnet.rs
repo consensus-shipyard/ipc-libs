@@ -457,10 +457,25 @@ impl SubnetNode {
                 "validator",
                 "config",
                 "init",
+            ])
+            .env("LOTUS_PATH", self.lotus_path())
+            .status()?;
+
+        if !status.success() {
+            return Err(anyhow!("cannot init validator in subnet:{:}", self.id));
+        }
+
+        let status = Command::new(&self.eudico_binary_path)
+            .args(&[
+                "mir",
+                "validator",
+                "config",
+                "init",
                 "--quic-libp2p-port",
                 &self.validator.quic_port.to_string(),
                 "--tcp-libp2p-port",
                 &self.validator.tcp_port.to_string(),
+                "-f"
             ])
             .env("LOTUS_PATH", self.lotus_path())
             .status()?;
