@@ -270,7 +270,7 @@ impl SubnetNode {
             Err(anyhow!(
                 "cannot create new wallet address in subnet:{:} with error: {:?}",
                 self.id,
-                String::from_utf8_lossy(&output.stderr).parse()?
+                String::from_utf8_lossy(&output.stderr).parse::<String>()?
             ))
         }
     }
