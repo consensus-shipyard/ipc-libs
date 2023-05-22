@@ -20,7 +20,7 @@ async fn main() {
     let root_lotus_path =
         std::env::var("ROOT_LOTUS_PATH").unwrap_or("/home/admin/.lotus-local-net0".to_string());
 
-    let api_port_sequence = Arc::new(AtomicU16::new(5));
+    let api_port_sequence = Arc::new(AtomicU16::new(10));
     let topology = infra::SubnetTopology::new(
         SubnetID::from_str("/root/t01002").unwrap(),
         "test-subnet-1".to_string(),
