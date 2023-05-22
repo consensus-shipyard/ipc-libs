@@ -91,6 +91,7 @@ pub fn send_token(
         .status()?;
 
     if status.success() {
+        log::info!("funded wallet: {:} with amount: {:} fil", addr, amount);
         Ok(())
     } else {
         Err(anyhow!("cannot send token to wallet:{:}", addr))
@@ -179,7 +180,11 @@ fn spawn_other_nodes(
         }
     };
 
-    let first_node_addr = tcp_address(addrs)?;
+    let mut first_node_addr = tcp_address(addrs)?;
+    trim_newline(&mut first_node_addr);
+
+    log::info!("first node net addr: {:?}", first_node_addr);
+
     for node in &nodes {
         node.connect_peer(&first_node_addr)?;
     }
@@ -451,10 +456,8 @@ impl SubnetNode {
                 "validator",
                 "config",
                 "init",
-                "--quic-libp2p-port",
-                &self.validator.quic_port.to_string(),
-                "--tcp-libp2p-port",
-                &self.validator.tcp_port.to_string(),
+                &format!("--quic-libp2p-port={:}", self.validator.quic_port),
+                &format!("--tcp-libp2p-port={:}", self.validator.tcp_port),
             ])
             .status()?;
 
@@ -473,7 +476,8 @@ impl SubnetNode {
                 .into_iter()
                 .map(|s| s.to_string())
                 .collect();
-            let tcp_addr = tcp_address(addresses)?;
+            let mut tcp_addr = tcp_address(addresses)?;
+            trim_newline(&mut tcp_addr);
             self.validator.net_addr = Some(tcp_addr);
 
             Ok(())
@@ -509,11 +513,9 @@ impl SubnetNode {
                 "mir",
                 "validator",
                 "run",
-                "--membership",
-                "onchain",
+                "--membership=onchain",
                 "--nosync",
-                "--ipcagent-url",
-                &self.ipc_agent_url,
+                &format!("--ipcagent-url={:}", self.ipc_agent_url),
             ])
             .stdout(validator_std_out)
             .stderr(validator_std_err)
