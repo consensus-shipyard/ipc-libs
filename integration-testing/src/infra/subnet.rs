@@ -106,6 +106,8 @@ fn fund_nodes(eudico_binary_path: &str, lotus_path: &str, nodes: &[SubnetNode], 
             node.wallet_address.as_ref().unwrap(),
             amount,
         )?;
+        // for nonce to be updated
+        sleep(Duration::from_secs(5));
     }
     Ok(())
 }
