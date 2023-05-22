@@ -503,6 +503,7 @@ impl SubnetNode {
                 "--nosync",
                 &format!("--ipcagent-url={:}", self.ipc_agent_url),
             ])
+            .env("LOTUS_PATH", self.lotus_path())
             .stdout(validator_std_out)
             .stderr(validator_std_err)
             .spawn()?;
