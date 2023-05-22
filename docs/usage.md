@@ -44,7 +44,7 @@ ipc_agent::cli::commands::wallet::list] wallets in subnet /root are {"t1cp4q4lqs
 
 The agent provides a command to conveniently exchange funds between addresses of the same subnet. This can be achieved through the following command:
 ```bash
-./bin/ipc-agent subnet send-value --subnet <subnet-id> --from <from-addr> --to <to-addr> <value>
+./bin/ipc-agent subnet send-value --subnet <subnet-id> [--from <from-addr>] --to <to-addr> <value>
 ```
 ```console
 # Example execution
@@ -64,7 +64,7 @@ Complex behavior can be implemented using these primitives: sending value to a u
 ### Fund
 Funding a subnet can be performed by using the following command:
 ```bash
-./bin/ipc-agent cross-msg fund --subnet <subnet-id> --from <from-addr> <amount>
+./bin/ipc-agent cross-msg fund --subnet <subnet-id> [--from <from-addr>] <amount>
 ```
 ```console
 # Example execution
@@ -77,7 +77,7 @@ This command includes the cross-net message into the next top-down checkpoint af
 ### Release
 In order to release funds from a subnet, your account must hold enough funds inside it. Releasing funds to the parent subnet can be permformed with the following comand:
 ```bash
-./bin/ipc-agent cross-msg release --subnet <subnet-id> --from <from-addr> <amount>
+./bin/ipc-agent cross-msg release --subnet <subnet-id> [--from <from-addr>] <amount>
 ```
 ```console
 # Example execution
