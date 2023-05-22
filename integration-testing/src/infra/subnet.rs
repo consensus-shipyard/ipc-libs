@@ -43,7 +43,7 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
     nodes.push(first_node);
 
     fund_nodes(
-        &topology.root_address,
+        &topology.eudico_binary_path,
         &topology.root_lotus_path,
         &nodes,
         10,
