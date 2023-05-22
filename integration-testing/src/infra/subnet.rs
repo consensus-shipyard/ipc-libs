@@ -114,24 +114,30 @@ fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
     )
 }
 
+fn create_wallet(node: &mut SubnetNode) -> anyhow::Result<()> {
+    loop {
+        match node.new_wallet_address() {
+            Ok(_) => {
+                log::info!("one wallet created in node: {:?}", node.id);
+                break;
+            }
+            Err(e) => {
+                log::error!("cannot create wallet: {e:}, wait and sleep to retry");
+                sleep(Duration::from_secs(10))
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Spawn the first node, then subsequent node will connect to this node.
 fn spawn_first_node(topology: &SubnetTopology) -> anyhow::Result<SubnetNode> {
     let mut node = node_from_topology(topology);
     node.gen_genesis()?;
     node.spawn_node()?;
 
-    loop {
-         match node.new_wallet_address() {
-             Ok(_) => {
-                 log::info!("one wallet created in node: {:?}", node.id);
-                 break;
-             }
-             Err(e) => {
-                 log::error!("cannot create wallet: {e:}, wait and sleep to retry");
-                 sleep(Duration::from_secs(10))
-             }
-         }
-    }
+    create_wallet(&mut node)?;
     node.config_default_wallet()?;
     Ok(node)
 }
@@ -145,7 +151,9 @@ fn spawn_other_nodes(
         let mut node = node_from_topology(topology);
 
         node.spawn_node()?;
-        node.new_wallet_address()?;
+
+        create_wallet(&mut node)?;
+
         node.config_default_wallet()?;
 
         nodes.push(node);
