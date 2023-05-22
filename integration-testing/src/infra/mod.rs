@@ -14,11 +14,11 @@ const DEFAULT_NODE_API_BASE_PORT: u16 = 1230;
 const DEFAULT_MIN_STAKE: f64 = 1.0;
 
 pub struct SubnetTopology {
-    pub id: SubnetID,
+    pub id: Option<SubnetID>,
     pub name: String,
     pub number_of_nodes: usize,
     pub eudico_binary_path: String,
-    pub parent: Option<SubnetID>,
+    pub parent: SubnetID,
     pub root_address: String,
     pub root_lotus_path: String,
     pub ipc_root_folder: String,
@@ -29,18 +29,17 @@ pub struct SubnetTopology {
 
 impl SubnetTopology {
     pub fn new(
-        id: SubnetID,
         name: String,
         root_address: String,
         root_lotus_path: String,
         ipc_root_folder: String,
         number_of_nodes: usize,
         eudico_binary_path: String,
-        parent: Option<SubnetID>,
+        parent: SubnetID,
         port_starting_seq: Arc<AtomicU16>,
     ) -> Self {
         Self {
-            id,
+            id: None,
             name,
             number_of_nodes,
             eudico_binary_path,

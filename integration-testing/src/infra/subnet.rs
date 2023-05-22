@@ -7,23 +7,21 @@ use ipc_sdk::subnet_id::SubnetID;
 use std::fs;
 use std::fs::File;
 use std::process::{Child, Command};
+use std::str::FromStr;
 use std::thread::sleep;
+use fvm_shared::address::Address;
 use crate::infra::util::import_wallet;
 
 /// Spawn child subnet according to the topology
-pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()> {
+pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result<()> {
     if topology.number_of_nodes == 0 {
         log::info!("no nodes to spawn");
         return Ok(());
     }
 
-    let parent = if let Some(p) = &topology.parent {
-        p.to_string()
-    } else {
-        return Err(anyhow!("parent cannot be None"));
-    };
+    let parent = topology.parent.to_string();
 
-    util::create_subnet(
+    let actor_addr = util::create_subnet(
         topology.ipc_agent_url(),
         topology.root_address.clone(),
         parent,
@@ -31,7 +29,10 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
         topology.number_of_nodes as u64,
     )
     .await?;
-    log::info!("created subnet: {:}", topology.id);
+
+    topology.id = Some(SubnetID::new_from_parent(&topology.parent, Address::from_str(&actor_addr)?));
+
+    log::info!("created subnet: {:?}", topology.id);
 
     let first_node = spawn_first_node(topology)?;
     let mut nodes = spawn_other_nodes(topology, &first_node)?;
@@ -77,7 +78,7 @@ pub async fn spawn_child_subnet(topology: &SubnetTopology) -> anyhow::Result<()>
 
 fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
     SubnetNode::new(
-        topology.id.clone(),
+        topology.id.clone().unwrap(),
         topology.ipc_root_folder.clone(),
         topology.next_port(),
         topology.next_port(),
