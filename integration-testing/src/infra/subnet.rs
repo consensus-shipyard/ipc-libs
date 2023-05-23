@@ -79,7 +79,7 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
     println!("accounts = [{accounts:?}]");
 
     let admin_token = nodes[0].create_admin_token().await?;
-    println!("auth_token = {admin_token:}");
+    println!("auth_token = \"{admin_token:}\"");
     println!(
         "jsonrpc_api_http = \"http://127.0.0.1:{:}/rpc/v1\"",
         nodes[0].node.tcp_port
