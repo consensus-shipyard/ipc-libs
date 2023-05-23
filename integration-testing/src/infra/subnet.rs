@@ -1,7 +1,7 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use crate::infra::util::import_wallet;
+use crate::infra::util::{import_wallet, trim_newline};
 use crate::infra::{util, SubnetTopology, DEFAULT_MIN_STAKE};
 use anyhow::{anyhow, Result};
 use fvm_shared::address::Address;
@@ -78,8 +78,10 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
 
     println!("accounts = [{accounts:?}]");
 
-    let admin_token = nodes[0].create_admin_token().await?;
+    let mut admin_token = nodes[0].create_admin_token().await?;
+    trim_newline(&mut admin_token);
     println!("auth_token = \"{admin_token:}\"");
+
     println!(
         "jsonrpc_api_http = \"http://127.0.0.1:{:}/rpc/v1\"",
         nodes[0].node.tcp_port
