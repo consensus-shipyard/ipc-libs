@@ -70,11 +70,19 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
         log::info!("validator: {:?} spawned", node.validator.net_addr);
     }
 
+    print_toml_config(&topology, &nodes);
+
+    Ok(())
+}
+
+fn print_toml_config(topology: &SubnetTopology, nodes: &[SubnetNode]) {
+    println!("\n\n========== SUBNET TOML CONFIG ============ \n\n");
+
     let accounts = nodes
         .iter()
         .map(|n| n.wallet_address.clone().unwrap())
         .collect::<Vec<_>>()
-        .join(",");
+        .join("\",\"");
 
     println!("accounts = [{accounts:?}]");
 
@@ -87,7 +95,9 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
         nodes[0].node.tcp_port
     );
 
-    Ok(())
+    println!("id = \"{:}\"", topology.id.as_ref().unwrap().to_string());
+    println!("gateway_addr = \"t064\"");
+    println!("network_name = \"{:}\"", topology.name.to_string());
 }
 
 fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
