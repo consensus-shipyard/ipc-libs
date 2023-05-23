@@ -64,6 +64,8 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
             node.id
         );
 
+        sleep(std::time::Duration::from_secs(5));
+
         node.spawn_validator()?;
         log::info!("validator: {:?} spawned", node.validator.net_addr);
     }
