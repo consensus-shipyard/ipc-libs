@@ -70,12 +70,12 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
         log::info!("validator: {:?} spawned", node.validator.net_addr);
     }
 
-    print_toml_config(&topology, &nodes);
+    print_toml_config(topology, &nodes).await?;
 
     Ok(())
 }
 
-fn print_toml_config(topology: &SubnetTopology, nodes: &[SubnetNode]) {
+async fn print_toml_config(topology: &SubnetTopology, nodes: &[SubnetNode]) -> Result<()> {
     println!("\n\n========== SUBNET TOML CONFIG ============ \n\n");
 
     let accounts = nodes
@@ -95,9 +95,11 @@ fn print_toml_config(topology: &SubnetTopology, nodes: &[SubnetNode]) {
         nodes[0].node.tcp_port
     );
 
-    println!("id = \"{:}\"", topology.id.as_ref().unwrap().to_string());
+    println!("id = \"{:}\"", topology.id.as_ref().unwrap());
     println!("gateway_addr = \"t064\"");
-    println!("network_name = \"{:}\"", topology.name.to_string());
+    println!("network_name = \"{:}\"", topology.name);
+
+    Ok(())
 }
 
 fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
