@@ -8,7 +8,8 @@ use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 
 use self::export::{WalletExport, WalletExportArgs};
-use self::import::{WalletImport, WalletImportArgs};
+use self::import::WalletImportArgs;
+pub use import::WalletImport;
 
 mod balances;
 mod export;
@@ -46,6 +47,6 @@ pub(crate) enum Commands {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct LotusJsonKeyType {
-    r#type: String,
-    private_key: String,
+    pub(crate) r#type: String,
+    pub(crate) private_key: String,
 }

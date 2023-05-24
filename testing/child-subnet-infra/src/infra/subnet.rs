@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::infra::util::{import_wallet, trim_newline};
-use crate::infra::{util, SubnetTopology, DEFAULT_MIN_STAKE};
+use crate::infra::{util, SubnetConfig, DEFAULT_MIN_STAKE};
 use anyhow::{anyhow, Result};
 use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
@@ -12,39 +12,39 @@ use std::process::{Child, Command};
 use std::str::FromStr;
 use std::thread::sleep;
 
-/// Spawn child subnet according to the topology
-pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result<()> {
-    if topology.number_of_nodes == 0 {
+/// Spawn child subnet according to the config
+pub async fn spawn_child_subnet(config: &mut SubnetConfig) -> anyhow::Result<()> {
+    if config.number_of_nodes == 0 {
         log::info!("no nodes to spawn");
         return Ok(());
     }
 
-    let parent = topology.parent.to_string();
+    let parent = config.parent.to_string();
 
     let actor_addr = util::create_subnet(
-        topology.ipc_agent_url(),
-        topology.root_address.clone(),
+        config.ipc_agent_url(),
+        config.parent_wallet_address.clone(),
         parent,
-        topology.name.clone(),
-        topology.number_of_nodes as u64,
+        config.name.clone(),
+        config.number_of_nodes as u64,
     )
     .await?;
 
-    topology.id = Some(SubnetID::new_from_parent(
-        &topology.parent,
+    config.id = Some(SubnetID::new_from_parent(
+        &config.parent,
         Address::from_str(&actor_addr)?,
     ));
 
-    log::info!("created subnet: {:?}", topology.id);
+    log::info!("created subnet: {:?}", config.id);
 
-    let first_node = spawn_first_node(topology)?;
-    let mut nodes = spawn_other_nodes(topology, &first_node)?;
+    let first_node = spawn_first_node(config)?;
+    let mut nodes = spawn_other_nodes(config, &first_node)?;
 
     nodes.push(first_node);
 
-    util::fund_nodes(
-        &topology.eudico_binary_path,
-        &topology.root_lotus_path,
+    util::fund_wallet_in_nodes(
+        &config.eudico_binary_path,
+        &config.parent_lotus_path,
         &nodes,
         10,
     )?;
@@ -70,12 +70,12 @@ pub async fn spawn_child_subnet(topology: &mut SubnetTopology) -> anyhow::Result
         log::info!("validator: {:?} spawned", node.validator.net_addr);
     }
 
-    print_toml_config(topology, &nodes).await?;
+    print_toml_config(config, &nodes).await?;
 
     Ok(())
 }
 
-async fn print_toml_config(topology: &SubnetTopology, nodes: &[SubnetNode]) -> Result<()> {
+async fn print_toml_config(topology: &SubnetConfig, nodes: &[SubnetNode]) -> Result<()> {
     println!("\n\n========== SUBNET TOML CONFIG ============ \n\n");
 
     let accounts = nodes
@@ -102,7 +102,7 @@ async fn print_toml_config(topology: &SubnetTopology, nodes: &[SubnetNode]) -> R
     Ok(())
 }
 
-fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
+fn node_from_topology(topology: &SubnetConfig) -> SubnetNode {
     SubnetNode::new(
         topology.id.clone().unwrap(),
         topology.ipc_root_folder.clone(),
@@ -116,7 +116,7 @@ fn node_from_topology(topology: &SubnetTopology) -> SubnetNode {
 }
 
 /// Spawn the first node, then subsequent node will connect to this node.
-fn spawn_first_node(topology: &SubnetTopology) -> anyhow::Result<SubnetNode> {
+fn spawn_first_node(topology: &SubnetConfig) -> anyhow::Result<SubnetNode> {
     let mut node = node_from_topology(topology);
     node.gen_genesis()?;
     node.spawn_node()?;
@@ -127,7 +127,7 @@ fn spawn_first_node(topology: &SubnetTopology) -> anyhow::Result<SubnetNode> {
 }
 
 fn spawn_other_nodes(
-    topology: &SubnetTopology,
+    topology: &SubnetConfig,
     first: &SubnetNode,
 ) -> anyhow::Result<Vec<SubnetNode>> {
     let mut nodes = vec![];

@@ -1,5 +1,5 @@
 [package]
-name = "integration-testing"
+name = "child-subnet-infra"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,5 +14,5 @@ log = { workspace = true }
 fvm_shared = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
-ipc-agent = { path = ".." }
-ipc-identity = { path = "../identity" }
+ipc-agent = { path = "../.." }
+ipc-identity = { path = "../../identity" }

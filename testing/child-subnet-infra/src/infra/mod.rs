@@ -13,26 +13,40 @@ const DEFAULT_IPC_AGENT_URL: &str = "http://localhost:3030/json_rpc";
 const DEFAULT_NODE_API_BASE_PORT: u16 = 1230;
 const DEFAULT_MIN_STAKE: f64 = 1.0;
 
-pub struct SubnetTopology {
+/// The configuration struct for the subnet to spawn
+pub struct SubnetConfig {
+    /// The id of the subnet. If not specified, will create a subnet first.
     pub id: Option<SubnetID>,
+    /// Name of the subnet
     pub name: String,
-    pub number_of_nodes: usize,
-    pub eudico_binary_path: String,
+    /// The parent of the subnet
     pub parent: SubnetID,
-    pub root_address: String,
-    pub root_lotus_path: String,
+    /// Number of nodes in the subnet
+    pub number_of_nodes: usize,
+    /// The path to eudico binary. Since most of the operations are issued from
+    /// command line, we need to point to the eudico binary path.
+    pub eudico_binary_path: String,
+    /// The parent subnet wallet address. This will be used to perform setups in the parent
+    /// subnet, such as initial fund transfer to the validators so that validators can join
+    /// the created subnet
+    pub parent_wallet_address: String,
+    /// The parent subnet eudico lotus path
+    pub parent_lotus_path: String,
+    /// The ipc agent root folder
     pub ipc_root_folder: String,
 
-    port_starting_seq: Arc<AtomicU16>,
     ipc_agent_url: Option<String>,
+
+    /// The monotonic sequential port number generator to assign to each validator
+    port_starting_seq: Arc<AtomicU16>,
 }
 
-impl SubnetTopology {
+impl SubnetConfig {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
-        root_address: String,
-        root_lotus_path: String,
+        parent_wallet_address: String,
+        parent_lotus_path: String,
         ipc_root_folder: String,
         number_of_nodes: usize,
         eudico_binary_path: String,
@@ -45,8 +59,8 @@ impl SubnetTopology {
             number_of_nodes,
             eudico_binary_path,
             parent,
-            root_address,
-            root_lotus_path,
+            parent_wallet_address,
+            parent_lotus_path,
             ipc_root_folder,
             port_starting_seq,
             ipc_agent_url: None,

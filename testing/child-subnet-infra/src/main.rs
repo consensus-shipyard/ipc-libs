@@ -17,18 +17,21 @@ async fn main() {
         std::env::var("EUDICO_BIN").unwrap_or_else(|_| "/home/admin/lotus/eudico".to_string());
     let ipc_root_folder =
         std::env::var("IPC_ROOT_FOLDER").unwrap_or_else(|_| "/home/admin/.ipc-agent".to_string());
-    let root_lotus_path = std::env::var("ROOT_LOTUS_PATH")
+    let parent_lotus_path = std::env::var("PARENT_LOTUS_PATH")
         .unwrap_or_else(|_| "/home/admin/.lotus-local-net0".to_string());
+    let parent_subnet_id_str =
+        std::env::var("PARENT_SUBNET_ID").unwrap_or_else(|_| "/root".to_string());
+    let subnet_name = std::env::var("SUBNET_NAME").unwrap_or_else(|_| "test-subnet".to_string());
 
     let api_port_sequence = Arc::new(AtomicU16::new(10));
-    let mut topology = infra::SubnetTopology::new(
-        "test-subnet-1".to_string(),
+    let mut topology = infra::SubnetConfig::new(
+        subnet_name,
         "t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq".to_string(),
-        root_lotus_path,
+        parent_lotus_path,
         ipc_root_folder,
         2,
         eudico_binary_path,
-        SubnetID::from_str("/root").unwrap(),
+        SubnetID::from_str(&parent_subnet_id_str).unwrap(),
         api_port_sequence,
     );
 
