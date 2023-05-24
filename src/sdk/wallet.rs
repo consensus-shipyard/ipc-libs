@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Wallet related API calls
 
 use crate::config::json_rpc_methods;

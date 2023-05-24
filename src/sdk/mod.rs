@@ -1,4 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
+// Copyright 2022-2023 Protocol Labs
 //! Ipc agent sdk, contains the json rpc client to interact with the IPC agent rpc server.
 
 mod subnet;
