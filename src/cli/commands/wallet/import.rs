@@ -4,40 +4,14 @@
 
 use async_trait::async_trait;
 use clap::Args;
-use fvm_shared::crypto::signature::SignatureType;
 use std::fmt::Debug;
 use std::str::FromStr;
-use url::Url;
 
 use crate::cli::commands::get_ipc_agent_url;
-use crate::cli::commands::wallet::LotusJsonKeyType;
 use crate::cli::{CommandLineHandler, GlobalArguments};
-use crate::config::json_rpc_methods;
-use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::lotus::message::wallet::WalletKeyType;
-use crate::server::wallet::import::{WalletImportParams, WalletImportResponse};
+use crate::sdk::{IpcAgentClient, LotusJsonKeyType};
 
-pub struct WalletImport;
-
-impl WalletImport {
-    pub async fn import(
-        key_type: &LotusJsonKeyType,
-        ipc_agent_url: Url,
-    ) -> anyhow::Result<WalletImportResponse> {
-        let json_rpc_client = JsonRpcClientImpl::new(ipc_agent_url, None);
-
-        json_rpc_client
-            .request::<WalletImportResponse>(
-                json_rpc_methods::WALLET_IMPORT,
-                serde_json::to_value(WalletImportParams {
-                    key_type: SignatureType::try_from(WalletKeyType::from_str(&key_type.r#type)?)?
-                        as u8,
-                    private_key: key_type.private_key.clone(),
-                })?,
-            )
-            .await
-    }
-}
+pub(crate) struct WalletImport;
 
 #[async_trait]
 impl CommandLineHandler for WalletImport {
@@ -46,8 +20,6 @@ impl CommandLineHandler for WalletImport {
     async fn handle(global: &GlobalArguments, arguments: &Self::Arguments) -> anyhow::Result<()> {
         log::debug!("import wallet with args: {:?}", arguments);
 
-        let url = get_ipc_agent_url(&arguments.ipc_agent_url, global)?;
-
         // Get keyinfo from file or stdin
         let keyinfo = if arguments.path.is_some() {
             std::fs::read_to_string(arguments.path.as_ref().unwrap())?
@@ -55,8 +27,12 @@ impl CommandLineHandler for WalletImport {
             // FIXME: Accept keyinfo from stdin
             return Err(anyhow::anyhow!("stdin not supported yet"));
         };
-        let key_type: LotusJsonKeyType = serde_json::from_str(&keyinfo)?;
-        let addr = Self::import(&key_type, url).await?;
+
+        let key_type = LotusJsonKeyType::from_str(&keyinfo)?;
+        let url = get_ipc_agent_url(&arguments.ipc_agent_url, global)?;
+
+        let client = IpcAgentClient::default_from_url(url);
+        let addr = client.import_lotus_json(key_type).await?;
 
         log::info!("imported wallet with address {:?}", addr);
 
@@ -66,7 +42,7 @@ impl CommandLineHandler for WalletImport {
 
 #[derive(Debug, Args)]
 #[command(about = "Import a key into the agent's wallet")]
-pub struct WalletImportArgs {
+pub(crate) struct WalletImportArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
     #[arg(long, short, help = "Path of keyinfo file for the key to import")]
