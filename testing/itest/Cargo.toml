@@ -1,5 +1,5 @@
 [package]
-name = "child-subnet-infra"
+name = "itest"
 version = "0.1.0"
 edition = "2021"
 

@@ -57,6 +57,14 @@ pub async fn join_subnet(
     client.join_subnet(params).await
 }
 
+pub async fn reload_config(
+    ipc_agent_url: String,
+    config_path: Option<String>,
+) -> anyhow::Result<()> {
+    let client = client_from_url(ipc_agent_url)?;
+    client.reload_config(config_path).await
+}
+
 /// Send token to the target address. Not that the `from` wallet address is not specified as it is
 /// implied from the `lotus_path`.
 pub fn send_token(

@@ -5,9 +5,16 @@
 pub mod subnet;
 pub mod util;
 
+use crate::infra::subnet::{spawn_first_node, spawn_other_nodes, SubnetNode};
+use crate::infra::util::trim_newline;
+use anyhow::anyhow;
+use fvm_shared::address::Address;
+use ipc_agent::config::{Config, Subnet};
 use ipc_sdk::subnet_id::SubnetID;
+use std::str::FromStr;
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
+use std::thread::sleep;
 
 const DEFAULT_IPC_AGENT_URL: &str = "http://localhost:3030/json_rpc";
 const DEFAULT_NODE_API_BASE_PORT: u16 = 1230;
@@ -84,5 +91,186 @@ impl SubnetConfig {
                 return r + DEFAULT_NODE_API_BASE_PORT;
             }
         }
+    }
+}
+
+pub struct SubnetInfra {
+    pub config: SubnetConfig,
+    pub nodes: Option<Vec<SubnetNode>>,
+}
+
+impl SubnetInfra {
+    pub fn new(config: SubnetConfig) -> Self {
+        Self {
+            config,
+            nodes: None,
+        }
+    }
+
+    pub async fn create_subnet(&mut self) -> anyhow::Result<()> {
+        let parent = self.config.parent.to_string();
+
+        let actor_addr = util::create_subnet(
+            self.config.ipc_agent_url(),
+            self.config.parent_wallet_address.clone(),
+            parent,
+            self.config.name.clone(),
+            self.config.number_of_nodes as u64,
+        )
+        .await?;
+
+        self.config.id = Some(SubnetID::new_from_parent(
+            &self.config.parent,
+            Address::from_str(&actor_addr)?,
+        ));
+
+        Ok(())
+    }
+
+    pub fn start_nodes(&mut self) -> anyhow::Result<()> {
+        let first_node = spawn_first_node(&self.config)?;
+        let mut nodes = spawn_other_nodes(&self.config, &first_node)?;
+
+        nodes.push(first_node);
+
+        self.nodes = Some(nodes);
+
+        Ok(())
+    }
+
+    pub async fn start_validators(&mut self) -> anyhow::Result<()> {
+        if self.nodes.is_none() {
+            return Err(anyhow!("nodes not spawned yet"));
+        }
+
+        for node in self.nodes.as_mut().unwrap() {
+            node.config_validator()?;
+            log::info!(
+                "configured validator for node: {:?}",
+                node.validator.net_addr
+            );
+
+            node.export_wallet_to_ipc_key_store().await?;
+            node.join_subnet().await?;
+            log::info!(
+                "validator: {:?} joined subnet: {:}",
+                node.validator.net_addr,
+                node.id
+            );
+
+            sleep(std::time::Duration::from_secs(5));
+
+            node.spawn_validator()?;
+
+            log::info!("validator: {:?} spawned", node.validator.net_addr);
+        }
+
+        Ok(())
+    }
+
+    pub fn fund_node_wallets(&mut self) -> anyhow::Result<()> {
+        if self.nodes.is_none() {
+            return Err(anyhow!("no nodes launched"));
+        }
+
+        util::fund_wallet_in_nodes(
+            &self.config.eudico_binary_path,
+            &self.config.parent_lotus_path,
+            self.nodes.as_ref().unwrap(),
+            10,
+        )?;
+
+        Ok(())
+    }
+
+    /// Tear down all nodes and validators
+    pub fn tear_down(&mut self) -> anyhow::Result<()> {
+        if self.nodes.is_none() {
+            return Err(anyhow!("no nodes launched"));
+        }
+
+        let nodes = self.nodes.take().unwrap();
+        drop(nodes);
+
+        Ok(())
+    }
+
+    /// Add subnet info to ipc agent config
+    pub async fn update_ipc_agent_config(&self) -> anyhow::Result<()> {
+        if self.config.id.is_none() {
+            return Err(anyhow!("subnet id not set"));
+        }
+
+        let config_path = self.ipc_config_path();
+        let mut config = Config::from_file(&config_path)?;
+
+        let subnet = self.subnet_config().await?;
+        config.add_subnet(subnet);
+
+        config.write_to_file_async(&config_path).await
+    }
+
+    /// Remove subnet info from ipc agent config
+    pub async fn remove_from_ipc_agent_config(&self) -> anyhow::Result<()> {
+        if self.config.id.is_none() {
+            return Err(anyhow!("subnet id not set"));
+        }
+
+        let config_path = self.ipc_config_path();
+        let mut config = Config::from_file(&config_path)?;
+
+        config.remove_subnet(self.config.id.as_ref().unwrap());
+        config.write_to_file_async(&config_path).await?;
+
+        Ok(())
+    }
+
+    pub async fn trigger_ipc_config_reload(&self) -> anyhow::Result<()> {
+        let config_path = self.ipc_config_path();
+        util::reload_config(self.config.ipc_agent_url(), Some(config_path)).await
+    }
+
+    fn ipc_config_path(&self) -> String {
+        format!("{:}/{:}", self.config.ipc_root_folder, "config.toml")
+    }
+
+    async fn subnet_config(&self) -> anyhow::Result<Subnet> {
+        if self.nodes.is_none() {
+            return Err(anyhow!("nodes not up"));
+        }
+        if self.config.id.is_none() {
+            return Err(anyhow!("subnet id not set"));
+        }
+
+        let accounts = self
+            .nodes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|n| {
+                if n.wallet_address.is_none() {
+                    return Err(anyhow!("node wallet node setup"));
+                }
+                let address = Address::from_str(n.wallet_address.as_ref().unwrap())?;
+                Ok(address)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let mut admin_token = self.nodes.as_ref().unwrap()[0].create_admin_token().await?;
+        trim_newline(&mut admin_token);
+
+        Ok(Subnet {
+            id: self.config.id.clone().unwrap(),
+            gateway_addr: Address::from_str("t064")?,
+            network_name: self.config.name.clone(),
+            jsonrpc_api_http: format!(
+                "http://127.0.0.1:{:}/rpc/v1",
+                self.nodes.as_ref().unwrap()[0].node.tcp_port
+            )
+            .parse()?,
+            jsonrpc_api_ws: None,
+            auth_token: Some(admin_token),
+            accounts,
+        })
     }
 }

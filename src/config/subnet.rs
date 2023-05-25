@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::config::deserialize::{
@@ -10,7 +10,7 @@ use crate::config::deserialize::{
 };
 
 /// Represents a subnet declaration in the config.
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Subnet {
     #[serde(deserialize_with = "deserialize_subnet_id")]
     pub id: SubnetID,
