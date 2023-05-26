@@ -60,6 +60,7 @@ async fn run() -> anyhow::Result<()> {
 
     // do some manual observation if needed
     sleep(Duration::from_secs(100));
+    log::info!("wait for validators to be ready");
 
     infra.tear_down()?;
     log::info!("infra tear down");

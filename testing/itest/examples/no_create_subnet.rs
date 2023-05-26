@@ -55,6 +55,7 @@ async fn run() -> anyhow::Result<()> {
 
     // wait for the validators to be mining
     sleep(Duration::from_secs(100));
+    log::info!("wait for validators to be ready");
 
     infra.trigger_ipc_config_reload().await?;
     log::info!("triggered ipc agent config reload");
