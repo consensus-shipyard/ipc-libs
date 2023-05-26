@@ -74,6 +74,32 @@ impl SubnetConfig {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_subnet_id(
+        name: String,
+        parent_wallet_address: String,
+        parent_lotus_path: String,
+        ipc_root_folder: String,
+        number_of_nodes: usize,
+        eudico_binary_path: String,
+        parent: SubnetID,
+        port_starting_seq: Arc<AtomicU16>,
+        id: SubnetID,
+    ) -> Self {
+        Self {
+            id: Some(id),
+            name,
+            number_of_nodes,
+            eudico_binary_path,
+            parent,
+            parent_wallet_address,
+            parent_lotus_path,
+            ipc_root_folder,
+            port_starting_seq,
+            ipc_agent_url: None,
+        }
+    }
+
     pub fn ipc_agent_url(&self) -> String {
         self.ipc_agent_url
             .clone()
