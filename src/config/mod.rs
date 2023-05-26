@@ -57,7 +57,7 @@ accounts = ["t01"]
 
 /// The top-level struct representing the config. Calls to [`Config::from_file`] deserialize into
 /// this struct.
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub struct Config {
     pub server: Server,
     #[serde(deserialize_with = "deserialize_subnets_from_vec", default)]

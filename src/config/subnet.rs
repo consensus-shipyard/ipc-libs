@@ -13,7 +13,7 @@ use crate::config::serialize::{
 };
 
 /// Represents a subnet declaration in the config.
-#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Subnet {
     #[serde(deserialize_with = "deserialize_subnet_id")]
     #[serde(serialize_with = "serialize_subnet_id_to_str")]
