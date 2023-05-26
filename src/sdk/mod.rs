@@ -5,6 +5,7 @@
 
 mod checkpoint;
 mod config;
+mod crossnet;
 mod subnet;
 mod wallet;
 
