@@ -59,17 +59,5 @@ async fn run() -> anyhow::Result<()> {
     infra.trigger_ipc_config_reload().await?;
     log::info!("triggered ipc agent config reload");
 
-    // do some manual observation if needed
-    sleep(Duration::from_secs(100));
-
-    infra.tear_down()?;
-    log::info!("infra tear down");
-
-    infra.remove_from_ipc_agent_config().await?;
-    log::info!("removed subnet from ipc agent config");
-
-    infra.trigger_ipc_config_reload().await?;
-    log::info!("triggered ipc agent config reload");
-
     Ok(())
 }
