@@ -8,6 +8,8 @@ use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
+use tokio::select;
+use tokio::signal::unix::{signal, SignalKind};
 
 #[tokio::main]
 async fn main() {
@@ -58,6 +60,21 @@ async fn run() -> anyhow::Result<()> {
 
     infra.trigger_ipc_config_reload().await?;
     log::info!("triggered ipc agent config reload");
+
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+    let mut sigint = signal(SignalKind::interrupt()).unwrap();
+    loop {
+        select! {
+            _ = sigterm.recv() => {
+                log::info!("Recieve SIGTERM");
+                break;
+            },
+            _ = sigint.recv() => {
+                log::info!("Recieve SIGTERM");
+                break;
+            },
+        };
+    }
 
     Ok(())
 }
