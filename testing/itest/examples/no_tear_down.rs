@@ -61,7 +61,6 @@ async fn run() -> anyhow::Result<()> {
 
     // do some manual observation if needed
     sleep(Duration::from_secs(100));
-    log::info!("everything is ready, the cluster will self destroy in 100 seconds.");
 
     infra.tear_down()?;
     log::info!("infra tear down");
