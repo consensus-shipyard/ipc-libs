@@ -5,7 +5,7 @@ use std::net::SocketAddr;
 
 pub const JSON_RPC_ENDPOINT: &str = "json_rpc";
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct Server {
     pub json_rpc_address: SocketAddr,
 }

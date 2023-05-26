@@ -10,6 +10,7 @@ mod reload;
 mod server;
 pub mod subnet;
 
+mod serialize;
 #[cfg(test)]
 mod tests;
 
@@ -22,6 +23,7 @@ use deserialize::deserialize_subnets_from_vec;
 use ipc_sdk::subnet_id::SubnetID;
 pub use reload::ReloadableConfig;
 use serde::{Deserialize, Serialize};
+use serialize::serialize_subnets_to_str;
 pub use server::JSON_RPC_ENDPOINT;
 pub use server::{json_rpc_methods, Server};
 pub use subnet::Subnet;
@@ -55,10 +57,11 @@ accounts = ["t01"]
 
 /// The top-level struct representing the config. Calls to [`Config::from_file`] deserialize into
 /// this struct.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct Config {
     pub server: Server,
     #[serde(deserialize_with = "deserialize_subnets_from_vec", default)]
+    #[serde(serialize_with = "serialize_subnets_to_str")]
     pub subnets: HashMap<SubnetID, Subnet>,
 }
 
