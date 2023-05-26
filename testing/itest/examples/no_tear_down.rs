@@ -61,6 +61,7 @@ async fn run() -> anyhow::Result<()> {
     infra.trigger_ipc_config_reload().await?;
     log::info!("triggered ipc agent config reload");
 
+    // forever running until kill or ctrl-c
     let mut sigterm = signal(SignalKind::terminate()).unwrap();
     let mut sigint = signal(SignalKind::interrupt()).unwrap();
     loop {
@@ -75,6 +76,15 @@ async fn run() -> anyhow::Result<()> {
             },
         };
     }
+
+    infra.tear_down()?;
+    log::info!("infra tear down");
+
+    infra.remove_from_ipc_agent_config().await?;
+    log::info!("removed subnet from ipc agent config");
+
+    infra.trigger_ipc_config_reload().await?;
+    log::info!("triggered ipc agent config reload");
 
     Ok(())
 }
