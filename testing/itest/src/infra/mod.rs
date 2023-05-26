@@ -228,11 +228,14 @@ impl SubnetInfra {
         }
 
         let config_path = self.ipc_config_path();
-        let mut config = Config::from_file(&config_path)?;
+        let mut config = Config::from_file(&config_path)
+            .map_err(|e| anyhow!("cannot load config from {config_path:?} due to: {e:}"))?;
+        log::debug!("loaded config: {config:?}");
 
         let subnet = self.subnet_config().await?;
-        config.add_subnet(subnet);
+        log::debug!("created subnet config: {subnet:?}");
 
+        config.add_subnet(subnet);
         config.write_to_file_async(&config_path).await
     }
 

@@ -47,22 +47,28 @@ async fn run() -> anyhow::Result<()> {
     infra.fund_node_wallets()?;
     infra.start_validators().await?;
 
-    println!("nodes and validators are all up");
+    log::info!("nodes and validators are all up");
 
     infra.update_ipc_agent_config().await?;
+    log::info!("ipc agent config updated");
 
     // wait for the validators to be mining
     sleep(Duration::from_secs(100));
 
     infra.trigger_ipc_config_reload().await?;
+    log::info!("triggered ipc agent config reload");
 
     // do some manual observation if needed
     sleep(Duration::from_secs(100));
 
     infra.tear_down()?;
+    log::info!("infra tear down");
+
     infra.remove_from_ipc_agent_config().await?;
+    log::info!("removed subnet from ipc agent config");
+
     infra.trigger_ipc_config_reload().await?;
-    println!("infra tear down");
+    log::info!("triggered ipc agent config reload");
 
     Ok(())
 }
