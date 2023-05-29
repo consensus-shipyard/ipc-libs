@@ -1,9 +1,9 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
+use ipc_agent::sdk::IpcAgentClient;
 use std::thread::sleep;
 use std::time::Duration;
-use ipc_agent::sdk::IpcAgentClient;
 
 const IPC_AGENT_JSON_RPC_URL_ENV: &str = "IPC_AGENT_JSON_RPC_URL";
 const CHILD_SUBNET_ID_STR_ENV: &str = "CHILD_SUBNET_ID_STR";
@@ -65,6 +65,7 @@ async fn test_fund_and_release() {
         .release(&subnet, Some(addr.clone()), amount)
         .await
         .unwrap();
+    println!("release epoch: {epoch:}");
     loop {
         let checkpoints = ipc_client
             .list_bottom_up_checkpoints(&subnet, epoch, epoch)
