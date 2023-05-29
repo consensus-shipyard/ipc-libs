@@ -54,7 +54,7 @@ async fn test_fund_and_release() {
     loop {
         let epoch = ipc_client.last_top_down_executed(&subnet).await.unwrap();
         if epoch > fund_epoch {
-            log::info!("fund epoch reached");
+            log::info!("fund epoch reached: {epoch:}");
             break;
         }
     }
@@ -65,11 +65,11 @@ async fn test_fund_and_release() {
         .unwrap();
     loop {
         let checkpoints = ipc_client
-            .list_bottom_up_checkpoints(&subnet, epoch, epoch + 10)
+            .list_bottom_up_checkpoints(&subnet, epoch, epoch + 1)
             .await
             .unwrap();
         if !checkpoints.is_empty() {
-            log::info!("released");
+            log::info!("released in epoch: {epoch:}");
             break;
         }
     }
