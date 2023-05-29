@@ -4,13 +4,19 @@
 use crate::infra::subnet::SubnetNode;
 use crate::infra::DEFAULT_MIN_STAKE;
 use anyhow::anyhow;
-use ipc_agent::cli::wallet::WalletImport;
-use ipc_agent::cli::{
-    CommandLineHandler, CreateSubnet, CreateSubnetArgs, GlobalArguments, JoinSubnet, JoinSubnetArgs,
-};
+use ipc_agent::jsonrpc::JsonRpcClientImpl;
+use ipc_agent::sdk::{IpcAgentClient, LotusJsonKeyType};
+use ipc_agent::server::create::CreateSubnetParams;
+use ipc_agent::server::join::JoinSubnetParams;
 use std::process::Command;
+use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
+
+fn client_from_url(url: String) -> anyhow::Result<IpcAgentClient<JsonRpcClientImpl>> {
+    let url = url.parse()?;
+    Ok(IpcAgentClient::default_from_url(url))
+}
 
 /// Create a new subnet in the actor
 pub async fn create_subnet(
@@ -20,8 +26,8 @@ pub async fn create_subnet(
     name: String,
     min_validators: u64,
 ) -> anyhow::Result<String> {
-    let args = CreateSubnetArgs {
-        ipc_agent_url: Some(ipc_agent_url),
+    let client = client_from_url(ipc_agent_url)?;
+    let params = CreateSubnetParams {
         from: Some(from),
         parent,
         name,
@@ -30,8 +36,7 @@ pub async fn create_subnet(
         bottomup_check_period: 10,
         topdown_check_period: 10,
     };
-
-    CreateSubnet::create(&GlobalArguments::default(), &args).await
+    client.create_subnet(params).await
 }
 
 /// Join the subnet
@@ -42,15 +47,14 @@ pub async fn join_subnet(
     collateral: f64,
     validator_net_addr: String,
 ) -> anyhow::Result<()> {
-    let join = JoinSubnetArgs {
-        ipc_agent_url: Some(ipc_agent_url),
-        from: Some(from),
+    let client = client_from_url(ipc_agent_url)?;
+    let params = JoinSubnetParams {
         subnet,
+        from: Some(from),
         collateral,
         validator_net_addr,
     };
-
-    JoinSubnet::handle(&GlobalArguments::default(), &join).await
+    client.join_subnet(params).await
 }
 
 /// Send token to the target address. Not that the `from` wallet address is not specified as it is
@@ -113,8 +117,9 @@ pub fn create_wallet(node: &mut SubnetNode) -> anyhow::Result<()> {
 }
 
 pub async fn import_wallet(ipc_agent_url: &str, private_key: String) -> anyhow::Result<()> {
-    let params: ipc_agent::cli::wallet::LotusJsonKeyType = serde_json::from_str(&private_key)?;
-    WalletImport::import(&params, ipc_agent_url.parse()?).await?;
+    let params = LotusJsonKeyType::from_str(&private_key)?;
+    let client = client_from_url(ipc_agent_url.to_string())?;
+    client.import_lotus_json(params).await?;
     Ok(())
 }
 
