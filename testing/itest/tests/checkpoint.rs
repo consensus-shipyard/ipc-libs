@@ -51,10 +51,11 @@ async fn test_fund_and_release() {
         .fund(&subnet, Some(addr.clone()), amount)
         .await
         .unwrap();
+    println!("fund epoch: {fund_epoch:}");
     loop {
         let epoch = ipc_client.last_top_down_executed(&subnet).await.unwrap();
         if epoch > fund_epoch {
-            println!("fund epoch reached: {epoch:}");
+            println!("fund epoch reached: {fund_epoch:}");
             break;
         }
         sleep(Duration::from_secs(30));
