@@ -54,7 +54,7 @@ async fn test_fund_and_release() {
     loop {
         let epoch = ipc_client.last_top_down_executed(&subnet).await.unwrap();
         if epoch > fund_epoch {
-            log::info!("fund epoch reached: {epoch:}");
+            println!("fund epoch reached: {epoch:}");
             break;
         }
         sleep(Duration::from_secs(30));
@@ -70,7 +70,7 @@ async fn test_fund_and_release() {
             .await
             .unwrap();
         if !checkpoints.is_empty() {
-            log::info!("released in epoch: {epoch:}");
+            println!("released in epoch: {epoch:}");
             break;
         }
         sleep(Duration::from_secs(30));
