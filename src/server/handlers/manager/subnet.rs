@@ -3,8 +3,7 @@
 //! The shared subnet manager module for all subnet management related RPC method calls.
 
 use crate::config::{ReloadableConfig, Subnet};
-use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::manager::{LotusSubnetManager, SubnetManager};
+use crate::manager::{EthSubnetManager, LotusSubnetManager, SubnetManager};
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use std::sync::{Arc, RwLock};
@@ -12,7 +11,7 @@ use std::sync::{Arc, RwLock};
 /// The subnet manager connection that holds the subnet config and the manager instance.
 pub struct Connection {
     subnet: Subnet,
-    manager: Box<dyn SubnetManager>,
+    manager: Box<dyn SubnetManager + 'static>,
 }
 
 impl Connection {
@@ -22,8 +21,8 @@ impl Connection {
     }
 
     /// Get the subnet manager instance.
-    pub fn manager(&self) -> &dyn SubnetManager {
-        self.manager.as_ref()
+    pub fn manager(&self) -> &Box<dyn SubnetManager> {
+        &self.manager
     }
 }
 
@@ -46,11 +45,14 @@ impl SubnetManagerPool {
     pub fn get(&self, subnet: &SubnetID) -> Option<Connection> {
         let config = self.config.get_config();
         let subnets = &config.subnets;
-
         match subnets.get(subnet) {
             Some(subnet) => {
                 if subnet.evm {
-                    todo!()
+                    let manager = Box::new(EthSubnetManager::from_subnet(subnet).ok()?);
+                    Some(Connection {
+                        manager,
+                        subnet: subnet.clone(),
+                    })
                 } else {
                     let manager = Box::new(LotusSubnetManager::from_subnet_with_wallet_store(
                         subnet,

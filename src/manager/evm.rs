@@ -1,41 +1,30 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use std::collections::HashMap;
-use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
 use ethers::prelude::k256::ecdsa::SigningKey;
-use ethers::prelude::k256::Secp256k1;
 use ethers::prelude::{Signer, SignerMiddleware};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
 use ethers::signers::{LocalWallet, Wallet};
-use fil_actors_runtime::types::{InitExecParams, InitExecReturn, INIT_EXEC_METHOD_NUM};
-use fil_actors_runtime::{builtin::singletons::INIT_ACTOR_ADDR, cbor};
 use fvm_shared::clock::ChainEpoch;
-use fvm_shared::METHOD_SEND;
-use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
-use ipc_gateway::{BottomUpCheckpoint, PropagateParams, WhitelistPropagatorParams};
+use fvm_shared::{address::Address, econ::TokenAmount};
+use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
-use url::Url;
+use ipc_subnet_actor::{ConstructParams, JoinParams};
 
 use crate::config::Subnet;
-use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::lotus::client::LotusJsonRPCClient;
 use crate::lotus::message::ipc::SubnetInfo;
-use crate::lotus::message::mpool::MpoolPushMessage;
-use crate::lotus::message::state::StateWaitMsgResponse;
 use crate::lotus::message::wallet::WalletKeyType;
-use crate::lotus::LotusClient;
 
 use super::subnet::SubnetManager;
 
-type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
+pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 
-pub struct EthSubnetManager<M: Send + Sync> {
+pub struct EthSubnetManager<M: Middleware> {
     eth_client: Arc<M>,
 }
 

@@ -5,7 +5,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use crate::manager::SubnetManager;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use fvm_shared::clock::ChainEpoch;

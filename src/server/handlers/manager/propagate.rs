@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 //! Propagate operation in the gateway actor
 
-use crate::manager::SubnetManager;
 use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::{check_subnet, parse_from, JsonRPCRequestHandler};
 use anyhow::anyhow;
