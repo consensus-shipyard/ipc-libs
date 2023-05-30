@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
 use ethers::prelude::k256::ecdsa::SigningKey;
-use ethers::prelude::{Signer, SignerMiddleware};
+use ethers::prelude::{abigen, Signer, SignerMiddleware};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
 use ethers::signers::{LocalWallet, Wallet};
 use fvm_shared::clock::ChainEpoch;
@@ -23,6 +23,10 @@ use crate::lotus::message::wallet::WalletKeyType;
 use super::subnet::SubnetManager;
 
 pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
+
+// Create type bindings for the IPC Solidity contracts
+abigen!(Gateway, "contracts/Gateway.json");
+abigen!(SubnetActor, "contracts/SubnetActor.json");
 
 pub struct EthSubnetManager<M: Middleware> {
     eth_client: Arc<M>,
