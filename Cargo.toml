@@ -45,6 +45,8 @@ clap = { version = "4.1.4", features = ["env", "derive"] }
 thiserror = { workspace = true }
 serde_tuple = "0.5.0"
 zeroize = "1.6.0"
+secp256k1 = "0.21.3"
+ethers = "2.0.4"
 
 fvm_shared = { workspace = true }
 fil_actors_runtime = { workspace = true }
@@ -74,6 +76,7 @@ quickcheck_macros = "1"
 blake2b_simd = "1.0"
 rand = "0.8"
 serde_json = { version = "1.0.91", features = ["raw_value"] }
+
 
 fvm_ipld_blockstore = "0.1"
 fvm_ipld_encoding = "0.3"

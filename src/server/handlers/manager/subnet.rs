@@ -4,24 +4,26 @@
 
 use crate::config::{ReloadableConfig, Subnet};
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
-use crate::manager::LotusSubnetManager;
+use crate::manager::{LotusSubnetManager, SubnetManager};
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use std::sync::{Arc, RwLock};
 
 /// The subnet manager connection that holds the subnet config and the manager instance.
-pub struct Connection<T: JsonRpcClient> {
+pub struct Connection {
     subnet: Subnet,
-    manager: LotusSubnetManager<T>,
+    manager: Box<dyn SubnetManager>,
 }
 
-impl<T: JsonRpcClient> Connection<T> {
+impl Connection {
+    /// Get the subnet config.
     pub fn subnet(&self) -> &Subnet {
         &self.subnet
     }
 
-    pub fn manager(&self) -> &LotusSubnetManager<T> {
-        &self.manager
+    /// Get the subnet manager instance.
+    pub fn manager(&self) -> &dyn SubnetManager {
+        self.manager.as_ref()
     }
 }
 
@@ -41,20 +43,24 @@ impl SubnetManagerPool {
     }
 
     /// Get the connection instance for the subnet.
-    pub fn get(&self, subnet: &SubnetID) -> Option<Connection<JsonRpcClientImpl>> {
+    pub fn get(&self, subnet: &SubnetID) -> Option<Connection> {
         let config = self.config.get_config();
         let subnets = &config.subnets;
 
         match subnets.get(subnet) {
             Some(subnet) => {
-                let manager = LotusSubnetManager::from_subnet_with_wallet_store(
-                    subnet,
-                    self.wallet_store.clone(),
-                );
-                Some(Connection {
-                    manager,
-                    subnet: subnet.clone(),
-                })
+                if subnet.evm {
+                    todo!()
+                } else {
+                    let manager = Box::new(LotusSubnetManager::from_subnet_with_wallet_store(
+                        subnet,
+                        self.wallet_store.clone(),
+                    ));
+                    Some(Connection {
+                        manager,
+                        subnet: subnet.clone(),
+                    })
+                }
             }
             None => None,
         }

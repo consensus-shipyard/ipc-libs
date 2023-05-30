@@ -29,4 +29,9 @@ pub struct Subnet {
     #[serde(deserialize_with = "deserialize_accounts", default)]
     #[serde(serialize_with = "serialize_accounts")]
     pub accounts: Vec<Address>,
+    // FIXME: Consider using a specific section only for EVM-related
+    // config params.
+    pub evm: bool,
+    pub eth_private_key: Option<String>,
+    pub chain_id: Option<u64>,
 }
