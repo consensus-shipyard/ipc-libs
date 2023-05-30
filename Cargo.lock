@@ -837,22 +837,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "child-subnet-infra"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "env_logger 0.10.0",
- "fvm_shared 3.0.0-alpha.17",
- "ipc-agent",
- "ipc-identity",
- "ipc-sdk",
- "log",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "cid"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3170,6 +3154,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
 dependencies = [
  "either",
+]
+
+[[package]]
+name = "itest"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "env_logger 0.10.0",
+ "fvm_shared 3.0.0-alpha.17",
+ "ipc-agent",
+ "ipc-identity",
+ "ipc-sdk",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

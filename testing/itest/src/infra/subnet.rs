@@ -1,106 +1,14 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use crate::infra::util::{import_wallet, trim_newline};
+use crate::infra::util::import_wallet;
 use crate::infra::{util, SubnetConfig, DEFAULT_MIN_STAKE};
 use anyhow::{anyhow, Result};
-use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use std::fs;
 use std::fs::File;
 use std::process::{Child, Command};
-use std::str::FromStr;
 use std::thread::sleep;
-
-/// Spawn child subnet according to the config
-pub async fn spawn_child_subnet(config: &mut SubnetConfig) -> anyhow::Result<()> {
-    if config.number_of_nodes == 0 {
-        log::info!("no nodes to spawn");
-        return Ok(());
-    }
-
-    let parent = config.parent.to_string();
-
-    let actor_addr = util::create_subnet(
-        config.ipc_agent_url(),
-        config.parent_wallet_address.clone(),
-        parent,
-        config.name.clone(),
-        config.number_of_nodes as u64,
-    )
-    .await?;
-
-    config.id = Some(SubnetID::new_from_parent(
-        &config.parent,
-        Address::from_str(&actor_addr)?,
-    ));
-
-    log::info!("created subnet: {:?}", config.id);
-
-    let first_node = spawn_first_node(config)?;
-    let mut nodes = spawn_other_nodes(config, &first_node)?;
-
-    nodes.push(first_node);
-
-    util::fund_wallet_in_nodes(
-        &config.eudico_binary_path,
-        &config.parent_lotus_path,
-        &nodes,
-        10,
-    )?;
-
-    for node in nodes.iter_mut() {
-        node.config_validator()?;
-        log::info!(
-            "configured validator for node: {:?}",
-            node.validator.net_addr
-        );
-
-        node.export_wallet_to_ipc_key_store().await?;
-        node.join_subnet().await?;
-        log::info!(
-            "validator: {:?} joined subnet: {:}",
-            node.validator.net_addr,
-            node.id
-        );
-
-        sleep(std::time::Duration::from_secs(5));
-
-        node.spawn_validator()?;
-        log::info!("validator: {:?} spawned", node.validator.net_addr);
-    }
-
-    print_toml_config(config, &nodes).await?;
-
-    Ok(())
-}
-
-async fn print_toml_config(topology: &SubnetConfig, nodes: &[SubnetNode]) -> Result<()> {
-    println!("\n\n========== SUBNET TOML CONFIG ============ \n\n");
-
-    let accounts = nodes
-        .iter()
-        .map(|n| n.wallet_address.clone().unwrap())
-        .collect::<Vec<_>>()
-        .join("\",\"");
-
-    println!("accounts = [{accounts:?}]");
-
-    let mut admin_token = nodes[0].create_admin_token().await?;
-    trim_newline(&mut admin_token);
-    println!("auth_token = \"{admin_token:}\"");
-
-    println!(
-        "jsonrpc_api_http = \"http://127.0.0.1:{:}/rpc/v1\"",
-        nodes[0].node.tcp_port
-    );
-
-    println!("id = \"{:}\"", topology.id.as_ref().unwrap());
-    println!("gateway_addr = \"t064\"");
-    println!("network_name = \"{:}\"", topology.name);
-
-    Ok(())
-}
 
 fn node_from_topology(topology: &SubnetConfig) -> SubnetNode {
     SubnetNode::new(
@@ -116,7 +24,7 @@ fn node_from_topology(topology: &SubnetConfig) -> SubnetNode {
 }
 
 /// Spawn the first node, then subsequent node will connect to this node.
-fn spawn_first_node(topology: &SubnetConfig) -> anyhow::Result<SubnetNode> {
+pub(crate) fn spawn_first_node(topology: &SubnetConfig) -> anyhow::Result<SubnetNode> {
     let mut node = node_from_topology(topology);
     node.gen_genesis()?;
     node.spawn_node()?;
@@ -126,7 +34,7 @@ fn spawn_first_node(topology: &SubnetConfig) -> anyhow::Result<SubnetNode> {
     Ok(node)
 }
 
-fn spawn_other_nodes(
+pub(crate) fn spawn_other_nodes(
     topology: &SubnetConfig,
     first: &SubnetNode,
 ) -> anyhow::Result<Vec<SubnetNode>> {
@@ -169,29 +77,26 @@ fn spawn_other_nodes(
 
 pub struct SubnetNode {
     pub id: SubnetID,
-    ipc_root_folder: String,
+    pub ipc_root_folder: String,
     /// The node info
-    node: NodeInfo,
+    pub node: NodeInfo,
     /// The info of the validator
-    validator: NodeInfo,
-    eudico_binary_path: String,
-    ipc_agent_url: String,
-    pub(crate) wallet_address: Option<String>,
+    pub validator: NodeInfo,
+    pub eudico_binary_path: String,
+    pub ipc_agent_url: String,
+    pub wallet_address: Option<String>,
 }
 
-struct NodeInfo {
-    tcp_port: u16,
-    quic_port: u16,
-    status: SubnetNodeSpawnStatus,
-    net_addr: Option<String>,
+pub struct NodeInfo {
+    pub tcp_port: u16,
+    pub quic_port: u16,
+    pub status: SubnetNodeSpawnStatus,
+    pub net_addr: Option<String>,
 }
 
 /// The subnet node spawn status
-enum SubnetNodeSpawnStatus {
-    Running {
-        #[allow(dead_code)]
-        process: Child,
-    },
+pub enum SubnetNodeSpawnStatus {
+    Running { process: Child },
     Idle,
 }
 
@@ -558,5 +463,32 @@ impl SubnetNode {
         } else {
             Err(anyhow!("cannot create admin token in subnet:{:}", self.id))
         }
+    }
+
+    pub fn stop_validator(&mut self) -> anyhow::Result<()> {
+        match &mut self.validator.status {
+            SubnetNodeSpawnStatus::Running { process, .. } => {
+                process.kill()?;
+            }
+            SubnetNodeSpawnStatus::Idle => {}
+        };
+        Ok(())
+    }
+
+    pub fn stop_node(&mut self) -> anyhow::Result<()> {
+        match &mut self.node.status {
+            SubnetNodeSpawnStatus::Running { process, .. } => {
+                process.kill()?;
+            }
+            SubnetNodeSpawnStatus::Idle => {}
+        };
+        Ok(())
+    }
+}
+
+impl Drop for SubnetNode {
+    fn drop(&mut self) {
+        let _ = self.stop_validator();
+        let _ = self.stop_node();
     }
 }
