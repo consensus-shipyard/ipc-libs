@@ -1,0 +1,265 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gateway",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_baseSubnet",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "baseGateway",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "baseSubnet",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "route",
+            "type": "address[]"
+          }
+        ],
+        "internalType": "struct SubnetID",
+        "name": "_subnetId",
+        "type": "tuple"
+      }
+    ],
+    "name": "gatewayAddress",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "gateway",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "gateways",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "route",
+                "type": "address[]"
+              }
+            ],
+            "internalType": "struct SubnetID",
+            "name": "networkName",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint64",
+            "name": "bottomUpCheckPeriod",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "topDownCheckPeriod",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint256",
+            "name": "msgFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "majorityPercentage",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct IGateway.ConstructorParams",
+        "name": "_params",
+        "type": "tuple"
+      }
+    ],
+    "name": "newGateway",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "gateway",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "route",
+                "type": "address[]"
+              }
+            ],
+            "internalType": "struct SubnetID",
+            "name": "parentId",
+            "type": "tuple"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "ipcGatewayAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "enum ConsensusType",
+            "name": "consensus",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minActivationCollateral",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "minValidators",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "bottomUpCheckPeriod",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "topDownCheckPeriod",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint8",
+            "name": "majorityPercentage",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes",
+            "name": "genesis",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct ISubnetActor.ConstructorParams",
+        "name": "_params",
+        "type": "tuple"
+      }
+    ],
+    "name": "newSubnetActor",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "subnetAddr",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "route",
+            "type": "address[]"
+          }
+        ],
+        "internalType": "struct SubnetID",
+        "name": "_subnetId",
+        "type": "tuple"
+      }
+    ],
+    "name": "subnetAddress",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "subnet",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "subnets",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

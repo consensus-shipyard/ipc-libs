@@ -6,6 +6,7 @@ use crate::config::{ReloadableConfig, Subnet};
 use crate::manager::{EthSubnetManager, LotusSubnetManager, SubnetManager};
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
+use std::borrow::Borrow;
 use std::sync::{Arc, RwLock};
 
 /// The subnet manager connection that holds the subnet config and the manager instance.
@@ -21,8 +22,8 @@ impl Connection {
     }
 
     /// Get the subnet manager instance.
-    pub fn manager(&self) -> &Box<dyn SubnetManager> {
-        &self.manager
+    pub fn manager(&self) -> &dyn SubnetManager {
+        self.manager.borrow()
     }
 }
 

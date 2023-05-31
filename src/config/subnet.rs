@@ -34,4 +34,6 @@ pub struct Subnet {
     pub evm: bool,
     pub eth_private_key: Option<String>,
     pub chain_id: Option<u64>,
+    pub evm_gateway_address: Option<String>,
+    pub evm_registry_address: Option<String>,
 }

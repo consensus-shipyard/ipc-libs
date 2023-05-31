@@ -1,13 +1,14 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
 use ethers::prelude::k256::ecdsa::SigningKey;
-use ethers::prelude::{abigen, Signer, SignerMiddleware};
+use ethers::prelude::{abigen, Signer, SignerMiddleware, H160};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
 use ethers::signers::{LocalWallet, Wallet};
 use fvm_shared::clock::ChainEpoch;
@@ -15,6 +16,7 @@ use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
+use num_traits::ToPrimitive;
 
 use crate::config::Subnet;
 use crate::lotus::message::ipc::SubnetInfo;
@@ -26,15 +28,47 @@ pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 
 // Create type bindings for the IPC Solidity contracts
 abigen!(Gateway, "contracts/Gateway.json");
-abigen!(SubnetActor, "contracts/SubnetActor.json");
+abigen!(SubnetContract, "contracts/SubnetActor.json");
+abigen!(IPCRegistry, "contracts/IPCRegistry.json");
 
 pub struct EthSubnetManager<M: Middleware> {
     eth_client: Arc<M>,
+    gateway_contract: Gateway<Arc<M>>,
+    registry_contract: IPCRegistry<Arc<M>>,
 }
 
 #[async_trait]
-impl<M: Middleware + Send + Sync> SubnetManager for EthSubnetManager<M> {
-    async fn create_subnet(&self, from: Address, params: ConstructParams) -> Result<Address> {
+impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M> {
+    async fn create_subnet(&self, _from: Address, params: ConstructParams) -> Result<Address> {
+        let min_validator_stake = params
+            .min_validator_stake
+            .atto()
+            .to_u64()
+            .ok_or_else(|| anyhow!("invalid min validator stake"))?;
+
+        self.registry_contract
+            .new_subnet_actor(IsubnetActorConstructorParams {
+                // TODO: replace this with parent
+                parent_id: ipc_registry::SubnetID::default(),
+                name: params.name,
+                // TODO: use ipc sdk address
+                ipc_gateway_addr: ethers::types::H160::default(),
+                consensus: params.consensus as u64 as u8,
+                min_activation_collateral: ethers::types::U256::from(min_validator_stake as u128),
+                min_validators: params.min_validators,
+                bottom_up_check_period: params.bottomup_check_period as u64,
+                top_down_check_period: params.topdown_check_period as u64,
+                // TODO: update this variable properly
+                majority_percentage: 50,
+                genesis: ethers::types::Bytes::default(),
+            })
+            .send()
+            .await?
+            .await?;
+
+        // TODO: need to query the address of the deployed contract on chain
+        // TODO: as we cannot get the response from the evm receipt, at least
+        // TODO: last time I checked
         todo!()
     }
 
@@ -45,80 +79,91 @@ impl<M: Middleware + Send + Sync> SubnetManager for EthSubnetManager<M> {
         collateral: TokenAmount,
         params: JoinParams,
     ) -> Result<()> {
+        // TODO: Convert IPC SubnetID to evm SubnetID
+        let evm_subnet_id = ipc_registry::SubnetID::default();
+        let address = self
+            .registry_contract
+            .subnet_address(evm_subnet_id)
+            .call()
+            .await?;
+
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        // TODO: check how to send `collateral` as value
+        contract.join().send().await?.await?;
+        Ok(())
+    }
+
+    async fn leave_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
         todo!()
     }
 
-    async fn leave_subnet(&self, subnet: SubnetID, from: Address) -> Result<()> {
-        todo!()
-    }
-
-    async fn kill_subnet(&self, subnet: SubnetID, from: Address) -> Result<()> {
+    async fn kill_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
         todo!()
     }
 
     async fn list_child_subnets(
         &self,
-        gateway_addr: Address,
+        _gateway_addr: Address,
     ) -> Result<HashMap<SubnetID, SubnetInfo>> {
         todo!()
     }
 
     async fn fund(
         &self,
-        subnet: SubnetID,
-        gateway_addr: Address,
-        from: Address,
-        amount: TokenAmount,
+        _subnet: SubnetID,
+        _gateway_addr: Address,
+        _from: Address,
+        _amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         todo!()
     }
 
     async fn release(
         &self,
-        subnet: SubnetID,
-        gateway_addr: Address,
-        from: Address,
-        amount: TokenAmount,
+        _subnet: SubnetID,
+        _gateway_addr: Address,
+        _from: Address,
+        _amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         todo!()
     }
 
     async fn propagate(
         &self,
-        subnet: SubnetID,
-        gateway_addr: Address,
-        from: Address,
-        postbox_msg_cid: Cid,
+        _subnet: SubnetID,
+        _gateway_addr: Address,
+        _from: Address,
+        _postbox_msg_cid: Cid,
     ) -> Result<()> {
         todo!()
     }
 
     async fn set_validator_net_addr(
         &self,
-        subnet: SubnetID,
-        from: Address,
-        validator_net_addr: String,
+        _subnet: SubnetID,
+        _from: Address,
+        _validator_net_addr: String,
     ) -> Result<()> {
         todo!()
     }
 
     async fn whitelist_propagator(
         &self,
-        subnet: SubnetID,
-        gateway_addr: Address,
-        postbox_msg_cid: Cid,
-        from: Address,
-        to_add: Vec<Address>,
+        _subnet: SubnetID,
+        _gateway_addr: Address,
+        _postbox_msg_cid: Cid,
+        _from: Address,
+        _to_add: Vec<Address>,
     ) -> Result<()> {
         todo!()
     }
 
     /// Send value between two addresses in a subnet
-    async fn send_value(&self, from: Address, to: Address, amount: TokenAmount) -> Result<()> {
+    async fn send_value(&self, _from: Address, _to: Address, _amount: TokenAmount) -> Result<()> {
         todo!()
     }
 
-    async fn wallet_new(&self, key_type: WalletKeyType) -> Result<Address> {
+    async fn wallet_new(&self, _key_type: WalletKeyType) -> Result<Address> {
         todo!()
     }
 
@@ -126,27 +171,35 @@ impl<M: Middleware + Send + Sync> SubnetManager for EthSubnetManager<M> {
         todo!()
     }
 
-    async fn wallet_balance(&self, address: &Address) -> Result<TokenAmount> {
+    async fn wallet_balance(&self, _address: &Address) -> Result<TokenAmount> {
         todo!()
     }
 
-    async fn last_topdown_executed(&self, gateway_addr: &Address) -> Result<ChainEpoch> {
+    async fn last_topdown_executed(&self, _gateway_addr: &Address) -> Result<ChainEpoch> {
         todo!()
     }
 
     async fn list_checkpoints(
         &self,
-        subnet_id: SubnetID,
-        from_epoch: ChainEpoch,
-        to_epoch: ChainEpoch,
+        _subnet_id: SubnetID,
+        _from_epoch: ChainEpoch,
+        _to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>> {
         todo!()
     }
 }
 
 impl<M: Middleware + Send + Sync> EthSubnetManager<M> {
-    pub fn new(eth_client: Arc<M>) -> Self {
-        Self { eth_client }
+    pub fn new(
+        eth_client: Arc<M>,
+        gateway_contract: Gateway<Arc<M>>,
+        registry_contract: IPCRegistry<Arc<M>>,
+    ) -> Self {
+        Self {
+            eth_client,
+            gateway_contract,
+            registry_contract,
+        }
     }
 }
 
@@ -167,8 +220,23 @@ impl EthSubnetManager<MiddlewareImpl> {
             let wallet = priv_key.parse::<LocalWallet>()?;
             let wallet = wallet.with_chain_id(subnet.chain_id.unwrap_or_default());
 
+            let evm_gateway_address = subnet
+                .evm_gateway_address
+                .as_ref()
+                .ok_or_else(|| anyhow!("evm gateway address not defined"))?;
+            let gateway_address = H160::from_str(evm_gateway_address)?;
+
+            let evm_registry_address = subnet
+                .evm_registry_address
+                .as_ref()
+                .ok_or_else(|| anyhow!("evm registry address not defined"))?;
+            let evm_registry_address = H160::from_str(evm_gateway_address)?;
+
             let signer = Arc::new(SignerMiddleware::new(provider, wallet));
-            return Ok(Self::new(signer));
+            let gateway_contract = Gateway::new(gateway_address, Arc::new(signer.clone()));
+            let evm_registry_contract =
+                IPCRegistry::new(evm_registry_address, Arc::new(signer.clone()));
+            return Ok(Self::new(signer, gateway_contract, evm_registry_contract));
         }
 
         Err(anyhow!(

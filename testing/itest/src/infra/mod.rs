@@ -300,6 +300,11 @@ impl SubnetInfra {
             jsonrpc_api_ws: None,
             auth_token: Some(admin_token),
             accounts,
+            evm: false,
+            eth_private_key: None,
+            chain_id: None,
+            evm_gateway_address: None,
+            evm_registry_address: None,
         })
     }
 }
