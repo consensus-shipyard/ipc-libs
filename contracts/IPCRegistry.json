@@ -16,6 +16,32 @@
     "type": "constructor"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "subnetAddr",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "route",
+            "type": "address[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct SubnetID",
+        "name": "subnetId",
+        "type": "tuple"
+      }
+    ],
+    "name": "SubnetDeployed",
+    "type": "event"
+  },
+  {
     "inputs": [],
     "name": "baseGateway",
     "outputs": [

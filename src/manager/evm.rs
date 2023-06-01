@@ -46,7 +46,8 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u64()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
-        self.registry_contract
+        match self
+            .registry_contract
             .new_subnet_actor(IsubnetActorConstructorParams {
                 // TODO: replace this with parent
                 parent_id: ipc_registry::SubnetID::default(),
@@ -64,7 +65,35 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             })
             .send()
             .await?
-            .await?;
+            .await?
+        {
+            Some(r) => {
+                let mut address: Option<Address> = None;
+                for log in r.logs {
+                    log::debug!("log: {log:?}");
+
+                    match ethers_contract::parse_log::<ipc_registry::SubnetDeployedFilter>(log) {
+                        Ok(subnet_deploy) => {
+                            let ipc_registry::SubnetDeployedFilter {
+                                subnet_addr,
+                                subnet_id,
+                            } = subnet_deploy;
+
+                            log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
+
+                            // TODO: conversion here
+                        }
+                        Err(e) => {
+                            log::debug!("not of event subnet actor deployed, continue");
+                            continue;
+                        }
+                    }
+                }
+            }
+            None => {
+                return Err(anyhow!("no receipt to event"));
+            }
+        }
 
         // TODO: need to query the address of the deployed contract on chain
         // TODO: as we cannot get the response from the evm receipt, at least
@@ -243,4 +272,10 @@ impl EthSubnetManager<MiddlewareImpl> {
             "no ethereum-compatible private key provided in config"
         ))
     }
+}
+
+#[cfg(tests)]
+mod tests {
+    #[test]
+    fn test() {}
 }
