@@ -273,9 +273,3 @@ impl EthSubnetManager<MiddlewareImpl> {
         ))
     }
 }
-
-#[cfg(tests)]
-mod tests {
-    #[test]
-    fn test() {}
-}
