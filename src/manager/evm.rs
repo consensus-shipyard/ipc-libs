@@ -250,10 +250,15 @@ impl EthSubnetManager<MiddlewareImpl> {
         }
 
         if let Some(priv_key) = subnet.eth_private_key.clone() {
-            let provider = Http::new_with_auth(
-                url,
-                Authorization::Bearer(auth_token.unwrap_or_default().to_string()),
-            )?;
+            let provider = if auth_token.is_some() {
+                Http::new_with_auth(
+                    url,
+                    Authorization::Bearer(auth_token.unwrap_or_default().to_string()),
+                )?
+            } else {
+                Http::new(url)
+            };
+
             let provider = Provider::new(provider);
             let wallet = priv_key.parse::<LocalWallet>()?;
             let wallet = wallet.with_chain_id(subnet.chain_id.unwrap_or_default());
