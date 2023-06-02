@@ -76,6 +76,8 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         match call.send().await?.await? {
             Some(r) => {
                 let mut address: Option<Address> = None;
+                log::debug!("logs: {:?}", r.logs);
+
                 for log in r.logs {
                     log::debug!("log: {log:?}");
 
