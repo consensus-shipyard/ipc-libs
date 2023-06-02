@@ -2207,11 +2207,11 @@ version = "2.0.6"
 source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564a0f34a3a2b4717c48a01"
 dependencies = [
  "ethers-addressbook",
- "ethers-contract 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-contract",
+ "ethers-core",
  "ethers-etherscan",
  "ethers-middleware",
- "ethers-providers 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-providers",
  "ethers-signers",
  "ethers-solc",
 ]
@@ -2221,29 +2221,10 @@ name = "ethers-addressbook"
 version = "2.0.6"
 source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564a0f34a3a2b4717c48a01"
 dependencies = [
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-core",
  "once_cell",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "ethers-contract"
-version = "2.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80ef33619fb0732617a84e05a02da32a1b212239a4bdba3af5e57aa9caf55929"
-dependencies = [
- "ethers-contract-abigen 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-contract-derive 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-core 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-providers 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util",
- "hex",
- "once_cell",
- "pin-project",
- "serde",
- "serde_json",
- "thiserror",
 ]
 
 [[package]]
@@ -2251,10 +2232,10 @@ name = "ethers-contract"
 version = "2.0.6"
 source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564a0f34a3a2b4717c48a01"
 dependencies = [
- "ethers-contract-abigen 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
- "ethers-contract-derive 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
- "ethers-providers 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-contract-abigen",
+ "ethers-contract-derive",
+ "ethers-core",
+ "ethers-providers",
  "futures-util",
  "hex",
  "once_cell",
@@ -2267,33 +2248,11 @@ dependencies = [
 [[package]]
 name = "ethers-contract-abigen"
 version = "2.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b284d9fb6f654f8a12f46e85d14f7f6f867f5bbb7de5780cdda45d39e75809c0"
-dependencies = [
- "Inflector",
- "dunce",
- "ethers-core 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "eyre",
- "hex",
- "prettyplease 0.2.6",
- "proc-macro2",
- "quote",
- "regex",
- "serde",
- "serde_json",
- "syn 2.0.18",
- "toml 0.7.4",
- "walkdir",
-]
-
-[[package]]
-name = "ethers-contract-abigen"
-version = "2.0.6"
 source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564a0f34a3a2b4717c48a01"
 dependencies = [
  "Inflector",
  "dunce",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-core",
  "ethers-etherscan",
  "eyre",
  "hex",
@@ -2312,62 +2271,16 @@ dependencies = [
 [[package]]
 name = "ethers-contract-derive"
 version = "2.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "542b65f2d45be9ae1676ba129baba60d76d440acb6e933e76b0b6dcada266415"
-dependencies = [
- "Inflector",
- "ethers-contract-abigen 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-core 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "hex",
- "proc-macro2",
- "quote",
- "serde_json",
- "syn 2.0.18",
-]
-
-[[package]]
-name = "ethers-contract-derive"
-version = "2.0.6"
 source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564a0f34a3a2b4717c48a01"
 dependencies = [
  "Inflector",
- "ethers-contract-abigen 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-contract-abigen",
+ "ethers-core",
  "hex",
  "proc-macro2",
  "quote",
  "serde_json",
  "syn 2.0.18",
-]
-
-[[package]]
-name = "ethers-core"
-version = "2.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "949df06c5bdc23361f12f58af748e62839d579fd650ce734bff2ccaedec992a9"
-dependencies = [
- "arrayvec 0.7.2",
- "bytes",
- "cargo_metadata 0.15.4",
- "chrono",
- "elliptic-curve 0.13.5",
- "ethabi",
- "generic-array",
- "hex",
- "k256",
- "num_enum",
- "once_cell",
- "open-fastrlp",
- "rand 0.8.5",
- "rlp",
- "serde",
- "serde_json",
- "strum",
- "syn 2.0.18",
- "tempfile",
- "thiserror",
- "tiny-keccak",
- "unicode-xid",
 ]
 
 [[package]]
@@ -2404,7 +2317,7 @@ name = "ethers-etherscan"
 version = "2.0.6"
 source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564a0f34a3a2b4717c48a01"
 dependencies = [
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-core",
  "reqwest",
  "semver 1.0.17",
  "serde",
@@ -2420,10 +2333,10 @@ source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564
 dependencies = [
  "async-trait",
  "auto_impl",
- "ethers-contract 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-contract",
+ "ethers-core",
  "ethers-etherscan",
- "ethers-providers 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-providers",
  "ethers-signers",
  "futures-channel",
  "futures-locks",
@@ -2442,41 +2355,6 @@ dependencies = [
 [[package]]
 name = "ethers-providers"
 version = "2.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9a404215845d474defb3c0466ec3e695ce6122702158e87343f4308c026de81"
-dependencies = [
- "async-trait",
- "auto_impl",
- "base64 0.21.2",
- "bytes",
- "enr",
- "ethers-core 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-core",
- "futures-timer",
- "futures-util",
- "hashers",
- "hex",
- "http",
- "instant",
- "once_cell",
- "pin-project",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-futures",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "ws_stream_wasm",
-]
-
-[[package]]
-name = "ethers-providers"
-version = "2.0.6"
 source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564a0f34a3a2b4717c48a01"
 dependencies = [
  "async-trait",
@@ -2484,7 +2362,7 @@ dependencies = [
  "base64 0.21.2",
  "bytes",
  "enr",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-core",
  "futures-core",
  "futures-timer",
  "futures-util",
@@ -2519,7 +2397,7 @@ dependencies = [
  "coins-bip39",
  "elliptic-curve 0.13.5",
  "eth-keystore",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-core",
  "hex",
  "rand 0.8.5",
  "sha2 0.10.6",
@@ -2534,7 +2412,7 @@ source = "git+https://github.com/cryptoAtwill/ethers-rs.git#c3212887a2e05f98d564
 dependencies = [
  "cfg-if 1.0.0",
  "dunce",
- "ethers-core 2.0.6 (git+https://github.com/cryptoAtwill/ethers-rs.git)",
+ "ethers-core",
  "glob",
  "hex",
  "home",
@@ -3882,7 +3760,7 @@ dependencies = [
  "derive_builder 0.12.0",
  "env_logger 0.10.0",
  "ethers",
- "ethers-contract 2.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers-contract",
  "fil_actors_runtime",
  "futures",
  "futures-util",
