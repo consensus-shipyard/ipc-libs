@@ -69,13 +69,10 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         };
         log::info!("creating subnet: {params:?}");
 
-        match self
-            .registry_contract
-            .new_subnet_actor(params)
-            .send()
-            .await?
-            .await?
-        {
+        let mut call = self.registry_contract.new_subnet_actor(params);
+        call.tx.set_gas(10000000000u64);
+
+        match call.send().await?.await? {
             Some(r) => {
                 let mut address: Option<Address> = None;
                 for log in r.logs {
