@@ -46,23 +46,28 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u64()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
+        let params = IsubnetActorConstructorParams {
+            // TODO: replace this with parent
+            parent_id: ipc_registry::SubnetID::default(),
+            name: params.name,
+            // TODO: use ipc sdk address
+            ipc_gateway_addr: ethers::types::H160::from_str(
+                "0x008Ee541Cc66D2A91c3624Da943406D719CF42EF",
+            )?,
+            consensus: params.consensus as u64 as u8,
+            min_activation_collateral: ethers::types::U256::from(min_validator_stake as u128),
+            min_validators: params.min_validators,
+            bottom_up_check_period: params.bottomup_check_period as u64,
+            top_down_check_period: params.topdown_check_period as u64,
+            // TODO: update this variable properly
+            majority_percentage: 50,
+            genesis: ethers::types::Bytes::default(),
+        };
+        log::info!("creating subnet: {params:?}");
+
         match self
             .registry_contract
-            .new_subnet_actor(IsubnetActorConstructorParams {
-                // TODO: replace this with parent
-                parent_id: ipc_registry::SubnetID::default(),
-                name: params.name,
-                // TODO: use ipc sdk address
-                ipc_gateway_addr: ethers::types::H160::default(),
-                consensus: params.consensus as u64 as u8,
-                min_activation_collateral: ethers::types::U256::from(min_validator_stake as u128),
-                min_validators: params.min_validators,
-                bottom_up_check_period: params.bottomup_check_period as u64,
-                top_down_check_period: params.topdown_check_period as u64,
-                // TODO: update this variable properly
-                majority_percentage: 50,
-                genesis: ethers::types::Bytes::default(),
-            })
+            .new_subnet_actor(params)
             .send()
             .await?
             .await?
