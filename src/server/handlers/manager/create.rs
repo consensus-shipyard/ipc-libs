@@ -56,7 +56,7 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
         };
 
         let subnet_config = conn.subnet();
-        check_subnet(subnet_config)?;
+        // check_subnet(subnet_config)?;
 
         let constructor_params = ConstructParams {
             parent,
