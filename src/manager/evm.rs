@@ -48,7 +48,11 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         let params = IsubnetActorConstructorParams {
             // TODO: replace this with parent
-            parent_id: ipc_registry::SubnetID::default(),
+            parent_id: ipc_registry::SubnetID {
+                route: vec![ethers::types::H160::from_str(
+                    "0x0000000000000000000000000000000000000000",
+                )?],
+            },
             name: params.name,
             // TODO: use ipc sdk address
             ipc_gateway_addr: ethers::types::H160::from_str(
