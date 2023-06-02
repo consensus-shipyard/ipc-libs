@@ -272,7 +272,7 @@ impl EthSubnetManager<MiddlewareImpl> {
                 .evm_registry_address
                 .as_ref()
                 .ok_or_else(|| anyhow!("evm registry address not defined"))?;
-            let evm_registry_address = H160::from_str(evm_gateway_address)?;
+            let evm_registry_address = H160::from_str(evm_registry_address)?;
 
             let signer = Arc::new(SignerMiddleware::new(provider, wallet));
             let gateway_contract = Gateway::new(gateway_address, Arc::new(signer.clone()));
