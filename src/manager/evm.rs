@@ -51,12 +51,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let params = IsubnetActorConstructorParams {
             // TODO: replace this with parent
             parent_id: ipc_registry::SubnetID {
-                route: vec![ethers::types::H160::from_str(
-                    "0x0000000000000000000000000000000000000000",
-                )?],
+                route: agent_subnet_to_evm_addresses(&params.parent)?,
             },
             name: params.name,
-            // TODO: use ipc sdk address
             ipc_gateway_addr: (*self.gateway_contract).address(),
             consensus: params.consensus as u64 as u8,
             min_activation_collateral: ethers::types::U256::from(min_validator_stake as u128),
@@ -86,12 +83,12 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
 
+                            // subnet_addr.to_string() returns a summary of the actual address, not
+                            // usable in the actual code.
                             let subnet_addr = format!("{subnet_addr:?}");
                             log::debug!("raw subnet addr: {subnet_addr:}");
 
                             let eth_addr = EthAddress::from_str(&subnet_addr)?;
-                            log::debug!("eth addr: {eth_addr:?}");
-
                             return Ok(Address::from(eth_addr));
                         }
                         Err(_) => {
@@ -307,18 +304,30 @@ fn agent_subnet_to_evm_address(subnet: &SubnetID) -> Result<ethers::types::Addre
         .last()
         .ok_or_else(|| anyhow!("{subnet:} has no child"))?;
 
-    match ipc_addr.payload() {
+    payload_to_evm_address(ipc_addr.payload())
+}
+
+fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
+    match payload {
         Payload::Delegated(delegated) => {
             let slice = delegated.subaddress();
             Ok(ethers::types::Address::from_slice(&slice[0..20]))
         }
-        _ => Err(anyhow!("{ipc_addr:} is invalid")),
+        _ => Err(anyhow!("invalid is invalid")),
     }
+}
+
+fn agent_subnet_to_evm_addresses(subnet: &SubnetID) -> Result<Vec<ethers::types::Address>> {
+    let children = subnet.children();
+    children
+        .iter()
+        .map(|addr| payload_to_evm_address(addr.payload()))
+        .collect::<Result<_>>()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::manager::evm::agent_subnet_to_evm_address;
+    use crate::manager::evm::{agent_subnet_to_evm_address, agent_subnet_to_evm_addresses};
     use fvm_shared::address::Address;
     use ipc_sdk::subnet_id::SubnetID;
     use primitives::EthAddress;
@@ -343,5 +352,21 @@ mod tests {
             format!("{eth:?}"),
             "0x2e714a3c385ea88a09998ed74db265dae9853667"
         );
+    }
+
+    #[test]
+    fn test_agent_subnet_to_evm_addresses() {
+        let eth_addr = EthAddress::from_str("0x0000000000000000000000000000000000000000").unwrap();
+        let addr = Address::from(eth_addr);
+        let addr2 = Address::from_str("f410ffzyuupbyl2uiucmzr3lu3mtf3luyknthaz4xsrq").unwrap();
+
+        let id = SubnetID::new(0, vec![addr, addr2]);
+
+        let addrs = agent_subnet_to_evm_addresses(&id).unwrap();
+
+        let a = ethers::types::Address::from_str("0x0000000000000000000000000000000000000000").unwrap();
+        let b = ethers::types::Address::from_str("0x2e714a3c385ea88a09998ed74db265dae9853667").unwrap();
+
+        assert_eq!(addrs, vec![a, b]);
     }
 }
