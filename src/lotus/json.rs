@@ -27,11 +27,11 @@ impl ToJson for SubnetID {
 #[test]
 fn test_to_json() {
     use std::str::FromStr;
-    let subnet_id = SubnetID::from_str("/root/t0102").unwrap();
+    let subnet_id = SubnetID::from_str("/r123/f0102").unwrap();
     let json = subnet_id.to_json();
     assert_eq!(
         json,
-        json!({"Parent": "/root", "Actor": "t0102"}),
+        json!({"Parent": "/r123", "Actor": "f0102"}),
         "subnet id to json failed"
     );
 }

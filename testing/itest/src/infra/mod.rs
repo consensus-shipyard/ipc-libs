@@ -290,7 +290,7 @@ impl SubnetInfra {
 
         Ok(Subnet {
             id: self.config.id.clone().unwrap(),
-            gateway_addr: Address::from_str("t064")?,
+            gateway_addr: Address::from_str("f064")?,
             network_name: self.config.name.clone(),
             jsonrpc_api_http: format!(
                 "http://127.0.0.1:{:}/rpc/v1",

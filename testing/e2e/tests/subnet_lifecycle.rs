@@ -13,7 +13,7 @@ async fn subnet_lifecycle() {
 
     // step 1. create the subnet
     let address = client
-        .create_subnet("/root")
+        .create_subnet(DEFAULT_ROOT)
         .await
         .expect("create subnet in root failed");
 
