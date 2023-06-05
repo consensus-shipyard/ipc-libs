@@ -11,6 +11,7 @@ use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::{abigen, Signer, SignerMiddleware, H160};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
 use ethers::signers::{LocalWallet, Wallet};
+use fvm_shared::address::Payload;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::BottomUpCheckpoint;
@@ -41,7 +42,6 @@ pub struct EthSubnetManager<M: Middleware> {
 #[async_trait]
 impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M> {
     async fn create_subnet(&self, _from: Address, params: ConstructParams) -> Result<Address> {
-        let parent = params.parent.clone();
         let min_validator_stake = params
             .min_validator_stake
             .atto()
@@ -57,9 +57,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             },
             name: params.name,
             // TODO: use ipc sdk address
-            ipc_gateway_addr: ethers::types::H160::from_str(
-                "0x008Ee541Cc66D2A91c3624Da943406D719CF42EF",
-            )?,
+            ipc_gateway_addr: (*self.gateway_contract).address(),
             consensus: params.consensus as u64 as u8,
             min_activation_collateral: ethers::types::U256::from(min_validator_stake as u128),
             min_validators: params.min_validators,
@@ -71,7 +69,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         };
         log::info!("creating subnet: {params:?}");
 
-        let mut call = self.registry_contract.new_subnet_actor(params);
+        let call = self.registry_contract.new_subnet_actor(params);
         let pending_tx = call.send().await?;
         let receipt = pending_tx.retries(10).await?;
         return match receipt {
@@ -88,16 +86,13 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
 
-                            let mut subnet_addr = format!("{subnet_addr:?}");
-                            log::debug!("raw subnet addr: {subnet_addr:}, str len: {:?}, {:?}", subnet_addr.len(), &subnet_addr[2..]);
+                            let subnet_addr = format!("{subnet_addr:?}");
+                            log::debug!("raw subnet addr: {subnet_addr:}");
 
-                            let eth_addr = EthAddress::from_str(&subnet_addr[2..])?;
+                            let eth_addr = EthAddress::from_str(&subnet_addr)?;
                             log::debug!("eth addr: {eth_addr:?}");
 
-                            let addr = Address::from(eth_addr);
-                            log::debug!("addr: {addr:?}");
-
-                            return Ok(addr);
+                            return Ok(Address::from(eth_addr));
                         }
                         Err(_) => {
                             log::debug!("not of event subnet actor deployed, continue");
@@ -114,21 +109,27 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     async fn join_subnet(
         &self,
         subnet: SubnetID,
-        from: Address,
+        _from: Address,
         collateral: TokenAmount,
-        params: JoinParams,
+        _params: JoinParams,
     ) -> Result<()> {
-        // TODO: Convert IPC SubnetID to evm SubnetID
-        let evm_subnet_id = ipc_registry::SubnetID::default();
-        let address = self
-            .registry_contract
-            .subnet_address(evm_subnet_id)
-            .call()
-            .await?;
+        let collateral = collateral
+            .atto()
+            .to_u64()
+            .ok_or_else(|| anyhow!("invalid min validator stake"))?;
+
+        let address = agent_subnet_to_evm_address(&subnet)?;
+        log::info!(
+            "interacting with evm subnet contract: {address:} with collateral: {collateral:}"
+        );
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
-        // TODO: check how to send `collateral` as value
-        contract.join().send().await?.await?;
+
+        let mut txn = contract.join();
+        txn.tx.set_value(collateral);
+
+        txn.send().await?.await?;
+
         Ok(())
     }
 
@@ -299,22 +300,29 @@ impl EthSubnetManager<MiddlewareImpl> {
 //     let eth_addr = EthAddress::from_str(addr.to_string())?;
 //     Ok(Address::from(eth_addr))
 // }
-//
-// fn evm_id_to_agent_id(parent: &SubnetID, evm_subnet: ipc_registry::SubnetID) -> Result<SubnetID> {
-//     // TODO: maybe do a check to ensure the parent subnet id have common parents with new child id
-//     let mut children = vec![];
-//     for addr in evm_subnet.route.iter() {
-//         let eth_addr = EthAddress::from_str(addr.to_string())?;
-//         children.push(Address::from(eth_addr));
-//     }
-//     Ok(SubnetID::new(parent.root_id(), children))
-// }
+
+fn agent_subnet_to_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
+    let children = subnet.children();
+    let ipc_addr = children
+        .last()
+        .ok_or_else(|| anyhow!("{subnet:} has no child"))?;
+
+    match ipc_addr.payload() {
+        Payload::Delegated(delegated) => {
+            let slice = delegated.subaddress();
+            Ok(ethers::types::Address::from_slice(&slice[0..20]))
+        }
+        _ => Err(anyhow!("{ipc_addr:} is invalid")),
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use crate::manager::evm::agent_subnet_to_evm_address;
     use fvm_shared::address::Address;
+    use ipc_sdk::subnet_id::SubnetID;
     use primitives::EthAddress;
+    use std::str::FromStr;
 
     #[test]
     fn test_addr_convert() {
@@ -323,5 +331,17 @@ mod tests {
         let addr = Address::from(eth_addr);
 
         println!("{addr:?}");
+    }
+
+    #[test]
+    fn test_agent_subnet_to_evm_address() {
+        let addr = Address::from_str("f410ffzyuupbyl2uiucmzr3lu3mtf3luyknthaz4xsrq").unwrap();
+        let id = SubnetID::new(0, vec![addr]);
+
+        let eth = agent_subnet_to_evm_address(&id).unwrap();
+        assert_eq!(
+            format!("{eth:?}"),
+            "0x2e714a3c385ea88a09998ed74db265dae9853667"
+        );
     }
 }

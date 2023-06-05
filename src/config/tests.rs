@@ -5,11 +5,8 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex};
 
-use fvm_shared::address::Address;
 use indoc::formatdoc;
-use ipc_sdk::subnet_id::SubnetID;
 use tempfile::NamedTempFile;
-use url::Url;
 
 use crate::config::{Config, ReloadableConfig};
 
