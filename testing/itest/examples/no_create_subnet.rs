@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 use ipc_sdk::subnet_id::SubnetID;
 use itest::infra::SubnetInfra;
-use itest::{infra, DEFAULT_ROOT};
+use itest::{infra, set_network_from_env, DEFAULT_ROOT};
 use std::str::FromStr;
 use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
@@ -11,6 +11,7 @@ use std::time::Duration;
 
 #[tokio::main]
 async fn main() {
+    set_network_from_env();
     run().await.unwrap();
 }
 
@@ -40,7 +41,7 @@ async fn run() -> anyhow::Result<()> {
         eudico_binary_path,
         SubnetID::from_str(&parent_subnet_id_str).unwrap(),
         api_port_sequence,
-        SubnetID::from_str(DEFAULT_ROOT + "/t01002")?,
+        SubnetID::from_str(&(DEFAULT_ROOT.to_owned() + "/t01002"))?,
     );
 
     let mut infra = SubnetInfra::new(config);

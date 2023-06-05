@@ -31,7 +31,7 @@ tokio-stream = "0.1.12"
 tokio-graceful-shutdown = "0.12.1"
 tokio-tungstenite = { version = "0.18.0", features = ["native-tls"] }
 derive_builder = "0.12.0"
-num-traits = "0.2.15"
+num-traits = { workspace = true }
 num-derive = "0.3.3"
 env_logger = "0.10.0"
 base64 = { workspace = true }
@@ -61,6 +61,7 @@ tempfile = "3.4.0"
 
 [workspace.dependencies]
 anyhow = "1.0"
+num-traits = "0.2.15"
 base64 = "0.21.0"
 lazy_static = "1.4"
 log = "0.4"

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 use ipc_sdk::subnet_id::SubnetID;
 use itest::infra::SubnetInfra;
-use itest::{infra, DEFAULT_ROOT};
+use itest::{infra, set_network_from_env, DEFAULT_ROOT};
 use std::str::FromStr;
 use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
@@ -11,6 +11,7 @@ use std::time::Duration;
 
 #[tokio::main]
 async fn main() {
+    set_network_from_env();
     run().await.unwrap();
 }
 

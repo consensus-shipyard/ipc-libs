@@ -2271,6 +2271,7 @@ dependencies = [
  "ipc-identity",
  "ipc-sdk",
  "log",
+ "num-traits",
  "serde",
  "serde_json",
  "tokio",
