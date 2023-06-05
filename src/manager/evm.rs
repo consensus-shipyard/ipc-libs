@@ -75,7 +75,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         log::debug!("sending create transaction");
         let r = call.send().await?.await?;
-        match r {
+        return match r {
             Some(r) => {
                 for log in r.logs {
                     log::debug!("log: {log:?}");
@@ -89,20 +89,19 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
 
-                            return Ok(Address::from(EthAddress::from_str(
-                                &subnet_addr.to_string(),
-                            )?));
+                            let eth_addr = EthAddress::from_str(&subnet_addr.to_string())?;
+                            return Ok(Address::from(eth_addr));
                         }
-                        Err(e) => {
+                        Err(_) => {
                             log::debug!("not of event subnet actor deployed, continue");
                             continue;
                         }
                     }
                 }
-                return Err(anyhow!("no logs receipt"));
+                Err(anyhow!("no logs receipt"))
             }
             None => {
-                return Err(anyhow!("no receipt to event"));
+                Err(anyhow!("no receipt to event, txn not successful"))
             }
         }
     }

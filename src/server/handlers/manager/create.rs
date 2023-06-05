@@ -77,6 +77,8 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
             .create_subnet(from, constructor_params)
             .await?;
 
+        log::debug!("created subnet at: {created_subnet_addr:?}");
+
         Ok(CreateSubnetResponse {
             address: created_subnet_addr.to_string(),
         })
