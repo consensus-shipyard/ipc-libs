@@ -17,6 +17,7 @@ use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{ConstructParams, JoinParams};
 use num_traits::ToPrimitive;
+use primitives::EthAddress;
 
 use crate::config::Subnet;
 use crate::lotus::message::ipc::SubnetInfo;
@@ -40,6 +41,7 @@ pub struct EthSubnetManager<M: Middleware> {
 #[async_trait]
 impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M> {
     async fn create_subnet(&self, _from: Address, params: ConstructParams) -> Result<Address> {
+        let parent = params.parent.clone();
         let min_validator_stake = params
             .min_validator_stake
             .atto()
@@ -72,11 +74,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let mut call = self.registry_contract.new_subnet_actor(params);
 
         log::debug!("sending create transaction");
-        match call.send().await?.await? {
+        let r = call.send().await?.await?;
+        match r {
             Some(r) => {
-                let mut address: Option<Address> = None;
-                log::debug!("logs: {:?}", r.logs);
-
                 for log in r.logs {
                     log::debug!("log: {log:?}");
 
@@ -89,7 +89,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
 
-                            // TODO: conversion here
+                            return Ok(Address::from(EthAddress::from_str(
+                                &subnet_addr.to_string(),
+                            )?));
                         }
                         Err(e) => {
                             log::debug!("not of event subnet actor deployed, continue");
@@ -97,16 +99,12 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                         }
                     }
                 }
+                return Err(anyhow!("no logs receipt"));
             }
             None => {
                 return Err(anyhow!("no receipt to event"));
             }
         }
-
-        // TODO: need to query the address of the deployed contract on chain
-        // TODO: as we cannot get the response from the evm receipt, at least
-        // TODO: last time I checked
-        todo!()
     }
 
     async fn join_subnet(
@@ -286,3 +284,24 @@ impl EthSubnetManager<MiddlewareImpl> {
         ))
     }
 }
+
+// fn evm_id_to_address(evm_subnet: ipc_registry::SubnetID) -> Result<Address> {
+//     // TODO: maybe do a check to ensure the parent subnet id have common parents with new child id
+//     let mut children = vec![];
+//     let addr = evm_subnet
+//         .route
+//         .last()
+//         .ok_or_else(anyhow!("invdalid evm address passed"))?;
+//     let eth_addr = EthAddress::from_str(addr.to_string())?;
+//     Ok(Address::from(eth_addr))
+// }
+//
+// fn evm_id_to_agent_id(parent: &SubnetID, evm_subnet: ipc_registry::SubnetID) -> Result<SubnetID> {
+//     // TODO: maybe do a check to ensure the parent subnet id have common parents with new child id
+//     let mut children = vec![];
+//     for addr in evm_subnet.route.iter() {
+//         let eth_addr = EthAddress::from_str(addr.to_string())?;
+//         children.push(Address::from(eth_addr));
+//     }
+//     Ok(SubnetID::new(parent.root_id(), children))
+// }

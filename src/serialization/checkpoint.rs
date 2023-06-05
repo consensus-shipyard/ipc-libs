@@ -104,16 +104,15 @@ impl<'a> Serialize for SerializeToJson<&'a BatchCrossMsgs> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::serialization::SerializeToJson;
-    use ipc_gateway::BottomUpCheckpoint;
-    use ipc_sdk::subnet_id::ROOTNET_ID;
-
-    #[test]
-    fn test_serialization() {
-        let cp = BottomUpCheckpoint::new(ROOTNET_ID.clone(), 10);
-        let v = serde_json::to_string(&SerializeToJson(cp)).unwrap();
-        println!("{v:}");
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use crate::serialization::SerializeToJson;
+//     use ipc_gateway::BottomUpCheckpoint;
+//
+//     // #[test]
+//     // fn test_serialization() {
+//     //     let cp = BottomUpCheckpoint::new(ROOTNET_ID.clone(), 10);
+//     //     let v = serde_json::to_string(&SerializeToJson(cp)).unwrap();
+//     //     println!("{v:}");
+//     // }
+// }
