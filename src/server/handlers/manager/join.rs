@@ -52,7 +52,7 @@ impl JsonRPCRequestHandler for JoinSubnetHandler {
         let collateral = handlers::f64_to_token_amount(request.collateral)?;
 
         let subnet_config = conn.subnet();
-        check_subnet(subnet_config)?;
+        // check_subnet(subnet_config)?;
 
         let from = parse_from(subnet_config, request.from)?;
 
