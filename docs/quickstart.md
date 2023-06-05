@@ -89,7 +89,7 @@ json_rpc_address = "0.0.0.0:3030"
 [[subnets]]
 id = "/r31415926"
 gateway_addr = "t064"
-network_name = "root"
+network_name = "andromeda"
 jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
 auth_token = "<AUTH_TOKEN_0>"
 accounts = []
@@ -187,7 +187,7 @@ nano ~/.ipc-agent/config.toml
 ```toml
 [[subnets]]
 id = "/r31415926/<SUBNET_ID>"
-gateway_addr = "f064"
+gateway_addr = "t064"
 network_name = "andromeda"
 jsonrpc_api_http = "http://127.0.0.1:1251/rpc/v1"
 auth_token = "<AUTH_TOKEN_1>"
@@ -225,7 +225,7 @@ We have everything in place now to start validating. Run the following script fo
 
 * Check that the subnet is running
 ```bash
-./ipc-agent/bin/ipc-agent subnet list --gateway-address f064 --subnet /r31415926
+./ipc-agent/bin/ipc-agent subnet list --gateway-address t064 --subnet /r31415926
 ```
 * If something went wrong, please have a look at the [README](https://github.com/consensus-shipyard/ipc-agent). If it doesn't help, please join us in #ipc-help. In either case, let us know your experience!
 * Please note that to repeat this guide or spawn a new subnet, you may need to change the parameters or reset your system.

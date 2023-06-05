@@ -58,7 +58,7 @@ docker cp <wallet-key-path> <container-id>:<target-file-in-container> && docker 
 ```
 ```console
 # Example execution
-$ docker cp ~/.ipc-agent/wallet.key ipc_root_t01002_1250:/input.key && docker exec -it ipc_root_t01002_1250 eudico wallet import --format json-lotus input.key
+$ docker cp ~/.ipc-agent/wallet.key ipc_r31415926_t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq_1250:/input.key && docker exec -it  ipc_r31415926_t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq_1250 eudico wallet import --format json-lotus input.key
 ```
 
 ## Running a simple subnet with a single validator
@@ -75,7 +75,7 @@ To run a subnet the first thing is to configure and create the subnet actor that
 ```console
 # Example execution
 $ ./bin/ipc-agent subnet create --parent /r31415926 --name test --min-validator-stake 1 --min-validators 0 --bottomup-check-period 30 --topdown-check-period 30
-[2023-03-21T09:32:58Z INFO  ipc_agent::cli::commands::manager::create] created subnet actor with id: /r31415926/t01002
+[2023-06-05T10:30:34Z INFO  ipc_agent::cli::commands::subnet::create] created subnet actor with id: /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq
 ```
 This command deploys a subnet actor for a new subnet from the `root`, with a human-readable name `test`, that requires at least `1` validator to join the subnet to be able to mine new blocks, and with a checkpointing period (both bottom-up and top-down) of `30` blocks. We can see that the output of this command is the ID of the new subnet.
 
@@ -91,10 +91,10 @@ Before joining a new subnet, our node for that subnet must  be initialised. For 
 ```
 ```console
 # Example execution
-$ ./bin/ipc-infra/run-subnet-docker.sh 1250 1350 /r31415926/t01002 ~/.ipc-agent/wallet.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1250 1350 /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq ~/.ipc-agent/wallet.key
 (...)
->>> Subnet /r31415926/t01002 daemon running in container: 22312347b743f1e95e50a31c1f47736580c9a84819f41cb4ed3d80161a0d750f (friendly name: ipc_root_t01002_1239)
->>> Token to /r31415926/t01002 daemon: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA
+>>> Subnet /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq daemon running in container: 22312347b743f1e95e50a31c1f47736580c9a84819f41cb4ed3d80161a0d750f (friendly name: ipc_root_t01002_1239)
+>>> Token to /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq daemon: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA
 >>> Default wallet: t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq
 >>> Subnet validator info:
 /dns/host.docker.internal/tcp/1349/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3Fb
@@ -108,7 +108,7 @@ The end of the log of the execution of this script provides a bit more of inform
 *Example*:
 ```toml
 [[subnets]]
-id = "/r31415926/t01002"
+id = "/r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq"
 gateway_addr = "f064"
 network_name = "test"
 jsonrpc_api_http = "http://127.0.0.1:1250/rpc/v1"
@@ -125,7 +125,7 @@ With the daemon for the subnet deployed, we can join the subnet:
 ```
 ```console
 # Example execution
-$ ./bin/ipc-agent subnet join --subnet /r31415926/t01002 --collateral 2 --validator-net-addr /dns/host.docker.internal/tcp/1349/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3Fb
+$ ./bin/ipc-agent subnet join --subnet /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq --collateral 2 --validator-net-addr /dns/host.docker.internal/tcp/1349/p2p/12D3KooWN5hbWkCxwvrX9xYxMwFbWm2Jpa1o4qhwifmSw3Fb
 ```
 This command specifies the subnet to join, the amount of collateral to provide and the validator net address used by other validators to dial them. We can pick up this information from the execution of the script above or running `eudico mir validator config validator-addr` from your deployment. Bear in mind that the multiaddress provided for the validator needs to be accessible publicly by other validators.
 
@@ -170,16 +170,16 @@ With the keys conveniently exported, we can deploy the subnet nodes using the `i
 ```
 ```console
 # Example execution
-$ ./bin/ipc-infra/run-subnet-docker.sh 1251 1351 /r31415926/t01002 ~/.ipc-agent/wallet1.key
-$ ./bin/ipc-infra/run-subnet-docker.sh 1252 1352 /r31415926/t01002 ~/.ipc-agent/wallet2.key
-$ ./bin/ipc-infra/run-subnet-docker.sh 1253 1353 /r31415926/t01002 ~/.ipc-agent/wallet3.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1251 1351 /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq ~/.ipc-agent/wallet1.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1252 1352 /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq ~/.ipc-agent/wallet2.key
+$ ./bin/ipc-infra/run-subnet-docker.sh 1253 1353 /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq ~/.ipc-agent/wallet3.key
 ```
 If the deployment is successful, each of these nodes should return the following output at the end of their logs. Note down this information somewhere as we will need it to conveniently join our validators to the subnet.
 
 *Example*:
 ```console
->>> Subnet /r31415926/t01002 daemon running in container: 91d2af80534665a8d9a20127e480c16136d352a79563e74ee3c5497d50b9eda8 (friendly name: ipc_root_t01002_1240)
->>> Token to /r31415926/t01002 daemon: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.JTiumQwFIutkTb0gUC5JWTATs-lUvDaopEDE0ewgzLk
+>>> Subnet /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq daemon running in container: 91d2af80534665a8d9a20127e480c16136d352a79563e74ee3c5497d50b9eda8 (friendly name: ipc_root_t01002_1240)
+>>> Token to /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq daemon: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.JTiumQwFIutkTb0gUC5JWTATs-lUvDaopEDE0ewgzLk
 >>> Default wallet: t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy
 >>> Subnet subnet validator info:
 /dns/host.docker.internal/tcp/1359/p2p/12D3KooWEJXcSPw6Yv4jDk52xvp2rdeG3J6jCPX9AgBJE2mRCVoR
@@ -193,7 +193,7 @@ To configure the agent for its use with all the validators, we need to connect t
 Here's an example of the configuration connecting to the RPC of the first validator, and configuring all the wallets for the validators in the subnet.
 ```toml
 [[subnets]]
-id = "/r31415926/t01002"
+id = "/r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq"
 gateway_addr = "f064"
 network_name = "test"
 jsonrpc_api_http = "http://127.0.0.1:1240/rpc/v1"
@@ -207,11 +207,11 @@ All the infrastructure for the subnet is now deployed, and we can join our valid
 
 This is the command that needs to be executed for every validator to join the subnet:
 ```bash
-./bin/ipc-agent subnet join --from <validator-wallet> --subnet /r31415926/t01002 --collateral <amount-collateral> --validator-net-addr <validator-addr>
+./bin/ipc-agent subnet join --from <validator-wallet> --subnet /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq --collateral <amount-collateral> --validator-net-addr <validator-addr>
 ```
 ```console
 # Example execution
-$ ./bin/ipc-agent subnet join --from t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy --subnet /r31415926/t01002 --collateral 2 --validator-net-addr /dns/host.docker.internal/tcp/1359/p2p/12D3KooWEJXcSPw6Yv4jDk52xvp2rdeG3J6jCPX9AgBJE2mRCVoR
+$ ./bin/ipc-agent subnet join --from t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy --subnet /r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq --collateral 2 --validator-net-addr /dns/host.docker.internal/tcp/1359/p2p/12D3KooWEJXcSPw6Yv4jDk52xvp2rdeG3J6jCPX9AgBJE2mRCVoR
 ```
 Remember doing the above step for the 3 validators.
 
