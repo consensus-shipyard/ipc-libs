@@ -64,10 +64,10 @@ where
                     }
                     "Children" => {
                         let s = value.get();
-                        let v: Vec<String> = serde_json::from_str(&s).map_err(A::Error::custom)?;
+                        let v: Vec<String> = serde_json::from_str(s).map_err(A::Error::custom)?;
                         let addr: Result<Vec<Address>, A::Error> = v
                             .iter()
-                            .map(|s| Address::from_str(&s).map_err(A::Error::custom))
+                            .map(|s| Address::from_str(s).map_err(A::Error::custom))
                             .collect();
                         children = Some(addr?);
                     }
