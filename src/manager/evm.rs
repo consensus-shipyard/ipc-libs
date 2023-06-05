@@ -72,10 +72,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         log::info!("creating subnet: {params:?}");
 
         let mut call = self.registry_contract.new_subnet_actor(params);
-
-        log::debug!("sending create transaction");
-        let r = call.send().await?.await?;
-        return match r {
+        let pending_tx = call.send().await?;
+        let receipt = pending_tx.retries(10).await?;
+        return match receipt {
             Some(r) => {
                 for log in r.logs {
                     log::debug!("log: {log:?}");
@@ -100,10 +99,8 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                 }
                 Err(anyhow!("no logs receipt"))
             }
-            None => {
-                Err(anyhow!("no receipt to event, txn not successful"))
-            }
-        }
+            None => Err(anyhow!("no receipt to event, txn not successful")),
+        };
     }
 
     async fn join_subnet(
