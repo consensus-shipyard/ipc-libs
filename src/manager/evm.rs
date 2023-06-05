@@ -88,8 +88,8 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
 
-                            let mut subnet_addr = subnet_addr.to_string();
-                            log::debug!("raw subnet addr: {subnet_addr:?}, str len: {:?}, {:?}", subnet_addr.len(), &subnet_addr[2..]);
+                            let mut subnet_addr = format!("{subnet_addr:?}");
+                            log::debug!("raw subnet addr: {subnet_addr:}, str len: {:?}, {:?}", subnet_addr.len(), &subnet_addr[2..]);
 
                             let eth_addr = EthAddress::from_str(&subnet_addr[2..])?;
                             log::debug!("eth addr: {eth_addr:?}");
