@@ -88,8 +88,16 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
 
-                            let eth_addr = EthAddress::from_str(&subnet_addr.to_string())?;
-                            return Ok(Address::from(eth_addr));
+                            let subnet_addr = subnet_addr.to_string();
+                            log::debug!("raw subnet addr: {subnet_addr:?}");
+
+                            let eth_addr = EthAddress::from_str(&subnet_addr)?;
+                            log::debug!("eth addr: {eth_addr:?}");
+
+                            let addr = Address::from(eth_addr);
+                            log::debug!("addr: {addr:?}");
+
+                            return Ok(addr);
                         }
                         Err(_) => {
                             log::debug!("not of event subnet actor deployed, continue");
@@ -301,3 +309,19 @@ impl EthSubnetManager<MiddlewareImpl> {
 //     }
 //     Ok(SubnetID::new(parent.root_id(), children))
 // }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+    use fvm_shared::address::Address;
+    use primitives::EthAddress;
+
+    #[test]
+    fn test_addr_convert() {
+        let eth_addr = EthAddress::from_str("0x0b0d23d88d21527049232a3248fe31949d90b03b").unwrap();
+
+        let addr = Address::from(eth_addr);
+
+        println!("{addr:?}");
+    }
+}
