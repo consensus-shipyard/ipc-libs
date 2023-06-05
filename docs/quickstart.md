@@ -88,7 +88,7 @@ json_rpc_address = "0.0.0.0:3030"
 
 [[subnets]]
 id = "/r31415926"
-gateway_addr = "f064"
+gateway_addr = "t064"
 network_name = "root"
 jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
 auth_token = "<AUTH_TOKEN_0>"

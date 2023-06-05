@@ -1,7 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use anyhow::anyhow;
 use ipc_sdk::subnet_id::SubnetID;
 use serde_json::{json, Value};
 
@@ -13,13 +12,12 @@ pub(crate) trait ToJson {
 /// Implement the `ToJson` trait for `SubnetID`.
 impl ToJson for SubnetID {
     fn to_json(&self) -> Value {
-        let parent = self
-            .parent()
-            .ok_or_else(|| anyhow!("no parent found"))
-            .unwrap()
-            .to_string();
-        let actor = self.subnet_actor().to_string();
-        json!({"Parent": parent, "Actor": actor})
+        let children: Vec<String> = self
+            .children_as_ref()
+            .iter()
+            .map(|addr| addr.to_string())
+            .collect();
+        json!({"Root": self.root_id(), "Children": children})
     }
 }
 
@@ -31,7 +29,7 @@ fn test_to_json() {
     let json = subnet_id.to_json();
     assert_eq!(
         json,
-        json!({"Parent": "/r123", "Actor": "f0102"}),
+        json!({"Root": 123, "Children": vec!["f0102"]}),
         "subnet id to json failed"
     );
 }
