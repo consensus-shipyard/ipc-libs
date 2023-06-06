@@ -136,12 +136,24 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         Ok(())
     }
 
-    async fn leave_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
-        todo!()
+    async fn leave_subnet(&self, subnet: SubnetID, _from: Address) -> Result<()> {
+        let address = agent_subnet_to_evm_address(&subnet)?;
+        log::info!("leaving evm subnet: {subnet:} at contract: {address:}");
+
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        contract.leave().send().await?.await?;
+
+        Ok(())
     }
 
-    async fn kill_subnet(&self, _subnet: SubnetID, _from: Address) -> Result<()> {
-        todo!()
+    async fn kill_subnet(&self, subnet: SubnetID, _from: Address) -> Result<()> {
+        let address = agent_subnet_to_evm_address(&subnet)?;
+        log::info!("kill evm subnet: {subnet:} at contract: {address:}");
+
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        contract.kill().send().await?.await?;
+
+        Ok(())
     }
 
     async fn list_child_subnets(
