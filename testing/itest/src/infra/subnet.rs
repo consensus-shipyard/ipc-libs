@@ -309,7 +309,7 @@ impl SubnetNode {
         let subnet_id = self.subnet_id_cli_string();
 
         let base_path = Path::new(DEFAULT_LOG_DIR);
-        fs::create_dir_all(base_path).unwrap();
+        fs::create_dir_all(base_path)?;
         let node_std_out = File::create(Path::join(
             base_path,
             format!("./{subnet_id:}_node_{:}.log", self.node.tcp_port),
