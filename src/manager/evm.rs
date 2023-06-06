@@ -83,7 +83,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
 
-                            // subnet_addr.to_string() returns a summary of the actual address, not
+                            // subnet_addr.to_string() returns a summary of the actual Ethereum address, not
                             // usable in the actual code.
                             let subnet_addr = format!("{subnet_addr:?}");
                             log::debug!("raw subnet addr: {subnet_addr:}");
