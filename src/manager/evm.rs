@@ -28,6 +28,10 @@ use super::subnet::SubnetManager;
 
 pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 
+/// The majority vote percentage for checkpoint submission when creating a subnet.
+const SUBNET_MAJORITY_PERCENTAGE: u8 = 60;
+const TRANSACTION_RECEIPT_RETRIES: usize = 10;
+
 // Create type bindings for the IPC Solidity contracts
 abigen!(Gateway, "contracts/Gateway.json");
 abigen!(SubnetContract, "contracts/SubnetActor.json");
@@ -49,7 +53,6 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
         let params = IsubnetActorConstructorParams {
-            // TODO: replace this with parent
             parent_id: ipc_registry::SubnetID {
                 route: agent_subnet_to_evm_addresses(&params.parent)?,
             },
@@ -60,15 +63,18 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             min_validators: params.min_validators,
             bottom_up_check_period: params.bottomup_check_period as u64,
             top_down_check_period: params.topdown_check_period as u64,
-            // TODO: update this variable properly
-            majority_percentage: 50,
+            majority_percentage: SUBNET_MAJORITY_PERCENTAGE,
             genesis: ethers::types::Bytes::default(),
         };
-        log::info!("creating subnet: {params:?}");
+
+        log::info!("creating subnet on evm with params: {params:?}");
 
         let call = self.registry_contract.new_subnet_actor(params);
         let pending_tx = call.send().await?;
-        let receipt = pending_tx.retries(10).await?;
+        // We need the retry to parse the deployment event. At the time of this writing, it's a bug
+        // in current FEVM that without the retries, events are not picked up.
+        // See https://github.com/filecoin-project/community/discussions/638 for more info and updates.
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
         return match receipt {
             Some(r) => {
                 for log in r.logs {
@@ -260,7 +266,7 @@ impl EthSubnetManager<MiddlewareImpl> {
 
             let provider = Provider::new(provider);
             let wallet = priv_key.parse::<LocalWallet>()?;
-            let wallet = wallet.with_chain_id(subnet.chain_id.unwrap_or_default());
+            let wallet = wallet.with_chain_id(subnet.id.chain_id());
 
             let evm_gateway_address = subnet
                 .evm_gateway_address
@@ -287,17 +293,8 @@ impl EthSubnetManager<MiddlewareImpl> {
     }
 }
 
-// fn evm_id_to_address(evm_subnet: ipc_registry::SubnetID) -> Result<Address> {
-//     // TODO: maybe do a check to ensure the parent subnet id have common parents with new child id
-//     let mut children = vec![];
-//     let addr = evm_subnet
-//         .route
-//         .last()
-//         .ok_or_else(anyhow!("invdalid evm address passed"))?;
-//     let eth_addr = EthAddress::from_str(addr.to_string())?;
-//     Ok(Address::from(eth_addr))
-// }
-
+/// Convert the ipc SubnetID type to an evm address. It extracts the last address from the Subnet id
+/// children and turns it into evm address.
 fn agent_subnet_to_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
     let children = subnet.children();
     let ipc_addr = children
@@ -307,6 +304,17 @@ fn agent_subnet_to_evm_address(subnet: &SubnetID) -> Result<ethers::types::Addre
     payload_to_evm_address(ipc_addr.payload())
 }
 
+/// Convert the ipc SubnetID type to a vec of evm addresses. It extracts all the children addresses
+/// in the subnet id and turns them as a vec of evm addresses.
+fn agent_subnet_to_evm_addresses(subnet: &SubnetID) -> Result<Vec<ethers::types::Address>> {
+    let children = subnet.children();
+    children
+        .iter()
+        .map(|addr| payload_to_evm_address(addr.payload()))
+        .collect::<Result<_>>()
+}
+
+/// Util function to convert Fil address payload to evm address. Only delegated address is supported.
 fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
     match payload {
         Payload::Delegated(delegated) => {
@@ -317,14 +325,6 @@ fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
     }
 }
 
-fn agent_subnet_to_evm_addresses(subnet: &SubnetID) -> Result<Vec<ethers::types::Address>> {
-    let children = subnet.children();
-    children
-        .iter()
-        .map(|addr| payload_to_evm_address(addr.payload()))
-        .collect::<Result<_>>()
-}
-
 #[cfg(test)]
 mod tests {
     use crate::manager::evm::{agent_subnet_to_evm_address, agent_subnet_to_evm_addresses};
@@ -332,15 +332,6 @@ mod tests {
     use ipc_sdk::subnet_id::SubnetID;
     use primitives::EthAddress;
     use std::str::FromStr;
-
-    #[test]
-    fn test_addr_convert() {
-        let eth_addr = EthAddress::from_str("0x0b0d23d88d21527049232a3248fe31949d90b03b").unwrap();
-
-        let addr = Address::from(eth_addr);
-
-        println!("{addr:?}");
-    }
 
     #[test]
     fn test_agent_subnet_to_evm_address() {
@@ -364,8 +355,10 @@ mod tests {
 
         let addrs = agent_subnet_to_evm_addresses(&id).unwrap();
 
-        let a = ethers::types::Address::from_str("0x0000000000000000000000000000000000000000").unwrap();
-        let b = ethers::types::Address::from_str("0x2e714a3c385ea88a09998ed74db265dae9853667").unwrap();
+        let a =
+            ethers::types::Address::from_str("0x0000000000000000000000000000000000000000").unwrap();
+        let b =
+            ethers::types::Address::from_str("0x2e714a3c385ea88a09998ed74db265dae9853667").unwrap();
 
         assert_eq!(addrs, vec![a, b]);
     }

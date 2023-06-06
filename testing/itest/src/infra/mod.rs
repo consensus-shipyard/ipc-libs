@@ -302,7 +302,6 @@ impl SubnetInfra {
             accounts,
             evm: false,
             eth_private_key: None,
-            chain_id: None,
             evm_gateway_address: None,
             evm_registry_address: None,
         })

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 //! Join subnet handler and parameters
 
-use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::handlers::manager::parse_from;
+use crate::server::handlers::manager::subnet::SubnetManagerPool;
 use crate::server::{handlers, JsonRPCRequestHandler};
 use anyhow::anyhow;
 use async_trait::async_trait;
