@@ -30,8 +30,6 @@ pub use subnet::Subnet;
 
 pub const JSON_RPC_VERSION: &str = "2.0";
 
-pub const DEFAULT_SUBNET_CHAIN_ID: u64 = 31415926;
-
 /// DefaulDEFAULT_CHAIN_IDSUBNET_e
 pub const DEFAULT_CONFIG_TEMPLATE: &str = r#"
 [server]
