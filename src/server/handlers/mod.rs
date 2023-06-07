@@ -49,7 +49,7 @@ mod validator;
 pub mod wallet;
 
 pub type Method = String;
-/// We only support up to 6 decimal digits for transaction
+/// We only support up to 9 decimal digits for transaction
 const FIL_AMOUNT_NANO_DIGITS: u32 = 9;
 /// The collection of all json rpc handlers
 pub struct Handlers {
