@@ -52,7 +52,7 @@ impl JsonRPCRequestHandler for PropagateHandler {
         conn.manager()
             .propagate(
                 subnet,
-                subnet_config.gateway_addr,
+                subnet_config.gateway_addr(),
                 from,
                 request.postbox_msg_cid,
             )

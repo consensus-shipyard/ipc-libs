@@ -72,7 +72,7 @@ impl JsonRPCRequestHandler for QueryValidatorSetHandler {
             .await?;
 
         let genesis_epoch = lotus
-            .ipc_get_genesis_epoch_for_subnet(&subnet_id, subnet.gateway_addr)
+            .ipc_get_genesis_epoch_for_subnet(&subnet_id, subnet.gateway_addr())
             .await?;
 
         Ok(QueryValidatorSetResponse {

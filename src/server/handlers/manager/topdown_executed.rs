@@ -49,7 +49,7 @@ impl JsonRPCRequestHandler for LastTopDownExecHandler {
 
         Ok(conn
             .manager()
-            .last_topdown_executed(&subnet_config.gateway_addr)
+            .last_topdown_executed(&subnet_config.gateway_addr())
             .await?)
     }
 }

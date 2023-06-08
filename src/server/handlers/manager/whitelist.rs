@@ -58,7 +58,7 @@ impl JsonRPCRequestHandler for WhitelistPropagatorHandler {
         conn.manager()
             .whitelist_propagator(
                 subnet,
-                subnet_config.gateway_addr,
+                subnet_config.gateway_addr(),
                 request.postbox_msg_cid,
                 from,
                 to_add,

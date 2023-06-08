@@ -52,7 +52,7 @@ impl JsonRPCRequestHandler for FundHandler {
         let amount = handlers::f64_to_token_amount(request.amount)?;
 
         conn.manager()
-            .fund(subnet, subnet_config.gateway_addr, from, amount)
+            .fund(subnet, subnet_config.gateway_addr(), from, amount)
             .await
     }
 }

@@ -6,10 +6,12 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::config::deserialize::{
-    deserialize_accounts, deserialize_address_from_str, deserialize_subnet_id,
+    deserialize_accounts, deserialize_address_from_str, deserialize_eth_accounts,
+    deserialize_eth_address_from_str, deserialize_subnet_id,
 };
 use crate::config::serialize::{
-    serialize_accounts, serialize_address_to_str, serialize_subnet_id_to_str,
+    serialize_accounts, serialize_address_to_str, serialize_eth_accounts,
+    serialize_eth_address_to_str, serialize_subnet_id_to_str,
 };
 
 /// Represents a subnet declaration in the config.
@@ -18,15 +20,76 @@ pub struct Subnet {
     #[serde(deserialize_with = "deserialize_subnet_id")]
     #[serde(serialize_with = "serialize_subnet_id_to_str")]
     pub id: SubnetID,
+    pub network_name: String,
+    pub config: SubnetConfig,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+#[serde(tag = "network_type")]
+pub enum SubnetConfig {
+    #[serde(rename = "fvm")]
+    Fvm(FVMSubnet),
+    #[serde(rename = "evm")]
+    Evm(EVMSubnet),
+}
+
+impl Subnet {
+    pub fn auth_token(&self) -> Option<String> {
+        match &self.config {
+            SubnetConfig::Fvm(s) => s.auth_token.clone(),
+            SubnetConfig::Evm(s) => s.auth_token.clone(),
+        }
+    }
+
+    pub fn rpc_http(&self) -> &Url {
+        match &self.config {
+            SubnetConfig::Fvm(s) => &s.jsonrpc_api_http,
+            SubnetConfig::Evm(s) => &s.provider_http,
+        }
+    }
+
+    pub fn gateway_addr(&self) -> Address {
+        match &self.config {
+            SubnetConfig::Fvm(s) => s.gateway_addr,
+            SubnetConfig::Evm(s) => s.gateway_addr,
+        }
+    }
+
+    pub fn accounts(&self) -> &[Address] {
+        match &self.config {
+            SubnetConfig::Fvm(s) => &s.accounts,
+            SubnetConfig::Evm(s) => &s.accounts,
+        }
+    }
+}
+
+/// The FVM subnet config parameters
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct FVMSubnet {
     #[serde(deserialize_with = "deserialize_address_from_str")]
     #[serde(serialize_with = "serialize_address_to_str")]
-    // toml is interpreting number as i64
     pub gateway_addr: Address,
-    pub network_name: String,
     pub jsonrpc_api_http: Url,
-    pub jsonrpc_api_ws: Option<Url>,
     pub auth_token: Option<String>,
     #[serde(deserialize_with = "deserialize_accounts", default)]
     #[serde(serialize_with = "serialize_accounts")]
+    pub accounts: Vec<Address>,
+}
+
+/// The EVM subnet config parameters
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct EVMSubnet {
+    pub provider_http: Url,
+    pub auth_token: Option<String>,
+    #[serde(deserialize_with = "deserialize_eth_address_from_str")]
+    #[serde(serialize_with = "serialize_eth_address_to_str")]
+    pub registry_addr: Address,
+    #[serde(deserialize_with = "deserialize_eth_address_from_str")]
+    #[serde(serialize_with = "serialize_eth_address_to_str")]
+    pub gateway_addr: Address,
+    /// TODO: this will be replace with keystore path
+    pub private_key: String,
+    #[serde(deserialize_with = "deserialize_eth_accounts", default)]
+    #[serde(serialize_with = "serialize_eth_accounts")]
     pub accounts: Vec<Address>,
 }

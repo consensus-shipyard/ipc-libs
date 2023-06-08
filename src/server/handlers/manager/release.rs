@@ -51,7 +51,7 @@ impl JsonRPCRequestHandler for ReleaseHandler {
         let from = parse_from(subnet_config, request.from)?;
 
         conn.manager()
-            .release(subnet, subnet_config.gateway_addr, from, amount)
+            .release(subnet, subnet_config.gateway_addr(), from, amount)
             .await
     }
 }

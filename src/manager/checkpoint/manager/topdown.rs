@@ -36,7 +36,7 @@ impl TopDownCheckpointManager {
     ) -> anyhow::Result<Self> {
         let child_tip_set = chain_head_cid(&child_client).await?;
         let state = child_client
-            .ipc_read_gateway_state(&child_subnet.gateway_addr, child_tip_set)
+            .ipc_read_gateway_state(&child_subnet.gateway_addr(), child_tip_set)
             .await?;
         let checkpoint_period = state.top_down_check_period;
 
@@ -67,7 +67,7 @@ impl TopDownCheckpointManager {
         let child_tip_set = Cid::try_from(cid_map)?;
 
         self.child_client
-            .ipc_read_gateway_state(&self.child_subnet.gateway_addr, child_tip_set)
+            .ipc_read_gateway_state(&self.child_subnet.gateway_addr(), child_tip_set)
             .await
     }
 
@@ -128,7 +128,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     ) -> anyhow::Result<()> {
         let nonce = self
             .child_client
-            .ipc_read_gateway_state(&self.child_subnet.gateway_addr, self.child_head().await?)
+            .ipc_read_gateway_state(&self.child_subnet.gateway_addr(), self.child_head().await?)
             .await?
             .applied_topdown_nonce;
 
@@ -137,7 +137,7 @@ impl CheckpointManager for TopDownCheckpointManager {
             .parent_client
             .ipc_get_topdown_msgs(
                 &self.child_subnet.id,
-                &self.parent.gateway_addr,
+                &self.parent.gateway_addr(),
                 submission_tip_set,
                 nonce,
             )
@@ -154,7 +154,7 @@ impl CheckpointManager for TopDownCheckpointManager {
             top_down_msgs,
         };
         let message = MpoolPushMessage::new(
-            self.parent.gateway_addr,
+            self.parent.gateway_addr(),
             *validator,
             ipc_gateway::Method::SubmitTopDownCheckpoint as MethodNum,
             cbor::serialize(&topdown_checkpoint, "topdown_checkpoint")?.to_vec(),
@@ -187,7 +187,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     ) -> anyhow::Result<bool> {
         let has_voted = self
             .child_client
-            .ipc_validator_has_voted_topdown(&self.child_subnet.gateway_addr, epoch, validator)
+            .ipc_validator_has_voted_topdown(&self.child_subnet.gateway_addr(), epoch, validator)
             .await
             .map_err(|e| {
                 anyhow!("error checking if validator has voted for manager: {self:} due to {e:}")

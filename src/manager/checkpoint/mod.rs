@@ -122,7 +122,7 @@ async fn setup_managers_from_config(
 
         // We filter for subnets that have at least one account and for which the parent subnet
         // is also in the configuration.
-        if s.accounts.is_empty() {
+        if s.accounts().is_empty() {
             log::info!("no accounts in subnet: {:}, not managing checkpoints", s.id);
             continue;
         }
@@ -284,7 +284,7 @@ async fn child_validators(manager: &impl CheckpointManager) -> anyhow::Result<Ve
             let mut vs = vec![];
             for v in validators {
                 let addr = Address::from_str(&v.addr)?;
-                if child_subnet.accounts.contains(&addr) {
+                if child_subnet.accounts().contains(&addr) {
                     vs.push(addr);
                 }
             }

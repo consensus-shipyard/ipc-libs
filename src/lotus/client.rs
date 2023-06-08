@@ -664,9 +664,9 @@ impl LotusJsonRPCClient<JsonRpcClientImpl> {
     /// A constructor that returns a `LotusJsonRPCClient` from a `Subnet`. The returned
     /// `LotusJsonRPCClient` makes requests to the URL defined in the `Subnet`.
     pub fn from_subnet(subnet: &crate::config::Subnet) -> Self {
-        let url = subnet.jsonrpc_api_http.clone();
-        let auth_token = subnet.auth_token.as_deref();
-        let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token);
+        let url = subnet.rpc_http().clone();
+        let auth_token = subnet.auth_token();
+        let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token.as_deref());
         LotusJsonRPCClient::new(jsonrpc_client, subnet.id.clone())
     }
 
@@ -674,9 +674,9 @@ impl LotusJsonRPCClient<JsonRpcClientImpl> {
         subnet: &crate::config::Subnet,
         wallet_store: Arc<RwLock<Wallet>>,
     ) -> Self {
-        let url = subnet.jsonrpc_api_http.clone();
-        let auth_token = subnet.auth_token.as_deref();
-        let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token);
+        let url = subnet.rpc_http().clone();
+        let auth_token = subnet.auth_token();
+        let jsonrpc_client = JsonRpcClientImpl::new(url, auth_token.as_deref());
         LotusJsonRPCClient::new_with_wallet_store(jsonrpc_client, subnet.id.clone(), wallet_store)
     }
 }

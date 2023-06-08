@@ -46,6 +46,8 @@ thiserror = { workspace = true }
 serde_tuple = "0.5.0"
 zeroize = "1.6.0"
 
+ethers-contract = { workspace = true }
+ethers = { workspace = true }
 fvm_shared = { workspace = true }
 fil_actors_runtime = { workspace = true }
 ipc-sdk = { workspace = true }
@@ -83,9 +85,11 @@ fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", 
 ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git", branch = "adlrocha/subnetid-refactor" }
 ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "adlrocha/subnetid-refactor" }
 ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "adlrocha/subnetid-refactor" }
-ipc_ipld_resolver = { git = "https://github.com/consensus-shipyard/ipc-ipld-resolver.git", branch = "main" }
+#ipc_ipld_resolver = { git = "https://github.com/consensus-shipyard/ipc-ipld-resolver.git", branch = "main" }
 libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
 primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
+ethers = "2.0.7"
+ethers-contract = "2.0.7"
 
 # Uncomment to point to you local versions
 # [patch."https://github.com/consensus-shipyard/fvm-utils"]
