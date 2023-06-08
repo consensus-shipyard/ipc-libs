@@ -66,7 +66,7 @@ where
         type Value = Address;
 
         fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-            formatter.write_str("an string")
+            formatter.write_str("a string")
         }
 
         fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
