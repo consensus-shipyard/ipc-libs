@@ -51,7 +51,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u64()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
-        let params = IsubnetActorConstructorParams {
+        let params = ConstructorParams {
             parent_id: subnet_registry::SubnetID {
                 route: agent_subnet_to_evm_addresses(&params.parent)?,
             },
