@@ -72,6 +72,7 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
         };
 
         let from = parse_from(subnet_config, request.from)?;
+        log::debug!("conn: {:?}", conn.subnet());
 
         let created_subnet_addr = conn
             .manager()
