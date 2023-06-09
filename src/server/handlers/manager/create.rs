@@ -61,7 +61,8 @@ impl JsonRPCRequestHandler for CreateSubnetHandler {
         let constructor_params = ConstructParams {
             parent,
             name: request.name,
-            ipc_gateway_addr: subnet_config.gateway_addr().id()?,
+            // ipc_gateway_addr: subnet_config.gateway_addr().id()?,
+            ipc_gateway_addr: 0,
             consensus: ConsensusType::Mir,
             min_validator_stake: handlers::f64_to_token_amount(request.min_validator_stake)?,
             min_validators: request.min_validators,
