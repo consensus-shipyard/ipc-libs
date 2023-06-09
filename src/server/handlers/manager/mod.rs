@@ -6,6 +6,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Result};
 use fvm_shared::address::Address;
 
+use crate::config::subnet::SubnetConfig;
 use crate::config::Subnet;
 
 pub mod create;
@@ -25,9 +26,16 @@ pub mod topdown_executed;
 pub mod whitelist;
 
 pub(crate) fn check_subnet(subnet: &Subnet) -> Result<()> {
-    if subnet.auth_token().is_none() {
-        log::error!("subnet {:?} does not have auth token", subnet.id);
-        return Err(anyhow!("Internal server error"));
+    match &subnet.config {
+        SubnetConfig::Fvm(config) => {
+            if config.auth_token.is_none() {
+                log::error!("subnet {:?} does not have auth token", subnet.id);
+                return Err(anyhow!("Internal server error"));
+            }
+        }
+        SubnetConfig::Evm(_) => {
+            // TODO: add more checks later
+        }
     }
     Ok(())
 }

@@ -85,7 +85,6 @@ fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", 
 ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git", branch = "adlrocha/subnetid-refactor" }
 ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "adlrocha/subnetid-refactor" }
 ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "adlrocha/subnetid-refactor" }
-#ipc_ipld_resolver = { git = "https://github.com/consensus-shipyard/ipc-ipld-resolver.git", branch = "main" }
 libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
 primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
 ethers = "2.0.7"
