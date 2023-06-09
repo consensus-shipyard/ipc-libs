@@ -34,12 +34,12 @@ const TRANSACTION_RECEIPT_RETRIES: usize = 10;
 // Create type bindings for the IPC Solidity contracts
 abigen!(Gateway, "contracts/Gateway.json");
 abigen!(SubnetContract, "contracts/SubnetActor.json");
-abigen!(IPCRegistry, "contracts/IPCRegistry.json");
+abigen!(SubnetRegistry, "contracts/SubnetRegistry.json");
 
 pub struct EthSubnetManager<M: Middleware> {
     eth_client: Arc<M>,
     gateway_contract: Gateway<Arc<M>>,
-    registry_contract: IPCRegistry<Arc<M>>,
+    registry_contract: SubnetRegistry<Arc<M>>,
 }
 
 #[async_trait]
@@ -52,7 +52,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
         let params = IsubnetActorConstructorParams {
-            parent_id: ipc_registry::SubnetID {
+            parent_id: subnet_registry::SubnetID {
                 route: agent_subnet_to_evm_addresses(&params.parent)?,
             },
             name: params.name,
@@ -79,9 +79,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                 for log in r.logs {
                     log::debug!("log: {log:?}");
 
-                    match ethers_contract::parse_log::<ipc_registry::SubnetDeployedFilter>(log) {
+                    match ethers_contract::parse_log::<subnet_registry::SubnetDeployedFilter>(log) {
                         Ok(subnet_deploy) => {
-                            let ipc_registry::SubnetDeployedFilter {
+                            let subnet_registry::SubnetDeployedFilter {
                                 subnet_addr,
                                 subnet_id,
                             } = subnet_deploy;
@@ -247,7 +247,7 @@ impl<M: Middleware + Send + Sync> EthSubnetManager<M> {
     pub fn new(
         eth_client: Arc<M>,
         gateway_contract: Gateway<Arc<M>>,
-        registry_contract: IPCRegistry<Arc<M>>,
+        registry_contract: SubnetRegistry<Arc<M>>,
     ) -> Self {
         Self {
             eth_client,
@@ -283,7 +283,7 @@ impl EthSubnetManager<MiddlewareImpl> {
 
         let signer = Arc::new(SignerMiddleware::new(provider, wallet));
         let gateway_contract = Gateway::new(gateway_address, Arc::new(signer.clone()));
-        let evm_registry_contract = IPCRegistry::new(registry_address, Arc::new(signer.clone()));
+        let evm_registry_contract = SubnetRegistry::new(registry_address, Arc::new(signer.clone()));
 
         Ok(Self::new(signer, gateway_contract, evm_registry_contract))
     }
