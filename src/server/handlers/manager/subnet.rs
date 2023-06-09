@@ -50,17 +50,17 @@ impl SubnetManagerPool {
         match subnets.get(subnet) {
             Some(subnet) => match &subnet.config {
                 SubnetConfig::Fvm(_) => {
-                    let manager = Box::new(EthSubnetManager::from_subnet(subnet).ok()?);
+                    let manager = Box::new(LotusSubnetManager::from_subnet_with_wallet_store(
+                        subnet,
+                        self.wallet_store.clone(),
+                    ));
                     Some(Connection {
                         manager,
                         subnet: subnet.clone(),
                     })
                 }
                 SubnetConfig::Evm(_) => {
-                    let manager = Box::new(LotusSubnetManager::from_subnet_with_wallet_store(
-                        subnet,
-                        self.wallet_store.clone(),
-                    ));
+                    let manager = Box::new(EthSubnetManager::from_subnet(subnet).ok()?);
                     Some(Connection {
                         manager,
                         subnet: subnet.clone(),
