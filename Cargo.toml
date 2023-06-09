@@ -87,8 +87,8 @@ ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git
 ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "adlrocha/subnetid-refactor" }
 libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
 primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
-ethers = "2.0.7"
-ethers-contract = "2.0.7"
+ethers = { git = "https://github.com/cryptoAtwill/ethers-rs.git" }
+ethers-contract = { git = "https://github.com/cryptoAtwill/ethers-rs.git" }
 
 # Uncomment to point to you local versions
 # [patch."https://github.com/consensus-shipyard/fvm-utils"]
