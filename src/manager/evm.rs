@@ -53,7 +53,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u128()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
-        log::debug!("in create subnet");
+        log::debug!("calling create subnet for EVM manager");
 
         let mut route = agent_subnet_to_evm_addresses(&params.parent)?;
         let mut root = vec![ethers::types::Address::from_str(
