@@ -30,6 +30,7 @@ pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 /// The majority vote percentage for checkpoint submission when creating a subnet.
 const SUBNET_MAJORITY_PERCENTAGE: u8 = 60;
 const TRANSACTION_RECEIPT_RETRIES: usize = 10;
+const EVM_ZERO_ADDRESS: &str = "0x0000000000000000000000000000000000000000";
 
 // Create type bindings for the IPC Solidity contracts
 abigen!(Gateway, "contracts/Gateway.json");
@@ -55,15 +56,11 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         log::debug!("in create subnet");
 
-        let mut route = agent_subnet_to_evm_addresses(&params.parent)?;
-        let mut root = vec![ethers::types::Address::from_str(
-            "0x0000000000000000000000000000000000000000",
-        )?];
-        root.append(&mut route);
-        log::debug!("root: {root:?}");
+        let route = subnet_to_route(&params.parent)?;
+        log::debug!("route: {route:?}");
 
         let params = ConstructorParams {
-            parent_id: subnet_registry::SubnetID { route: root },
+            parent_id: subnet_registry::SubnetID { route },
             name: params.name,
             ipc_gateway_addr: (*self.gateway_contract).address(),
             consensus: params.consensus as u64 as u8,
@@ -173,22 +170,53 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
     async fn fund(
         &self,
-        _subnet: SubnetID,
-        _gateway_addr: Address,
+        subnet: SubnetID,
+        gateway_addr: Address,
         _from: Address,
-        _amount: TokenAmount,
+        amount: TokenAmount,
     ) -> Result<ChainEpoch> {
-        todo!()
+        self.ensure_same_gateway(&gateway_addr)?;
+
+        let value = amount
+            .atto()
+            .to_u128()
+            .ok_or_else(|| anyhow!("invalid value to fund"))?;
+
+        log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}");
+
+        let route = subnet_to_route(&subnet)?;
+        log::debug!("routes to fund: {route:?}");
+
+        let mut txn = self.gateway_contract.fund(gateway::SubnetID { route });
+        txn.tx.set_value(value);
+
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn release(
         &self,
         _subnet: SubnetID,
-        _gateway_addr: Address,
+        gateway_addr: Address,
         _from: Address,
-        _amount: TokenAmount,
+        amount: TokenAmount,
     ) -> Result<ChainEpoch> {
-        todo!()
+        self.ensure_same_gateway(&gateway_addr)?;
+
+        let value = amount
+            .atto()
+            .to_u128()
+            .ok_or_else(|| anyhow!("invalid value to fund"))?;
+
+        log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}");
+
+        let mut txn = self.gateway_contract.release();
+        txn.tx.set_value(value);
+
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn propagate(
@@ -307,6 +335,22 @@ impl EthSubnetManager<MiddlewareImpl> {
     }
 }
 
+fn block_number_from_receipt(
+    receipt: Option<ethers::types::TransactionReceipt>,
+) -> Result<ChainEpoch> {
+    match receipt {
+        Some(r) => {
+            let block_number = r
+                .block_number
+                .ok_or_else(|| anyhow!("cannot get block number"))?;
+            Ok(block_number.as_u64() as ChainEpoch)
+        }
+        None => Err(anyhow!(
+            "txn sent to network, but receipt cannot be obtained, please check scanner"
+        )),
+    }
+}
+
 /// Convert the ipc SubnetID type to an evm address. It extracts the last address from the Subnet id
 /// children and turns it into evm address.
 fn agent_subnet_to_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
@@ -337,6 +381,16 @@ fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
         }
         _ => Err(anyhow!("invalid is invalid")),
     }
+}
+
+/// Subnet id to route
+fn subnet_to_route(subnet: &SubnetID) -> Result<Vec<ethers::types::Address>> {
+    let mut route = agent_subnet_to_evm_addresses(subnet)?;
+
+    let mut root = vec![ethers::types::Address::from_str(EVM_ZERO_ADDRESS)?];
+    root.append(&mut route);
+
+    Ok(root)
 }
 
 #[cfg(test)]
