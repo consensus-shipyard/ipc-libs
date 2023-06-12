@@ -60,7 +60,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             "0x0000000000000000000000000000000000000000",
         )?];
         root.append(&mut route);
-        log::debug!("root: {root:?}");
+        log::debug!("root SubnetID as Ethereum type: {root:?}");
 
         let params = ConstructorParams {
             parent_id: subnet_registry::SubnetID { route: root },
