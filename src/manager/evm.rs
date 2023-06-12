@@ -106,7 +106,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                             return Ok(Address::from(eth_addr));
                         }
                         Err(_) => {
-                            log::debug!("not of event subnet actor deployed, continue");
+                            log::debug!("no event for subnet actor published yet, continue");
                             continue;
                         }
                     }
