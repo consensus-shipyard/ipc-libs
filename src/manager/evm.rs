@@ -50,7 +50,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let min_validator_stake = params
             .min_validator_stake
             .atto()
-            .to_u64()
+            .to_u128()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
         log::debug!("in create subnet");
@@ -67,7 +67,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             name: params.name,
             ipc_gateway_addr: (*self.gateway_contract).address(),
             consensus: params.consensus as u64 as u8,
-            min_activation_collateral: ethers::types::U256::from(min_validator_stake as u128),
+            min_activation_collateral: ethers::types::U256::from(min_validator_stake),
             min_validators: params.min_validators,
             bottom_up_check_period: params.bottomup_check_period as u64,
             top_down_check_period: params.topdown_check_period as u64,
@@ -126,7 +126,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     ) -> Result<()> {
         let collateral = collateral
             .atto()
-            .to_u64()
+            .to_u128()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
         let address = agent_subnet_to_evm_address(&subnet)?;
