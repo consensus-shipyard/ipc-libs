@@ -45,6 +45,8 @@ pub struct EthSubnetManager<M: Middleware> {
 #[async_trait]
 impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M> {
     async fn create_subnet(&self, _from: Address, params: ConstructParams) -> Result<Address> {
+        self.ensure_same_gateway(&params.ipc_gateway_addr)?;
+
         let min_validator_stake = params
             .min_validator_stake
             .atto()
@@ -120,7 +122,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         subnet: SubnetID,
         _from: Address,
         collateral: TokenAmount,
-        _params: JoinParams,
+        params: JoinParams,
     ) -> Result<()> {
         let collateral = collateral
             .atto()
@@ -134,7 +136,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
 
-        let mut txn = contract.join();
+        let mut txn = contract.join(params.validator_net_addr);
         txn.tx.set_value(collateral);
 
         txn.send().await?.await?;
@@ -260,6 +262,15 @@ impl<M: Middleware + Send + Sync> EthSubnetManager<M> {
             eth_client,
             gateway_contract,
             registry_contract,
+        }
+    }
+
+    pub fn ensure_same_gateway(&self, gateway: &Address) -> anyhow::Result<()> {
+        let evm_gateway_addr = payload_to_evm_address(gateway.payload())?;
+        if evm_gateway_addr != (*self.gateway_contract).address() {
+            Err(anyhow!("Gateway address not matching with config"))
+        } else {
+            Ok(())
         }
     }
 }

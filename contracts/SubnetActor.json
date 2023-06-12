@@ -16,9 +16,9 @@
             "type": "tuple"
           },
           {
-            "internalType": "string",
+            "internalType": "bytes32",
             "name": "name",
-            "type": "string"
+            "type": "bytes32"
           },
           {
             "internalType": "address",
@@ -338,7 +338,13 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "netAddr",
+        "type": "string"
+      }
+    ],
     "name": "join",
     "outputs": [],
     "stateMutability": "payable",
@@ -415,9 +421,9 @@
     "name": "name",
     "outputs": [
       {
-        "internalType": "string",
+        "internalType": "bytes32",
         "name": "",
-        "type": "string"
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -694,6 +700,25 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "validatorNetAddresses",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
       }
     ],
     "stateMutability": "view",
