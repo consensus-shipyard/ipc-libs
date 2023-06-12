@@ -55,15 +55,11 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         log::debug!("calling create subnet for EVM manager");
 
-        let mut route = agent_subnet_to_evm_addresses(&params.parent)?;
-        let mut root = vec![ethers::types::Address::from_str(
-            "0x0000000000000000000000000000000000000000",
-        )?];
-        root.append(&mut route);
-        log::debug!("root SubnetID as Ethereum type: {root:?}");
+        let route = agent_subnet_to_evm_addresses(&params.parent)?;
+        log::debug!("root SubnetID as Ethereum type: {route:?}");
 
         let params = ConstructorParams {
-            parent_id: subnet_registry::SubnetID { route: root },
+            parent_id: subnet_registry::SubnetID { route },
             name: params.name,
             ipc_gateway_addr: (*self.gateway_contract).address(),
             consensus: params.consensus as u64 as u8,
@@ -129,7 +125,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u128()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
-        let address = agent_subnet_to_evm_address(&subnet)?;
+        let address = last_evm_address(&subnet)?;
         log::info!(
             "interacting with evm subnet contract: {address:} with collateral: {collateral:}"
         );
@@ -145,7 +141,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     }
 
     async fn leave_subnet(&self, subnet: SubnetID, _from: Address) -> Result<()> {
-        let address = agent_subnet_to_evm_address(&subnet)?;
+        let address = last_evm_address(&subnet)?;
         log::info!("leaving evm subnet: {subnet:} at contract: {address:}");
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
@@ -155,7 +151,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     }
 
     async fn kill_subnet(&self, subnet: SubnetID, _from: Address) -> Result<()> {
-        let address = agent_subnet_to_evm_address(&subnet)?;
+        let address = last_evm_address(&subnet)?;
         log::info!("kill evm subnet: {subnet:} at contract: {address:}");
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
@@ -309,7 +305,7 @@ impl EthSubnetManager<MiddlewareImpl> {
 
 /// Convert the ipc SubnetID type to an evm address. It extracts the last address from the Subnet id
 /// children and turns it into evm address.
-fn agent_subnet_to_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
+fn last_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
     let children = subnet.children();
     let ipc_addr = children
         .last()
@@ -341,7 +337,7 @@ fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
 
 #[cfg(test)]
 mod tests {
-    use crate::manager::evm::{agent_subnet_to_evm_address, agent_subnet_to_evm_addresses};
+    use crate::manager::evm::{agent_subnet_to_evm_addresses, last_evm_address};
     use fvm_shared::address::Address;
     use ipc_sdk::subnet_id::SubnetID;
     use primitives::EthAddress;
@@ -352,7 +348,7 @@ mod tests {
         let addr = Address::from_str("f410ffzyuupbyl2uiucmzr3lu3mtf3luyknthaz4xsrq").unwrap();
         let id = SubnetID::new(0, vec![addr]);
 
-        let eth = agent_subnet_to_evm_address(&id).unwrap();
+        let eth = last_evm_address(&id).unwrap();
         assert_eq!(
             format!("{eth:?}"),
             "0x2e714a3c385ea88a09998ed74db265dae9853667"
