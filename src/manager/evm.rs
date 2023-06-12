@@ -113,7 +113,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                 }
                 Err(anyhow!("no logs receipt"))
             }
-            None => Err(anyhow!("no receipt to event, txn not successful")),
+            None => Err(anyhow!("no receipt for event, txn not successful")),
         };
     }
 
