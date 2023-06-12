@@ -82,9 +82,9 @@ fvm_ipld_blockstore = "0.1"
 fvm_ipld_encoding = "0.3"
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false, features = ["crypto"] }
 fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }
-ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git", branch = "create_subnet_address" }
-ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "create_subnet_address" }
-ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "create_subnet_address" }
+ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git" }
+ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
+ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
 libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
 primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
 ethers = { git = "https://github.com/cryptoAtwill/ethers-rs.git" }
