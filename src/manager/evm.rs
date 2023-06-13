@@ -48,11 +48,12 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     async fn create_subnet(&self, _from: Address, params: ConstructParams) -> Result<Address> {
         self.ensure_same_gateway(&params.ipc_gateway_addr)?;
 
-        if params.name.as_bytes().len() > SUBNET_NAME_MAX_LEN {
+        let name_len = params.name.as_bytes().len();
+        if name_len > SUBNET_NAME_MAX_LEN {
             return Err(anyhow!("subnet name too long"));
         }
         let mut name = [0u8; SUBNET_NAME_MAX_LEN];
-        name.copy_from_slice(params.name.as_bytes());
+        name[0..name_len].copy_from_slice(params.name.as_bytes());
 
         let min_validator_stake = params
             .min_validator_stake
