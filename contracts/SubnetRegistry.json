@@ -42,9 +42,9 @@
             "type": "tuple"
           },
           {
-            "internalType": "string",
+            "internalType": "bytes32",
             "name": "name",
-            "type": "string"
+            "type": "bytes32"
           },
           {
             "internalType": "address",
@@ -87,7 +87,7 @@
             "type": "bytes"
           }
         ],
-        "internalType": "struct ISubnetActor.ConstructorParams",
+        "internalType": "struct SubnetActor.ConstructParams",
         "name": "_params",
         "type": "tuple"
       }

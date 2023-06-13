@@ -30,6 +30,7 @@ pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 /// The majority vote percentage for checkpoint submission when creating a subnet.
 const SUBNET_MAJORITY_PERCENTAGE: u8 = 60;
 const TRANSACTION_RECEIPT_RETRIES: usize = 10;
+const SUBNET_NAME_MAX_LEN: usize = 32;
 
 // Create type bindings for the IPC Solidity contracts
 abigen!(Gateway, "contracts/Gateway.json");
@@ -47,6 +48,12 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     async fn create_subnet(&self, _from: Address, params: ConstructParams) -> Result<Address> {
         self.ensure_same_gateway(&params.ipc_gateway_addr)?;
 
+        if params.name.as_bytes().len() > SUBNET_NAME_MAX_LEN {
+            return Err(anyhow!("subnet name too long"));
+        }
+        let mut name = [0u8; SUBNET_NAME_MAX_LEN];
+        name.copy_from_slice(params.name.as_bytes());
+
         let min_validator_stake = params
             .min_validator_stake
             .atto()
@@ -58,9 +65,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let route = agent_subnet_to_evm_addresses(&params.parent)?;
         log::debug!("root SubnetID as Ethereum type: {route:?}");
 
-        let params = ConstructorParams {
+        let params = subnet_registry::ConstructParams {
             parent_id: subnet_registry::SubnetID { route },
-            name: params.name,
+            name,
             ipc_gateway_addr: (*self.gateway_contract).address(),
             consensus: params.consensus as u64 as u8,
             min_activation_collateral: ethers::types::U256::from(min_validator_stake),
