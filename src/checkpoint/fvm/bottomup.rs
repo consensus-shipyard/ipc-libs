@@ -1,12 +1,12 @@
 use std::fmt::{Display, Formatter};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
+use crate::checkpoint::proof::create_proof;
+use crate::checkpoint::{chain_head_cid, child_validators, CheckpointManager};
 use crate::config::Subnet;
 use crate::lotus::client::DefaultLotusJsonRPCClient;
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
-use crate::manager::checkpoint::proof::create_proof;
-use crate::manager::checkpoint::{chain_head_cid, CheckpointManager};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use cid::Cid;
@@ -75,12 +75,6 @@ impl<T: LotusClient + Send + Sync> BottomUpCheckpointManager<T> {
 
 #[async_trait]
 impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManager<T> {
-    type LotusClient = T;
-
-    fn parent_client(&self) -> &Self::LotusClient {
-        &self.parent_client
-    }
-
     fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }
@@ -91,6 +85,10 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
 
     fn checkpoint_period(&self) -> ChainEpoch {
         self.checkpoint_period
+    }
+
+    async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
+        child_validators(&self.parent_client, &self.child_subnet).await
     }
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {

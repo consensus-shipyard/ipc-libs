@@ -3,7 +3,7 @@
 use anyhow::anyhow;
 use std::fmt::{Display, Formatter};
 
-use crate::manager::checkpoint::{chain_head_cid, CheckpointManager};
+use crate::checkpoint::{chain_head_cid, child_validators, CheckpointManager};
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 
@@ -91,12 +91,6 @@ impl TopDownCheckpointManager {
 
 #[async_trait]
 impl CheckpointManager for TopDownCheckpointManager {
-    type LotusClient = DefaultLotusJsonRPCClient;
-
-    fn parent_client(&self) -> &Self::LotusClient {
-        &self.parent_client
-    }
-
     fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }
@@ -107,6 +101,10 @@ impl CheckpointManager for TopDownCheckpointManager {
 
     fn checkpoint_period(&self) -> ChainEpoch {
         self.checkpoint_period
+    }
+
+    async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
+        child_validators(&self.parent_client, &self.child_subnet).await
     }
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {

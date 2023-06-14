@@ -11,9 +11,9 @@ use clap::Args;
 use ipc_identity::Wallet;
 use tokio_graceful_shutdown::{IntoSubsystem, Toplevel};
 
+use crate::checkpoint::CheckpointSubsystem;
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::config::ReloadableConfig;
-use crate::manager::checkpoint::CheckpointSubsystem;
 use crate::server::jsonrpc::JsonRPCServer;
 use crate::server::new_keystore_from_config;
 
