@@ -63,7 +63,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         log::debug!("calling create subnet for EVM manager");
 
-        let mut route = agent_subnet_to_evm_addresses(&params.parent)?;
+        let route = agent_subnet_to_evm_addresses(&params.parent)?;
         log::debug!("root SubnetID as Ethereum type: {route:?}");
 
         let params = subnet_registry::ConstructParams {
