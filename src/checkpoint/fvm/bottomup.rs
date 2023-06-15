@@ -1,4 +1,3 @@
-use std::fmt::{Display, Formatter};
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use crate::checkpoint::proof::create_proof;
@@ -17,6 +16,7 @@ use fvm_shared::MethodNum;
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
 use primitives::TCid;
+use std::fmt::{Display, Formatter};
 
 pub struct BottomUpCheckpointManager<T> {
     parent: Subnet,

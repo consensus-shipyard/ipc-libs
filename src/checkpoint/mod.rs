@@ -1,8 +1,8 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use crate::checkpoint::fvm::bottomup::BottomUpCheckpointManager;
-use crate::checkpoint::fvm::topdown::TopDownCheckpointManager;
+use crate::checkpoint::fvm::bottomup::BottomUpCheckpointManager as FVMBottomUpCheckpointManager;
+use crate::checkpoint::fvm::topdown::TopDownCheckpointManager as FVMTopDownCheckpointManager;
 use crate::config::{ReloadableConfig, Subnet};
 use crate::lotus::client::LotusJsonRPCClient;
 use anyhow::{anyhow, Result};
@@ -23,6 +23,7 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 pub use fvm::*;
 use std::fmt::Display;
 
+mod fevm;
 mod fvm;
 mod proof;
 
@@ -168,7 +169,7 @@ async fn setup_managers_from_config(
         };
 
         let m: Box<dyn CheckpointManager> = Box::new(
-            BottomUpCheckpointManager::new(
+            FVMBottomUpCheckpointManager::new(
                 LotusJsonRPCClient::from_subnet_with_wallet_store(parent, wallet_store.clone()),
                 parent.clone(),
                 LotusJsonRPCClient::from_subnet_with_wallet_store(s, wallet_store.clone()),
@@ -179,7 +180,7 @@ async fn setup_managers_from_config(
         managers.push(m);
 
         let m: Box<dyn CheckpointManager> = Box::new(
-            TopDownCheckpointManager::new(
+            FVMTopDownCheckpointManager::new(
                 LotusJsonRPCClient::from_subnet_with_wallet_store(parent, wallet_store.clone()),
                 parent.clone(),
                 LotusJsonRPCClient::from_subnet_with_wallet_store(s, wallet_store.clone()),
