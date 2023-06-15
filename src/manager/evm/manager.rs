@@ -1,5 +1,3 @@
-// Copyright 2022-2023 Protocol Labs
-// SPDX-License-Identifier: MIT
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -20,11 +18,12 @@ use ipc_subnet_actor::{ConstructParams, JoinParams};
 use num_traits::ToPrimitive;
 use primitives::EthAddress;
 
-use super::subnet::SubnetManager;
 use crate::config::subnet::SubnetConfig;
 use crate::config::Subnet;
 use crate::lotus::message::ipc::SubnetInfo;
 use crate::lotus::message::wallet::WalletKeyType;
+use crate::manager::{EthManager, SubnetManager};
+
 pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 
 /// The majority vote percentage for checkpoint submission when creating a subnet.
@@ -259,7 +258,34 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     }
 }
 
-impl<M: Middleware + Send + Sync> EthSubnetManager<M> {
+#[async_trait]
+impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
+    async fn gateway_last_voting_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
+        let u = self
+            .gateway_contract
+            .last_voting_executed_epoch()
+            .call()
+            .await?;
+        Ok(u as ChainEpoch)
+    }
+
+    async fn subnet_last_voting_executed_epoch(
+        &self,
+        subnet_id: &SubnetID,
+    ) -> anyhow::Result<ChainEpoch> {
+        let address = last_evm_address(subnet_id)?;
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        let u = contract.last_voting_executed_epoch().call().await?;
+        Ok(u as ChainEpoch)
+    }
+
+    async fn current_epoch(&self) -> anyhow::Result<ChainEpoch> {
+        let block_number = self.eth_client.get_block_number().await?.as_u64();
+        Ok(block_number as ChainEpoch)
+    }
+}
+
+impl<M: Middleware + Send + Sync + 'static> EthSubnetManager<M> {
     pub fn new(
         eth_client: Arc<M>,
         gateway_contract: Gateway<Arc<M>>,
@@ -348,7 +374,7 @@ fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
 
 #[cfg(test)]
 mod tests {
-    use crate::manager::evm::{agent_subnet_to_evm_addresses, last_evm_address};
+    use crate::manager::evm::manager::{agent_subnet_to_evm_addresses, last_evm_address};
     use fvm_shared::address::Address;
     use ipc_sdk::subnet_id::SubnetID;
     use primitives::EthAddress;
