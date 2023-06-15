@@ -1,5 +1,21 @@
 [
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gateway",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "NotSameGateway",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -10,6 +26,11 @@
       },
       {
         "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
           {
             "internalType": "address[]",
             "name": "route",
@@ -26,11 +47,29 @@
     "type": "event"
   },
   {
+    "inputs": [],
+    "name": "gateway",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "components": [
           {
             "components": [
+              {
+                "internalType": "uint64",
+                "name": "root",
+                "type": "uint64"
+              },
               {
                 "internalType": "address[]",
                 "name": "route",
@@ -107,6 +146,11 @@
     "inputs": [
       {
         "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
           {
             "internalType": "address[]",
             "name": "route",
