@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -22,6 +24,7 @@ use crate::config::subnet::SubnetConfig;
 use crate::config::Subnet;
 use crate::lotus::message::ipc::SubnetInfo;
 use crate::lotus::message::wallet::WalletKeyType;
+use crate::manager::evm::TopdownCheckpoint;
 use crate::manager::{EthManager, SubnetManager};
 
 pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
@@ -282,6 +285,20 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
     async fn current_epoch(&self) -> anyhow::Result<ChainEpoch> {
         let block_number = self.eth_client.get_block_number().await?.as_u64();
         Ok(block_number as ChainEpoch)
+    }
+
+    async fn submit_top_down_checkpoint(
+        &self,
+        _checkpoint: TopdownCheckpoint,
+    ) -> Result<ChainEpoch> {
+        todo!()
+    }
+
+    async fn submit_bottom_up_checkpoint(
+        &self,
+        _checkpoint: crate::manager::evm::BottomUpCheckpoint,
+    ) -> Result<ChainEpoch> {
+        todo!()
     }
 }
 
