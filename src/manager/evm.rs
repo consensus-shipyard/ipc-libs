@@ -67,7 +67,10 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         log::debug!("root SubnetID as Ethereum type: {route:?}");
 
         let params = subnet_registry::ConstructParams {
-            parent_id: subnet_registry::SubnetID { route },
+            parent_id: subnet_registry::SubnetID {
+                root: params.parent.root_id(),
+                route,
+            },
             name,
             ipc_gateway_addr: (*self.gateway_contract).address(),
             consensus: params.consensus as u64 as u8,
