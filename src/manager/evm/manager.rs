@@ -24,7 +24,6 @@ use crate::config::subnet::SubnetConfig;
 use crate::config::Subnet;
 use crate::lotus::message::ipc::SubnetInfo;
 use crate::lotus::message::wallet::WalletKeyType;
-use crate::manager::evm::TopdownCheckpoint;
 use crate::manager::{EthManager, SubnetManager};
 
 pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
@@ -92,7 +91,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         // in current FEVM that without the retries, events are not picked up.
         // See https://github.com/filecoin-project/community/discussions/638 for more info and updates.
         let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
-        return match receipt {
+        match receipt {
             Some(r) => {
                 for log in r.logs {
                     log::debug!("log: {log:?}");
@@ -105,14 +104,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                             } = subnet_deploy;
 
                             log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
-
-                            // subnet_addr.to_string() returns a summary of the actual Ethereum address, not
-                            // usable in the actual code.
-                            let subnet_addr = format!("{subnet_addr:?}");
-                            log::debug!("raw subnet addr: {subnet_addr:}");
-
-                            let eth_addr = EthAddress::from_str(&subnet_addr)?;
-                            return Ok(Address::from(eth_addr));
+                            return ethers_address_to_fil_address(&subnet_addr);
                         }
                         Err(_) => {
                             log::debug!("no event for subnet actor published yet, continue");
@@ -123,7 +115,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                 Err(anyhow!("no logs receipt"))
             }
             None => Err(anyhow!("no receipt for event, txn not successful")),
-        };
+        }
     }
 
     async fn join_subnet(
@@ -289,16 +281,92 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
 
     async fn submit_top_down_checkpoint(
         &self,
-        _checkpoint: TopdownCheckpoint,
+        checkpoint: gateway::TopDownCheckpoint,
     ) -> Result<ChainEpoch> {
-        todo!()
+        log::debug!("submit top down checkpoint: {:?}", checkpoint);
+
+        let txn = self.gateway_contract.submit_top_down_checkpoint(checkpoint);
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn submit_bottom_up_checkpoint(
         &self,
-        _checkpoint: crate::manager::evm::BottomUpCheckpoint,
+        checkpoint: subnet_contract::BottomUpCheckpoint,
     ) -> Result<ChainEpoch> {
+        let route = &checkpoint.source.route;
+
+        log::debug!(
+            "submit bottom up checkpoint: {:?} to address: {:?}",
+            checkpoint,
+            route[route.len() - 1]
+        );
+
+        let contract = SubnetContract::new(route[route.len() - 1], self.eth_client.clone());
+
+        let txn = contract.submit_checkpoint(checkpoint);
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
+    }
+
+    async fn has_voted_in_subnet(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> Result<bool> {
+        let address = last_evm_address(subnet_id)?;
+        let validator = payload_to_evm_address(validator.payload())?;
+
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        let has_voted = contract
+            .has_validator_voted_for_submission(epoch as u64, validator)
+            .call()
+            .await?;
+        Ok(has_voted)
+    }
+
+    async fn has_voted_in_gateway(&self, epoch: ChainEpoch, validator: &Address) -> Result<bool> {
+        let address = payload_to_evm_address(validator.payload())?;
+        let has_voted = self
+            .gateway_contract
+            .has_validator_voted_for_submission(epoch as u64, address)
+            .call()
+            .await?;
+        Ok(has_voted)
+    }
+
+    async fn bottom_up_checkpoint(
+        &self,
+        _epoch: ChainEpoch,
+    ) -> Result<subnet_contract::BottomUpCheckpoint> {
         todo!()
+    }
+
+    async fn top_down_msgs(
+        &self,
+        _subnet_id: &SubnetID,
+        _epoch: ChainEpoch,
+    ) -> anyhow::Result<Vec<gateway::CrossMsg>> {
+        Ok(vec![])
+    }
+
+    async fn validators(&self, subnet_id: &SubnetID) -> Result<Vec<Address>> {
+        let address = last_evm_address(subnet_id)?;
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+
+        let validators = contract.all_validators().call().await?;
+        validators
+            .iter()
+            .map(ethers_address_to_fil_address)
+            .collect::<Result<Vec<_>>>()
+    }
+
+    async fn gateway_initialized(&self) -> anyhow::Result<bool> {
+        let initialized = self.gateway_contract.initialized().call().await?;
+        Ok(initialized)
     }
 }
 
@@ -354,6 +422,33 @@ impl EthSubnetManager<MiddlewareImpl> {
         let evm_registry_contract = SubnetRegistry::new(registry_address, Arc::new(signer.clone()));
 
         Ok(Self::new(signer, gateway_contract, evm_registry_contract))
+    }
+}
+
+fn ethers_address_to_fil_address(addr: &ethers::types::Address) -> Result<Address> {
+    // subnet_addr.to_string() returns a summary of the actual Ethereum address, not
+    // usable in the actual code.
+    let raw_addr = format!("{addr:?}");
+    log::debug!("raw evm subnet addr: {raw_addr:}");
+
+    let eth_addr = EthAddress::from_str(&raw_addr)?;
+    Ok(Address::from(eth_addr))
+}
+
+/// Get the block number from the transaction receipt
+fn block_number_from_receipt(
+    receipt: Option<ethers::types::TransactionReceipt>,
+) -> Result<ChainEpoch> {
+    match receipt {
+        Some(r) => {
+            let block_number = r
+                .block_number
+                .ok_or_else(|| anyhow!("cannot get block number"))?;
+            Ok(block_number.as_u64() as ChainEpoch)
+        }
+        None => Err(anyhow!(
+            "txn sent to network, but receipt cannot be obtained, please check scanner"
+        )),
     }
 }
 

@@ -6,6 +6,11 @@
           {
             "components": [
               {
+                "internalType": "uint64",
+                "name": "root",
+                "type": "uint64"
+              },
+              {
                 "internalType": "address[]",
                 "name": "route",
                 "type": "address[]"
@@ -101,6 +106,11 @@
   },
   {
     "inputs": [],
+    "name": "GatewayCannotBeZero",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidMajorityPercentage",
     "type": "error"
   },
@@ -111,7 +121,7 @@
   },
   {
     "inputs": [],
-    "name": "NoRewardsSentForDistribution",
+    "name": "NoRewardToWithdraw",
     "type": "error"
   },
   {
@@ -165,6 +175,38 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "accumulatedRewards",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "allValidators",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "bottomUpCheckPeriod",
     "outputs": [
@@ -189,6 +231,11 @@
     "outputs": [
       {
         "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
           {
             "internalType": "address[]",
             "name": "route",
@@ -226,6 +273,19 @@
         "internalType": "enum ConsensusType",
         "name": "",
         "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentSubnetHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -286,6 +346,11 @@
     "outputs": [
       {
         "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
           {
             "internalType": "address[]",
             "name": "route",
@@ -443,10 +508,16 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
     "name": "reward",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -501,6 +572,11 @@
           {
             "components": [
               {
+                "internalType": "uint64",
+                "name": "root",
+                "type": "uint64"
+              },
+              {
                 "internalType": "address[]",
                 "name": "route",
                 "type": "address[]"
@@ -529,6 +605,11 @@
                       {
                         "components": [
                           {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
+                          {
                             "internalType": "address[]",
                             "name": "route",
                             "type": "address[]"
@@ -552,6 +633,11 @@
                     "components": [
                       {
                         "components": [
+                          {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
                           {
                             "internalType": "address[]",
                             "name": "route",
@@ -611,6 +697,11 @@
             "components": [
               {
                 "components": [
+                  {
+                    "internalType": "uint64",
+                    "name": "root",
+                    "type": "uint64"
+                  },
                   {
                     "internalType": "address[]",
                     "name": "route",
@@ -722,6 +813,13 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

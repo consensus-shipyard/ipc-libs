@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: MIT
 
 mod manager;
-mod payload;
 
 use async_trait::async_trait;
+use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_sdk::subnet_id::SubnetID;
 
 use super::subnet::SubnetManager;
-pub use manager::EthSubnetManager;
-pub use payload::{BottomUpCheckpoint, TopdownCheckpoint};
+pub use manager::{gateway, subnet_contract, EthSubnetManager};
 
 #[async_trait]
 pub trait EthManager: SubnetManager {
@@ -29,12 +28,46 @@ pub trait EthManager: SubnetManager {
     /// Submit top down checkpoint the gateway.
     async fn submit_top_down_checkpoint(
         &self,
-        checkpoint: TopdownCheckpoint,
+        checkpoint: gateway::TopDownCheckpoint,
     ) -> anyhow::Result<ChainEpoch>;
 
     /// Submit bottom up checkpoint to the subnet actor.
     async fn submit_bottom_up_checkpoint(
         &self,
-        checkpoint: BottomUpCheckpoint,
+        checkpoint: subnet_contract::BottomUpCheckpoint,
     ) -> anyhow::Result<ChainEpoch>;
+
+    /// Has the validator voted in subnet contract at epoch
+    async fn has_voted_in_subnet(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> anyhow::Result<bool>;
+
+    /// Has the validator voted in the gateway for an epoch
+    async fn has_voted_in_gateway(
+        &self,
+        epoch: ChainEpoch,
+        validator: &Address,
+    ) -> anyhow::Result<bool>;
+
+    /// Get all the top down messages till a certain epoch
+    async fn bottom_up_checkpoint(
+        &self,
+        epoch: ChainEpoch,
+    ) -> anyhow::Result<subnet_contract::BottomUpCheckpoint>;
+
+    /// Get the bottom up checkpoint a certain epoch
+    async fn top_down_msgs(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> anyhow::Result<Vec<gateway::CrossMsg>>;
+
+    /// Get the list of validators in a subnet
+    async fn validators(&self, subnet_id: &SubnetID) -> anyhow::Result<Vec<Address>>;
+
+    /// Checks if the gateway is initialized
+    async fn gateway_initialized(&self) -> anyhow::Result<bool>;
 }

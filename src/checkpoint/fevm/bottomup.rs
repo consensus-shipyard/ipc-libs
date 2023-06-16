@@ -41,9 +41,7 @@ impl<T: EthManager + Send + Sync> CheckpointManager for BottomUpCheckpointManage
     }
 
     async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
-        // Current solidity contract needs to support batch query
-        // pending: https://github.com/LimeChain/filecoin-ipc-actors-fevm/issues/81
-        todo!()
+        self.child_manager.validators(&self.child_subnet.id).await
     }
 
     /// The last executed voting epoch for bottom up checkpoint, the value should be fetch from
@@ -62,21 +60,28 @@ impl<T: EthManager + Send + Sync> CheckpointManager for BottomUpCheckpointManage
 
     async fn submit_checkpoint(
         &self,
-        _epoch: ChainEpoch,
+        epoch: ChainEpoch,
+        // TODO: when we support more wallet addresses, we need this variable
         _validator: &Address,
     ) -> anyhow::Result<()> {
-        todo!()
+        let checkpoint = self.child_manager.bottom_up_checkpoint(epoch).await?;
+        self.child_manager
+            .submit_bottom_up_checkpoint(checkpoint)
+            .await?;
+        Ok(())
     }
 
     async fn should_submit_in_epoch(
         &self,
-        _validator: &Address,
-        _epoch: ChainEpoch,
+        validator: &Address,
+        epoch: ChainEpoch,
     ) -> anyhow::Result<bool> {
-        todo!()
+        self.parent_manager
+            .has_voted_in_subnet(&self.child_subnet.id, epoch, validator)
+            .await
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {
-        todo!()
+        Ok(true)
     }
 }

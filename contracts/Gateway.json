@@ -6,6 +6,11 @@
           {
             "components": [
               {
+                "internalType": "uint64",
+                "name": "root",
+                "type": "uint64"
+              },
+              {
                 "internalType": "address[]",
                 "name": "route",
                 "type": "address[]"
@@ -36,18 +41,13 @@
             "type": "uint8"
           }
         ],
-        "internalType": "struct IGateway.ConstructorParams",
+        "internalType": "struct Gateway.ConstructorParams",
         "name": "params",
         "type": "tuple"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "AlreadyCommitedCheckpoint",
-    "type": "error"
   },
   {
     "inputs": [],
@@ -66,7 +66,7 @@
   },
   {
     "inputs": [],
-    "name": "CannnotReleaseZero",
+    "name": "CannotReleaseZero",
     "type": "error"
   },
   {
@@ -270,6 +270,11 @@
       {
         "components": [
           {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
+          {
             "internalType": "address[]",
             "name": "route",
             "type": "address[]"
@@ -318,6 +323,11 @@
           {
             "components": [
               {
+                "internalType": "uint64",
+                "name": "root",
+                "type": "uint64"
+              },
+              {
                 "internalType": "address[]",
                 "name": "route",
                 "type": "address[]"
@@ -346,6 +356,11 @@
                       {
                         "components": [
                           {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
+                          {
                             "internalType": "address[]",
                             "name": "route",
                             "type": "address[]"
@@ -369,6 +384,11 @@
                     "components": [
                       {
                         "components": [
+                          {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
                           {
                             "internalType": "address[]",
                             "name": "route",
@@ -428,6 +448,11 @@
             "components": [
               {
                 "components": [
+                  {
+                    "internalType": "uint64",
+                    "name": "root",
+                    "type": "uint64"
+                  },
                   {
                     "internalType": "address[]",
                     "name": "route",
@@ -505,6 +530,11 @@
       {
         "components": [
           {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
+          {
             "internalType": "address[]",
             "name": "route",
             "type": "address[]"
@@ -540,6 +570,11 @@
       {
         "components": [
           {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
+          {
             "internalType": "address[]",
             "name": "route",
             "type": "address[]"
@@ -557,6 +592,11 @@
     "inputs": [
       {
         "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
           {
             "internalType": "address[]",
             "name": "route",
@@ -584,6 +624,11 @@
                   {
                     "components": [
                       {
+                        "internalType": "uint64",
+                        "name": "root",
+                        "type": "uint64"
+                      },
+                      {
                         "internalType": "address[]",
                         "name": "route",
                         "type": "address[]"
@@ -607,6 +652,11 @@
                 "components": [
                   {
                     "components": [
+                      {
+                        "internalType": "uint64",
+                        "name": "root",
+                        "type": "uint64"
+                      },
                       {
                         "internalType": "address[]",
                         "name": "route",
@@ -671,6 +721,11 @@
       {
         "components": [
           {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
+          {
             "internalType": "address[]",
             "name": "route",
             "type": "address[]"
@@ -687,6 +742,30 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "epoch",
+        "type": "uint64"
+      },
+      {
+        "internalType": "address",
+        "name": "submitter",
+        "type": "address"
+      }
+    ],
+    "name": "hasValidatorVotedForSubmission",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -781,6 +860,11 @@
               {
                 "components": [
                   {
+                    "internalType": "uint64",
+                    "name": "root",
+                    "type": "uint64"
+                  },
+                  {
                     "internalType": "address[]",
                     "name": "route",
                     "type": "address[]"
@@ -804,6 +888,11 @@
             "components": [
               {
                 "components": [
+                  {
+                    "internalType": "uint64",
+                    "name": "root",
+                    "type": "uint64"
+                  },
                   {
                     "internalType": "address[]",
                     "name": "route",
@@ -917,6 +1006,19 @@
         "type": "uint256"
       }
     ],
+    "name": "releaseRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
     "name": "releaseStake",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -926,6 +1028,11 @@
     "inputs": [
       {
         "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
           {
             "internalType": "address[]",
             "name": "route",
@@ -944,6 +1051,11 @@
                 "components": [
                   {
                     "components": [
+                      {
+                        "internalType": "uint64",
+                        "name": "root",
+                        "type": "uint64"
+                      },
                       {
                         "internalType": "address[]",
                         "name": "route",
@@ -968,6 +1080,11 @@
                 "components": [
                   {
                     "components": [
+                      {
+                        "internalType": "uint64",
+                        "name": "root",
+                        "type": "uint64"
+                      },
                       {
                         "internalType": "address[]",
                         "name": "route",
@@ -1078,6 +1195,11 @@
                       {
                         "components": [
                           {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
+                          {
                             "internalType": "address[]",
                             "name": "route",
                             "type": "address[]"
@@ -1101,6 +1223,11 @@
                     "components": [
                       {
                         "components": [
+                          {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
                           {
                             "internalType": "address[]",
                             "name": "route",
@@ -1210,6 +1337,11 @@
       {
         "components": [
           {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
+          {
             "internalType": "address[]",
             "name": "route",
             "type": "address[]"
@@ -1223,6 +1355,11 @@
         "components": [
           {
             "components": [
+              {
+                "internalType": "uint64",
+                "name": "root",
+                "type": "uint64"
+              },
               {
                 "internalType": "address[]",
                 "name": "route",
@@ -1252,6 +1389,11 @@
                       {
                         "components": [
                           {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
+                          {
                             "internalType": "address[]",
                             "name": "route",
                             "type": "address[]"
@@ -1275,6 +1417,11 @@
                     "components": [
                       {
                         "components": [
+                          {
+                            "internalType": "uint64",
+                            "name": "root",
+                            "type": "uint64"
+                          },
                           {
                             "internalType": "address[]",
                             "name": "route",
@@ -1334,6 +1481,11 @@
             "components": [
               {
                 "components": [
+                  {
+                    "internalType": "uint64",
+                    "name": "root",
+                    "type": "uint64"
+                  },
                   {
                     "internalType": "address[]",
                     "name": "route",
