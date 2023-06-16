@@ -7,6 +7,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
+use ethers::abi::Tokenizable;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::{abigen, Signer, SignerMiddleware};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
@@ -340,9 +341,22 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
 
     async fn bottom_up_checkpoint(
         &self,
-        _epoch: ChainEpoch,
+        epoch: ChainEpoch,
     ) -> Result<subnet_contract::BottomUpCheckpoint> {
-        todo!()
+        let (exists, checkpoint) = self
+            .gateway_contract
+            .bottom_up_checkpoint_at_epoch(epoch as u64)
+            .call()
+            .await?;
+        if !exists {
+            Err(anyhow!(
+                "bottom up checkpoint not exists at epoch: {epoch:}"
+            ))
+        } else {
+            let token = checkpoint.into_token();
+            let c = subnet_contract::BottomUpCheckpoint::from_token(token)?;
+            Ok(c)
+        }
     }
 
     async fn top_down_msgs(

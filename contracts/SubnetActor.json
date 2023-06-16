@@ -260,6 +260,11 @@
         "internalType": "bytes32",
         "name": "prevHash",
         "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "proof",
+        "type": "bytes"
       }
     ],
     "stateMutability": "view",
@@ -726,6 +731,11 @@
             "internalType": "bytes32",
             "name": "prevHash",
             "type": "bytes32"
+          },
+          {
+            "internalType": "bytes",
+            "name": "proof",
+            "type": "bytes"
           }
         ],
         "internalType": "struct BottomUpCheckpoint",
