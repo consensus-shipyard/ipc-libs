@@ -19,7 +19,7 @@ impl TryFrom<BottomUpCheckpoint> for crate::manager::evm::subnet_contract::Botto
     type Error = anyhow::Error;
 
     fn try_from(checkpoint: BottomUpCheckpoint) -> Result<Self, Self::Error> {
-        // sig field of checkpoint does not matter for evm
+        // sig field of checkpoint not currently used for checkpoint verification
         let check_data = checkpoint.data;
         crate::manager::evm::subnet_contract::BottomUpCheckpoint::try_from(check_data)
     }
@@ -76,7 +76,7 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
             to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)?,
             value: ethers::core::types::U256::from_str(&value.value.atto().to_string())?,
             nonce: value.nonce,
-            // TODO: we might need a more gerneral method to handle the method
+            // FIXME: we might a better way to handle the encoding of methods and params according to the type of message the cross-net message is targetting.
             method: (value.method as u32).to_be_bytes(),
             params: ethers::core::types::Bytes::from(value.params.to_vec()),
         };
