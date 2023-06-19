@@ -40,9 +40,9 @@ For a detailed overview of the entire IPC stack design, please check the up-to-d
 
 ### Production branch
 
-The production branch is `master`.
-The `master` branch is always compatible with the "stable" release of eudico that's running on Spacenet.
-Updates to `master` **always** come from the `dev` branch.
+The production branch is `main`.
+The `main` branch is always compatible with the "stable" release of eudico that's running on Spacenet.
+Updates to `main` **always** come from the `dev` branch.
 
 ### Development branch
 
