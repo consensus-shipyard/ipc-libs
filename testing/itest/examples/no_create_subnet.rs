@@ -32,7 +32,7 @@ async fn run() -> anyhow::Result<()> {
     let subnet_name = std::env::var("SUBNET_NAME").unwrap_or_else(|_| "test-subnet".to_string());
 
     let api_port_sequence = Arc::new(AtomicU16::new(10));
-    let config = infra::SubnetConfig::new_with_subnet_id(
+    let config = infra::SubnetConfig::new_fvm_with_subnet_id(
         subnet_name,
         "t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq".to_string(),
         parent_lotus_path,
