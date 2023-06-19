@@ -107,7 +107,7 @@ impl<T: EthManager + Send + Sync> CheckpointManager for TopdownCheckpointManager
             epoch: epoch as u64,
             top_down_msgs: msgs,
         };
-        self.parent_manager
+        self.child_manager
             .submit_top_down_checkpoint(checkpoint)
             .await?;
         Ok(())

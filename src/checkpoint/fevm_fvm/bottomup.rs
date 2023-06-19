@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::checkpoint::proof::create_proof;
 use crate::checkpoint::CheckpointManager;
 use crate::config::Subnet;

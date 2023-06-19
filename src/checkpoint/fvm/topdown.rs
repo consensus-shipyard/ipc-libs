@@ -3,19 +3,15 @@
 use anyhow::anyhow;
 use std::fmt::{Display, Formatter};
 
-use crate::checkpoint::{chain_head_cid, child_validators, CheckpointManager};
+use crate::checkpoint::{chain_head_cid, child_validators, gateway_state, CheckpointManager};
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 
 use crate::config::Subnet;
 use crate::lotus::client::DefaultLotusJsonRPCClient;
-use crate::lotus::message::ipc::IPCReadGatewayStateResponse;
-use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::LotusClient;
 use async_trait::async_trait;
 use cid::Cid;
-use fil_actors_runtime::cbor;
-use fvm_shared::MethodNum;
 use ipc_gateway::TopDownCheckpoint;
 
 pub struct TopDownCheckpointManager {
@@ -61,16 +57,6 @@ impl Display for TopDownCheckpointManager {
 }
 
 impl TopDownCheckpointManager {
-    async fn child_gateway_state(&self) -> anyhow::Result<IPCReadGatewayStateResponse> {
-        let child_head = self.child_client.chain_head().await?;
-        let cid_map = child_head.cids.first().unwrap().clone();
-        let child_tip_set = Cid::try_from(cid_map)?;
-
-        self.child_client
-            .ipc_read_gateway_state(&self.child_subnet.gateway_addr(), child_tip_set)
-            .await
-    }
-
     async fn parent_head(&self) -> anyhow::Result<Cid> {
         chain_head_cid(&self.parent_client).await
     }
@@ -108,7 +94,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
-        let child_gw_state = self.child_gateway_state().await?;
+        let child_gw_state = gateway_state(&self.child_client, &self.child_subnet).await?;
         Ok(child_gw_state
             .top_down_checkpoint_voting
             .last_voting_executed)
@@ -151,28 +137,20 @@ impl CheckpointManager for TopDownCheckpointManager {
             epoch,
             top_down_msgs,
         };
-        let message = MpoolPushMessage::new(
-            self.parent.gateway_addr(),
-            *validator,
-            ipc_gateway::Method::SubmitTopDownCheckpoint as MethodNum,
-            cbor::serialize(&topdown_checkpoint, "topdown_checkpoint")?.to_vec(),
-        );
-        let message_cid = self.child_client.mpool_push(message).await.map_err(|e| {
-            log::error!("error submitting checkpoint at epoch {epoch:} for manager: {self:}");
-            e
-        })?;
+        let submitted_epoch = self
+            .child_client
+            .ipc_submit_top_down_checkpoint(
+                self.parent.gateway_addr(),
+                validator,
+                topdown_checkpoint,
+            )
+            .await?;
+
         log::debug!(
-            "checkpoint at epoch {:} for manager: {:} published with cid: {:?}, wait for execution",
+            "checkpoint at epoch {:} for manager: {:} published with at epoch: {:?}, executed",
             epoch,
             self,
-            message_cid,
-        );
-        self.child_client.state_wait_msg(message_cid).await?;
-        log::debug!(
-            "checkpoint at epoch {:} for manager: {:} published with cid: {:?}, executed",
-            epoch,
-            self,
-            message_cid,
+            submitted_epoch,
         );
 
         Ok(())
@@ -196,7 +174,7 @@ impl CheckpointManager for TopDownCheckpointManager {
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {
-        let state = self.child_gateway_state().await?;
+        let state = gateway_state(&self.child_client, &self.child_subnet).await?;
         Ok(state.initialized)
     }
 }
