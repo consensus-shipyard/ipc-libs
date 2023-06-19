@@ -361,10 +361,25 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
 
     async fn top_down_msgs(
         &self,
-        _subnet_id: &SubnetID,
-        _epoch: ChainEpoch,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
     ) -> anyhow::Result<Vec<gateway::CrossMsg>> {
-        Ok(vec![])
+        let route = agent_subnet_to_evm_addresses(subnet_id)?;
+        log::debug!("getting top down messages for route: {route:?}");
+
+        let r = self
+            .gateway_contract
+            .method::<_, Vec<gateway::CrossMsg>>(
+                "getTopDownMsgs",
+                gateway::SubnetID {
+                    root: subnet_id.root_id(),
+                    route,
+                },
+            )?
+            .block(epoch as u64)
+            .call()
+            .await?;
+        Ok(r)
     }
 
     async fn validators(&self, subnet_id: &SubnetID) -> Result<Vec<Address>> {
