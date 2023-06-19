@@ -21,6 +21,12 @@ const DEFAULT_IPC_AGENT_URL: &str = "http://localhost:3030/json_rpc";
 const DEFAULT_NODE_API_BASE_PORT: u16 = 1230;
 const DEFAULT_MIN_STAKE: f64 = 1.0;
 
+/// The network type that the subnets are targeting
+enum NetworkType {
+    Fvm,
+    Evm,
+}
+
 /// The configuration struct for the subnet to spawn
 pub struct SubnetConfig {
     /// The id of the subnet. If not specified, will create a subnet first.
@@ -47,11 +53,13 @@ pub struct SubnetConfig {
 
     /// The monotonic sequential port number generator to assign to each validator
     port_starting_seq: Arc<AtomicU16>,
+    /// The network type the integration tests are targeting
+    network_type: NetworkType,
 }
 
 impl SubnetConfig {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub fn new_fvm(
         name: String,
         parent_wallet_address: String,
         parent_lotus_path: String,
@@ -72,11 +80,12 @@ impl SubnetConfig {
             ipc_root_folder,
             port_starting_seq,
             ipc_agent_url: None,
+            network_type: NetworkType::Fvm,
         }
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new_with_subnet_id(
+    pub fn new_fvm_with_subnet_id(
         name: String,
         parent_wallet_address: String,
         parent_lotus_path: String,
@@ -98,6 +107,34 @@ impl SubnetConfig {
             ipc_root_folder,
             port_starting_seq,
             ipc_agent_url: None,
+            network_type: NetworkType::Fvm,
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_evm_with_subnet_id(
+        name: String,
+        parent_wallet_address: String,
+        parent_lotus_path: String,
+        ipc_root_folder: String,
+        number_of_nodes: usize,
+        eudico_binary_path: String,
+        parent: SubnetID,
+        port_starting_seq: Arc<AtomicU16>,
+        id: SubnetID,
+    ) -> Self {
+        Self {
+            id: Some(id),
+            name,
+            number_of_nodes,
+            eudico_binary_path,
+            parent,
+            parent_wallet_address,
+            parent_lotus_path,
+            ipc_root_folder,
+            port_starting_seq,
+            ipc_agent_url: None,
+            network_type: NetworkType::Evm,
         }
     }
 
@@ -289,19 +326,24 @@ impl SubnetInfra {
         let mut admin_token = self.nodes.as_ref().unwrap()[0].create_admin_token().await?;
         trim_newline(&mut admin_token);
 
-        Ok(Subnet {
-            id: self.config.id.clone().unwrap(),
-            network_name: self.config.name.clone(),
-            config: ipc_agent::config::subnet::SubnetConfig::Fvm(FVMSubnet {
-                gateway_addr: Address::from_str("t064")?,
-                jsonrpc_api_http: format!(
-                    "http://127.0.0.1:{:}/rpc/v1",
-                    self.nodes.as_ref().unwrap()[0].node.tcp_port
-                )
-                .parse()?,
-                auth_token: None,
-                accounts,
-            }),
-        })
+        let c = match self.config.network_type {
+            NetworkType::Fvm => Subnet {
+                id: self.config.id.clone().unwrap(),
+                network_name: self.config.name.clone(),
+                config: ipc_agent::config::subnet::SubnetConfig::Fvm(FVMSubnet {
+                    gateway_addr: Address::from_str("t064")?,
+                    jsonrpc_api_http: format!(
+                        "http://127.0.0.1:{:}/rpc/v1",
+                        self.nodes.as_ref().unwrap()[0].node.tcp_port
+                    )
+                    .parse()?,
+                    auth_token: None,
+                    accounts,
+                }),
+            },
+            NetworkType::Evm => todo!(),
+        };
+
+        Ok(c)
     }
 }
