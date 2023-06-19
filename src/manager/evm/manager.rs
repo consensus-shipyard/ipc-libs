@@ -407,6 +407,17 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
     async fn gateway_top_down_check_period(&self) -> Result<ChainEpoch> {
         Ok(self.gateway_contract.top_down_check_period().call().await? as ChainEpoch)
     }
+
+    async fn prev_bottom_up_checkpoint_hash(&self, epoch: ChainEpoch) -> Result<[u8; 32]> {
+        let (exists, hash) = self
+            .gateway_contract
+            .bottom_up_checkpoint_hash_at_epoch(epoch as u64)
+            .await?;
+        if !exists {
+            return Err(anyhow!("checkpoint does not exists"));
+        }
+        Ok(hash)
+    }
 }
 
 impl<M: Middleware + Send + Sync + 'static> EthSubnetManager<M> {
@@ -504,7 +515,9 @@ fn last_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
 
 /// Convert the ipc SubnetID type to a vec of evm addresses. It extracts all the children addresses
 /// in the subnet id and turns them as a vec of evm addresses.
-fn agent_subnet_to_evm_addresses(subnet: &SubnetID) -> Result<Vec<ethers::types::Address>> {
+pub(crate) fn agent_subnet_to_evm_addresses(
+    subnet: &SubnetID,
+) -> Result<Vec<ethers::types::Address>> {
     let children = subnet.children();
     children
         .iter()
@@ -513,7 +526,7 @@ fn agent_subnet_to_evm_addresses(subnet: &SubnetID) -> Result<Vec<ethers::types:
 }
 
 /// Util function to convert Fil address payload to evm address. Only delegated address is supported.
-fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
+pub(crate) fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
     match payload {
         Payload::Delegated(delegated) => {
             let slice = delegated.subaddress();

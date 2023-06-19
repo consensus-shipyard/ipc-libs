@@ -6,6 +6,6 @@ pub use subnet::SubnetManager;
 
 pub use crate::lotus::message::ipc::SubnetInfo;
 
-mod evm;
+pub mod evm;
 mod lotus;
 mod subnet;

@@ -117,7 +117,7 @@ impl<T: EthManager + Send + Sync, M: LotusClient + Send + Sync> CheckpointManage
         let proof_bytes = cbor::serialize(&proof, "fevm bottom up checkpoint proof")?.to_vec();
         checkpoint.proof = ethers::types::Bytes::from(proof_bytes);
 
-        self.child_manager
+        self.parent_manager
             .submit_bottom_up_checkpoint(checkpoint)
             .await?;
         Ok(())

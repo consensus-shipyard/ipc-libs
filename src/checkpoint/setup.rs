@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 use crate::checkpoint::bottomup::BottomUpCheckpointManager as FVMBottomUpCheckpointManager;
 use crate::checkpoint::fevm::BottomUpCheckpointManager as FEVMBottomUpCheckpointManager;
 use crate::checkpoint::fevm::TopdownCheckpointManager as FEVMTopdownCheckpointManager;
