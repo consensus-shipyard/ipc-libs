@@ -475,7 +475,7 @@ impl EthSubnetManager<MiddlewareImpl> {
     }
 }
 
-fn ethers_address_to_fil_address(addr: &ethers::types::Address) -> Result<Address> {
+pub(crate) fn ethers_address_to_fil_address(addr: &ethers::types::Address) -> Result<Address> {
     // subnet_addr.to_string() returns a summary of the actual Ethereum address, not
     // usable in the actual code.
     let raw_addr = format!("{addr:?}");

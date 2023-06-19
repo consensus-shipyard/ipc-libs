@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Type conversion between evm and fvm
 
 use crate::manager::evm::manager::{agent_subnet_to_evm_addresses, payload_to_evm_address};

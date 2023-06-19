@@ -17,7 +17,8 @@ use fvm_shared::bigint::BigInt;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::crypto::signature::Signature;
 use fvm_shared::econ::TokenAmount;
-use ipc_gateway::{BottomUpCheckpoint, CrossMsg};
+use fvm_shared::MethodNum;
+use ipc_gateway::{BottomUpCheckpoint, CrossMsg, TopDownCheckpoint};
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::cast::ToPrimitive;
@@ -362,6 +363,30 @@ impl<T: JsonRpcClient + Send + Sync> LotusClient for LotusJsonRPCClient<T> {
             .await?;
         log::debug!("received get_tipset_by_height response: {r:?}");
         Ok(r)
+    }
+
+    async fn ipc_submit_top_down_checkpoint(
+        &self,
+        gateway_addr: Address,
+        validator: &Address,
+        checkpoint: TopDownCheckpoint,
+    ) -> Result<ChainEpoch> {
+        let epoch = checkpoint.epoch;
+
+        let message = MpoolPushMessage::new(
+            gateway_addr,
+            *validator,
+            ipc_gateway::Method::SubmitTopDownCheckpoint as MethodNum,
+            cbor::serialize(&checkpoint, "topdown_checkpoint")?.to_vec(),
+        );
+        let message_cid = self.mpool_push(message).await.map_err(|e| {
+            log::error!("error submitting top down checkpoint at epoch {epoch:} at gateway: {gateway_addr:}");
+            e
+        })?;
+
+        self.state_wait_msg(message_cid)
+            .await
+            .map(|r| r.height as ChainEpoch)
     }
 
     async fn ipc_get_prev_checkpoint_for_child(
