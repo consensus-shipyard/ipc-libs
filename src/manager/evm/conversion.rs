@@ -2,8 +2,13 @@
 // SPDX-License-Identifier: MIT
 //! Type conversion between evm and fvm
 
-use crate::manager::evm::manager::{agent_subnet_to_evm_addresses, payload_to_evm_address};
+use crate::manager::evm::manager::{
+    agent_subnet_to_evm_addresses, ethers_address_to_fil_address, payload_to_evm_address,
+};
 use ethers::types::U256;
+use fvm_ipld_encoding::RawBytes;
+use fvm_shared::econ::TokenAmount;
+use fvm_shared::MethodNum;
 use ipc_gateway::checkpoint::{CheckData, ChildCheck};
 use ipc_gateway::{BottomUpCheckpoint, CrossMsg, StorableMsg};
 use ipc_sdk::address::IPCAddress;
@@ -108,5 +113,58 @@ impl TryFrom<&SubnetID> for crate::manager::evm::subnet_contract::SubnetID {
             root: subnet.root_id(),
             route: agent_subnet_to_evm_addresses(subnet)?,
         })
+    }
+}
+
+impl TryFrom<crate::manager::evm::gateway::SubnetID> for SubnetID {
+    type Error = anyhow::Error;
+
+    fn try_from(value: crate::manager::evm::gateway::SubnetID) -> Result<Self, Self::Error> {
+        let children = value
+            .route
+            .iter()
+            .map(ethers_address_to_fil_address)
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        Ok(SubnetID::new(value.root, children))
+    }
+}
+
+impl TryFrom<crate::manager::evm::gateway::Ipcaddress> for IPCAddress {
+    type Error = anyhow::Error;
+
+    fn try_from(value: crate::manager::evm::gateway::Ipcaddress) -> Result<Self, Self::Error> {
+        let i = IPCAddress::new(
+            &SubnetID::try_from(value.subnet_id)?,
+            &ethers_address_to_fil_address(&value.raw_address)?,
+        )?;
+        Ok(i)
+    }
+}
+
+impl TryFrom<crate::manager::evm::gateway::StorableMsg> for StorableMsg {
+    type Error = anyhow::Error;
+
+    fn try_from(value: crate::manager::evm::gateway::StorableMsg) -> Result<Self, Self::Error> {
+        let s = StorableMsg {
+            from: IPCAddress::try_from(value.from)?,
+            to: IPCAddress::try_from(value.to)?,
+            method: u32::from_be_bytes(value.method) as MethodNum,
+            params: RawBytes::from(value.params.to_vec()),
+            value: TokenAmount::from_atto(value.value.as_u128()),
+            nonce: value.nonce,
+        };
+        Ok(s)
+    }
+}
+
+impl TryFrom<crate::manager::evm::gateway::CrossMsg> for CrossMsg {
+    type Error = anyhow::Error;
+
+    fn try_from(value: crate::manager::evm::gateway::CrossMsg) -> Result<Self, Self::Error> {
+        let c = CrossMsg {
+            wrapped: value.wrapped,
+            msg: StorableMsg::try_from(value.message)?,
+        };
+        Ok(c)
     }
 }
