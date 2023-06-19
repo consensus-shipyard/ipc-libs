@@ -88,7 +88,7 @@ impl<T: EthManager + Send + Sync, M: LotusClient + Send + Sync> CheckpointManage
     }
 
     async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
-        self.child_manager.validators(&self.child_subnet.id).await
+        self.parent_manager.validators(&self.child_subnet.id).await
     }
 
     /// The last executed voting epoch for bottom up checkpoint, the value should be fetch from
