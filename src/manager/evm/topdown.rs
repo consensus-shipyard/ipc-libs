@@ -1,3 +1,5 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
 //! Top down type conversion
 
 use crate::manager::evm::manager::ethers_address_to_fil_address;
