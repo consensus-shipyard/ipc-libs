@@ -59,7 +59,7 @@ impl SubnetManagerPool {
                         subnet: subnet.clone(),
                     })
                 }
-                SubnetConfig::Evm(_) => {
+                SubnetConfig::Fevm(_) => {
                     let manager = Box::new(EthSubnetManager::from_subnet(subnet).ok()?);
                     Some(Connection {
                         manager,

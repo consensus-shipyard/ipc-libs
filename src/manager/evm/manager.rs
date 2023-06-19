@@ -397,6 +397,16 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         let initialized = self.gateway_contract.initialized().call().await?;
         Ok(initialized)
     }
+
+    async fn subnet_bottom_up_checkpoint_period(&self, subnet_id: &SubnetID) -> Result<ChainEpoch> {
+        let address = last_evm_address(subnet_id)?;
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        Ok(contract.bottom_up_check_period().call().await? as ChainEpoch)
+    }
+
+    async fn gateway_top_down_check_period(&self) -> Result<ChainEpoch> {
+        Ok(self.gateway_contract.top_down_check_period().call().await? as ChainEpoch)
+    }
 }
 
 impl<M: Middleware + Send + Sync + 'static> EthSubnetManager<M> {
@@ -427,7 +437,7 @@ impl EthSubnetManager<MiddlewareImpl> {
         let url = subnet.rpc_http().clone();
         let auth_token = subnet.auth_token();
 
-        let config = if let SubnetConfig::Evm(config) = &subnet.config {
+        let config = if let SubnetConfig::Fevm(config) = &subnet.config {
             config
         } else {
             return Err(anyhow!("not evm config"));

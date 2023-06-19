@@ -1,19 +1,14 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
-use crate::checkpoint::fvm::bottomup::BottomUpCheckpointManager as FVMBottomUpCheckpointManager;
-use crate::checkpoint::fvm::topdown::TopDownCheckpointManager as FVMTopDownCheckpointManager;
 use crate::config::{ReloadableConfig, Subnet};
-use crate::lotus::client::LotusJsonRPCClient;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use futures_util::future::join_all;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_identity::Wallet;
-use ipc_sdk::subnet_id::SubnetID;
 use std::borrow::Borrow;
-use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use tokio::select;
@@ -24,8 +19,10 @@ pub use fvm::*;
 use std::fmt::Display;
 
 mod fevm;
+mod fevm_fvm;
 mod fvm;
 mod proof;
+mod setup;
 
 const TASKS_PROCESS_THRESHOLD_SEC: u64 = 15;
 const SUBMISSION_LOOK_AHEAD_EPOCH: ChainEpoch = 50;
@@ -95,7 +92,7 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
         loop {
             // Load the latest config.
             let config = self.config.get_config();
-            let managers = match setup_managers_from_config(
+            let managers = match setup::setup_managers_from_config(
                 &config.subnets,
                 self.wallet_store.clone(),
             )
@@ -143,60 +140,6 @@ fn handle_err_response(manager: &dyn CheckpointManager, response: anyhow::Result
     if response.is_err() {
         log::error!("manger {manager:} had error: {:}", response.unwrap_err());
     }
-}
-
-async fn setup_managers_from_config(
-    subnets: &HashMap<SubnetID, Subnet>,
-    wallet_store: Arc<RwLock<Wallet>>,
-) -> Result<Vec<Box<dyn CheckpointManager>>> {
-    let mut managers = vec![];
-
-    for s in subnets.values() {
-        log::info!("config checkpoint manager for subnet: {:}", s.id);
-
-        // We filter for subnets that have at least one account and for which the parent subnet
-        // is also in the configuration.
-        if s.accounts().is_empty() {
-            log::info!("no accounts in subnet: {:}, not managing checkpoints", s.id);
-            continue;
-        }
-
-        let parent = if let Some(p) = s.id.parent() && subnets.contains_key(&p) {
-            subnets.get(&p).unwrap()
-        } else {
-            log::info!("subnet has no parent configured: {:}, not managing checkpoints", s.id);
-            continue
-        };
-
-        let m: Box<dyn CheckpointManager> = Box::new(
-            FVMBottomUpCheckpointManager::new(
-                LotusJsonRPCClient::from_subnet_with_wallet_store(parent, wallet_store.clone()),
-                parent.clone(),
-                LotusJsonRPCClient::from_subnet_with_wallet_store(s, wallet_store.clone()),
-                s.clone(),
-            )
-            .await?,
-        );
-        managers.push(m);
-
-        let m: Box<dyn CheckpointManager> = Box::new(
-            FVMTopDownCheckpointManager::new(
-                LotusJsonRPCClient::from_subnet_with_wallet_store(parent, wallet_store.clone()),
-                parent.clone(),
-                LotusJsonRPCClient::from_subnet_with_wallet_store(s, wallet_store.clone()),
-                s.clone(),
-            )
-            .await?,
-        );
-        managers.push(m);
-    }
-
-    log::info!(
-        "we are managing checkpoints for {:} number of subnets",
-        managers.len()
-    );
-
-    Ok(managers)
 }
 
 async fn process_managers(managers: &[Box<dyn CheckpointManager>]) -> anyhow::Result<()> {
