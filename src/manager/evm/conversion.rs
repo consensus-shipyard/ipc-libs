@@ -12,7 +12,7 @@ impl TryFrom<BottomUpCheckpoint> for crate::manager::evm::subnet_contract::Botto
     type Error = anyhow::Error;
 
     fn try_from(checkpoint: BottomUpCheckpoint) -> Result<Self, Self::Error> {
-        // sig field of checkpoint does not matter for evm
+        // sig field of checkpoint not currently used for checkpoint verification
         let check_data = checkpoint.data;
         crate::manager::evm::subnet_contract::BottomUpCheckpoint::try_from(check_data)
     }
