@@ -299,7 +299,7 @@ impl SubnetInfra {
                     self.nodes.as_ref().unwrap()[0].node.tcp_port
                 )
                 .parse()?,
-                auth_token: None,
+                auth_token: Some(admin_token),
                 accounts,
             }),
         })
