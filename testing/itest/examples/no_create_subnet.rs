@@ -31,6 +31,8 @@ async fn run() -> anyhow::Result<()> {
         .unwrap_or_else(|_| "/home/admin/.lotus-local-net0".to_string());
     let parent_subnet_id_str =
         std::env::var("PARENT_SUBNET_ID").unwrap_or_else(|_| DEFAULT_ROOT.to_string());
+    let child_subnet_id_str =
+        std::env::var("CHILD_SUBNET_ID").unwrap_or_else(|_| DEFAULT_ROOT.to_string());
     let subnet_name = std::env::var("SUBNET_NAME").unwrap_or_else(|_| "test-subnet".to_string());
 
     let api_port_sequence = Arc::new(AtomicU16::new(10));
@@ -43,7 +45,7 @@ async fn run() -> anyhow::Result<()> {
         eudico_binary_path,
         SubnetID::from_str(&parent_subnet_id_str).unwrap(),
         api_port_sequence,
-        SubnetID::from_str(&(DEFAULT_ROOT.to_owned() + "/t01002"))?,
+        SubnetID::from_str(&child_subnet_id_str)?,
     );
 
     let mut infra = SubnetInfra::new(config);
