@@ -62,13 +62,13 @@ async fn parent_fvm_child_fvm(
     Ok(managers)
 }
 
-async fn parent_fevm_child_fevm(
+async fn parent_fevm_child_fvm(
     parent: &Subnet,
     child: &Subnet,
     fvm_wallet_store: Arc<RwLock<Wallet>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
-    if parent.network_type() != NetworkType::Fevm || child.network_type() != NetworkType::Fevm {
-        return Err(anyhow!("parent not fevm or child not fevm"));
+    if parent.network_type() != NetworkType::Fevm || child.network_type() != NetworkType::Fvm {
+        return Err(anyhow!("parent not fevm or child not fvm"));
     }
 
     let mut managers = vec![];
@@ -99,13 +99,13 @@ async fn parent_fevm_child_fevm(
     Ok(managers)
 }
 
-async fn parent_fevm_child_fvm(
+async fn parent_fevm_child_fevm(
     parent: &Subnet,
     child: &Subnet,
     fvm_wallet_store: Arc<RwLock<Wallet>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
-    if parent.network_type() != NetworkType::Fevm || child.network_type() != NetworkType::Fvm {
-        return Err(anyhow!("parent not fevm or child not fvm"));
+    if parent.network_type() != NetworkType::Fevm || child.network_type() != NetworkType::Fevm {
+        return Err(anyhow!("parent not fevm or child not fevm"));
     }
 
     let mut managers = vec![];
