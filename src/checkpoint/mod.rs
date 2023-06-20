@@ -41,8 +41,8 @@ pub trait CheckpointManager: Display + Send + Sync {
     /// The checkpoint period that the current manager is submitting upon
     fn checkpoint_period(&self) -> ChainEpoch;
 
-    /// Get the list of validators in the child subnet
-    async fn child_validators(&self) -> Result<Vec<Address>>;
+    /// Get the list of validators that submit the checkpoint
+    async fn validators(&self) -> Result<Vec<Address>>;
 
     /// Obtain the last executed epoch of the checkpoint submission
     async fn last_executed_epoch(&self) -> Result<ChainEpoch>;
@@ -179,7 +179,7 @@ async fn submit_till_current_epoch(manager: &dyn CheckpointManager) -> Result<()
     // we might have to obtain the list of validators as some validators might leave the subnet
     // we can improve the performance by caching if this slows down the process significantly.
     let validators = manager
-        .child_validators()
+        .validators()
         .await
         .map_err(|e| anyhow!("cannot get child validators for {manager:} due to {e:}"))?;
     let period = manager.checkpoint_period();

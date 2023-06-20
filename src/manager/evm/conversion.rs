@@ -129,6 +129,17 @@ impl TryFrom<crate::manager::evm::gateway::SubnetID> for SubnetID {
     }
 }
 
+impl TryFrom<&SubnetID> for crate::manager::evm::gateway::SubnetID {
+    type Error = anyhow::Error;
+
+    fn try_from(subnet: &SubnetID) -> Result<Self, Self::Error> {
+        Ok(crate::manager::evm::gateway::SubnetID {
+            root: subnet.root_id(),
+            route: agent_subnet_to_evm_addresses(subnet)?,
+        })
+    }
+}
+
 impl TryFrom<crate::manager::evm::gateway::Ipcaddress> for IPCAddress {
     type Error = anyhow::Error;
 

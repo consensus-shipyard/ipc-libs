@@ -20,7 +20,7 @@ use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
 use crate::config::Subnet;
 use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
 use crate::lotus::client::LotusJsonRPCClient;
-use crate::lotus::message::ipc::SubnetInfo;
+use crate::lotus::message::ipc::{QueryValidatorSetResponse, SubnetInfo};
 use crate::lotus::message::mpool::MpoolPushMessage;
 use crate::lotus::message::state::StateWaitMsgResponse;
 use crate::lotus::message::wallet::WalletKeyType;
@@ -347,6 +347,32 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             .ipc_list_checkpoints(subnet_id, from_epoch, to_epoch)
             .await?;
         Ok(checkpoints)
+    }
+
+    async fn get_validator_set(
+        &self,
+        subnet_id: &SubnetID,
+        gateway: Address,
+    ) -> Result<QueryValidatorSetResponse> {
+        let chain_head = self.lotus_client.chain_head().await?;
+        let cid_map = chain_head.cids.first().unwrap().clone();
+        let tip_set = Cid::try_from(cid_map)?;
+
+        let response = self
+            .lotus_client
+            .ipc_read_subnet_actor_state(subnet_id, tip_set)
+            .await?;
+
+        let genesis_epoch = self
+            .lotus_client
+            .ipc_get_genesis_epoch_for_subnet(subnet_id, gateway)
+            .await?;
+
+        Ok(QueryValidatorSetResponse {
+            validator_set: response.validator_set,
+            min_validators: response.min_validators,
+            genesis_epoch,
+        })
     }
 }
 
