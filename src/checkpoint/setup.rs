@@ -20,6 +20,16 @@ async fn parent_fvm_child_fvm(
     child: &Subnet,
     wallet_store: Arc<RwLock<Wallet>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
+    // We filter for subnets that have at least one account and for which the parent subnet
+    // is also in the configuration.
+    if child.accounts().is_empty() || parent.accounts().is_empty() {
+        log::info!(
+            "not all parent and child have accounts. Child: {:}, not managing checkpoints",
+            child.id
+        );
+        return Ok(vec![]);
+    }
+
     if parent.network_type() != NetworkType::Fvm || child.network_type() != NetworkType::Fvm {
         return Err(anyhow!("parent not fvm or child not fvm"));
     }
@@ -163,14 +173,6 @@ pub async fn setup_managers_from_config(
 
     for s in subnets.values() {
         log::info!("config checkpoint manager for subnet: {:}", s.id);
-
-        // TODO: once we have added EVM wallet store, we should switch to the below approach.
-        // // We filter for subnets that have at least one account and for which the parent subnet
-        // // is also in the configuration.
-        // if s.accounts().is_empty() {
-        //     log::info!("no accounts in subnet: {:}, not managing checkpoints", s.id);
-        //     continue;
-        // }
 
         let subnet_managers =
             setup_manager_from_subnet(subnets, s, fvm_wallet_store.clone()).await?;
