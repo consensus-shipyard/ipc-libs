@@ -149,19 +149,20 @@ pub async fn setup_manager_from_subnet(
         return Ok(vec![]);
     };
 
-    log::info!("setup parent: {:?}, child: {:?}", parent, s);
-
     match (parent.network_type(), s.network_type()) {
         (NetworkType::Fvm, NetworkType::Fvm) => {
+            log::info!("setup parent: {:?} fvm, child: {:?} fvm", parent.id, s.id);
             parent_fvm_child_fvm(parent, s, fvm_wallet_store).await
         }
         (NetworkType::Fvm, NetworkType::Fevm) => {
             unimplemented!()
         }
         (NetworkType::Fevm, NetworkType::Fvm) => {
+            log::info!("setup parent: {:?} fevm, child: {:?} fvm", parent.id, s.id);
             parent_fevm_child_fvm(parent, s, fvm_wallet_store).await
         }
         (NetworkType::Fevm, NetworkType::Fevm) => {
+            log::info!("setup parent: {:?} fevm, child: {:?} fevm", parent.id, s.id);
             parent_fevm_child_fevm(parent, s, fvm_wallet_store).await
         }
     }
