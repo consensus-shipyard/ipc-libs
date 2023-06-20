@@ -177,10 +177,9 @@ pub async fn setup_managers_from_config(
         managers.extend(subnet_managers);
     }
 
-    log::info!(
-        "we are managing checkpoints for {:} number of subnets",
-        managers.len()
-    );
+    for m in managers.iter() {
+        log::info!("we are managing checkpoints with: {m:}");
+    }
 
     Ok(managers)
 }
