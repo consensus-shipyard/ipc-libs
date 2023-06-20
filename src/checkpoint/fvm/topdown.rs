@@ -89,7 +89,7 @@ impl CheckpointManager for TopDownCheckpointManager {
         self.checkpoint_period
     }
 
-    async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
+    async fn validators(&self) -> anyhow::Result<Vec<Address>> {
         child_validators(&self.parent_client, &self.child_subnet).await
     }
 

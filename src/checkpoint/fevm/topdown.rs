@@ -75,7 +75,7 @@ impl<T: EthManager + Send + Sync> CheckpointManager for TopdownCheckpointManager
         self.checkpoint_period
     }
 
-    async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
+    async fn validators(&self) -> anyhow::Result<Vec<Address>> {
         self.child_manager.validators(&self.child_subnet.id).await
     }
 

@@ -259,6 +259,19 @@
   },
   {
     "inputs": [],
+    "name": "configurationNumber",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "consensus",
     "outputs": [
       {
@@ -350,6 +363,48 @@
           }
         ],
         "internalType": "struct SubnetID",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getValidatorSet",
+    "outputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "addr",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "weight",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "netAddresses",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct SubnetActor.ValidatorInfo[]",
+            "name": "validators",
+            "type": "tuple[]"
+          },
+          {
+            "internalType": "uint64",
+            "name": "configurationNumber",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct SubnetActor.ValidatorSet",
         "name": "",
         "type": "tuple"
       }

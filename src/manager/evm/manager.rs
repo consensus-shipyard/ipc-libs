@@ -23,7 +23,7 @@ use primitives::EthAddress;
 
 use crate::config::subnet::SubnetConfig;
 use crate::config::Subnet;
-use crate::lotus::message::ipc::SubnetInfo;
+use crate::lotus::message::ipc::{QueryValidatorSetResponse, SubnetInfo, Validator, ValidatorSet};
 use crate::lotus::message::wallet::WalletKeyType;
 use crate::manager::{EthManager, SubnetManager};
 
@@ -131,7 +131,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u128()
             .ok_or_else(|| anyhow!("invalid min validator stake"))?;
 
-        let address = last_evm_address(&subnet)?;
+        let address = contract_address_from_subnet(&subnet)?;
         log::info!(
             "interacting with evm subnet contract: {address:} with collateral: {collateral:}"
         );
@@ -147,7 +147,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     }
 
     async fn leave_subnet(&self, subnet: SubnetID, _from: Address) -> Result<()> {
-        let address = last_evm_address(&subnet)?;
+        let address = contract_address_from_subnet(&subnet)?;
         log::info!("leaving evm subnet: {subnet:} at contract: {address:}");
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
@@ -157,7 +157,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     }
 
     async fn kill_subnet(&self, subnet: SubnetID, _from: Address) -> Result<()> {
-        let address = last_evm_address(&subnet)?;
+        let address = contract_address_from_subnet(&subnet)?;
         log::info!("kill evm subnet: {subnet:} at contract: {address:}");
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
@@ -252,6 +252,56 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     ) -> Result<Vec<BottomUpCheckpoint>> {
         todo!()
     }
+
+    async fn get_validator_set(
+        &self,
+        subnet_id: &SubnetID,
+        gateway: Address,
+    ) -> Result<QueryValidatorSetResponse> {
+        self.ensure_same_gateway(&gateway)?;
+
+        // get genesis epoch from gateway
+        let (exists, evm_subnet) = self
+            .gateway_contract
+            .get_subnet(gateway::SubnetID::try_from(subnet_id)?)
+            .call()
+            .await?;
+        if !exists {
+            return Err(anyhow!("subnet: {subnet_id:?} does not exists"));
+        }
+        let genesis_epoch = evm_subnet.genesis_epoch.as_u64() as i64;
+
+        let min_validators = self.min_validators(subnet_id).await?;
+
+        // get validator set
+        let address = contract_address_from_subnet(subnet_id)?;
+        log::debug!("get validator info for subnet: {subnet_id:} at contract: {address:}");
+
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        let evm_validator_set = contract.get_validator_set().call().await?;
+
+        let mut validators = vec![];
+        for v in evm_validator_set.validators.into_iter() {
+            validators.push(Validator {
+                addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
+                net_addr: v.net_addresses,
+                weight: v.weight.to_string(),
+            });
+        }
+        let mut validator_set = ValidatorSet {
+            validators: None,
+            configuration_number: 0,
+        };
+        if !validators.is_empty() {
+            validator_set.validators = Some(validators);
+        }
+
+        Ok(QueryValidatorSetResponse {
+            validator_set,
+            min_validators,
+            genesis_epoch,
+        })
+    }
 }
 
 #[async_trait]
@@ -269,7 +319,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         &self,
         subnet_id: &SubnetID,
     ) -> anyhow::Result<ChainEpoch> {
-        let address = last_evm_address(subnet_id)?;
+        let address = contract_address_from_subnet(subnet_id)?;
         let contract = SubnetContract::new(address, self.eth_client.clone());
         let u = contract.last_voting_executed_epoch().call().await?;
         Ok(u as ChainEpoch)
@@ -318,7 +368,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         epoch: ChainEpoch,
         validator: &Address,
     ) -> Result<bool> {
-        let address = last_evm_address(subnet_id)?;
+        let address = contract_address_from_subnet(subnet_id)?;
         let validator = payload_to_evm_address(validator.payload())?;
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
@@ -383,7 +433,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
     }
 
     async fn validators(&self, subnet_id: &SubnetID) -> Result<Vec<Address>> {
-        let address = last_evm_address(subnet_id)?;
+        let address = contract_address_from_subnet(subnet_id)?;
         let contract = SubnetContract::new(address, self.eth_client.clone());
 
         let validators = contract.get_validators().call().await?;
@@ -399,7 +449,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
     }
 
     async fn subnet_bottom_up_checkpoint_period(&self, subnet_id: &SubnetID) -> Result<ChainEpoch> {
-        let address = last_evm_address(subnet_id)?;
+        let address = contract_address_from_subnet(subnet_id)?;
         let contract = SubnetContract::new(address, self.eth_client.clone());
         Ok(contract.bottom_up_check_period().call().await? as ChainEpoch)
     }
@@ -417,6 +467,12 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
             return Err(anyhow!("checkpoint does not exists"));
         }
         Ok(hash)
+    }
+
+    async fn min_validators(&self, subnet_id: &SubnetID) -> Result<u64> {
+        let address = contract_address_from_subnet(subnet_id)?;
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        Ok(contract.min_validators().call().await?)
     }
 }
 
@@ -504,7 +560,7 @@ fn block_number_from_receipt(
 
 /// Convert the ipc SubnetID type to an evm address. It extracts the last address from the Subnet id
 /// children and turns it into evm address.
-fn last_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
+fn contract_address_from_subnet(subnet: &SubnetID) -> Result<ethers::types::Address> {
     let children = subnet.children();
     let ipc_addr = children
         .last()
@@ -538,7 +594,9 @@ pub(crate) fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types:
 
 #[cfg(test)]
 mod tests {
-    use crate::manager::evm::manager::{agent_subnet_to_evm_addresses, last_evm_address};
+    use crate::manager::evm::manager::{
+        agent_subnet_to_evm_addresses, contract_address_from_subnet,
+    };
     use fvm_shared::address::Address;
     use ipc_sdk::subnet_id::SubnetID;
     use primitives::EthAddress;
@@ -549,7 +607,7 @@ mod tests {
         let addr = Address::from_str("f410ffzyuupbyl2uiucmzr3lu3mtf3luyknthaz4xsrq").unwrap();
         let id = SubnetID::new(0, vec![addr]);
 
-        let eth = last_evm_address(&id).unwrap();
+        let eth = contract_address_from_subnet(&id).unwrap();
         assert_eq!(
             format!("{eth:?}"),
             "0x2e714a3c385ea88a09998ed74db265dae9853667"

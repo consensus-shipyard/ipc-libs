@@ -83,4 +83,7 @@ pub trait EthManager: SubnetManager {
 
     /// Get the previous checkpoint hash from the gateway
     async fn prev_bottom_up_checkpoint_hash(&self, epoch: ChainEpoch) -> anyhow::Result<[u8; 32]>;
+
+    /// The minimal number of validators required for the subnet
+    async fn min_validators(&self, subnet_id: &SubnetID) -> anyhow::Result<u64>;
 }

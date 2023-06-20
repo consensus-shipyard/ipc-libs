@@ -88,7 +88,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
         self.checkpoint_period
     }
 
-    async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
+    async fn validators(&self) -> anyhow::Result<Vec<Address>> {
         self.parent_fevm_manager.validators(&self.child.id).await
     }
 

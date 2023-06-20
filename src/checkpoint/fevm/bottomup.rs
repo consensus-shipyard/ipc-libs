@@ -87,7 +87,7 @@ impl<T: EthManager + Send + Sync, M: LotusClient + Send + Sync> CheckpointManage
         self.checkpoint_period
     }
 
-    async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
+    async fn validators(&self) -> anyhow::Result<Vec<Address>> {
         self.parent_manager.validators(&self.child_subnet.id).await
     }
 

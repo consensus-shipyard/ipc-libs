@@ -88,7 +88,7 @@ impl Handlers {
         handlers.insert(String::from(json_rpc_methods::RELOAD_CONFIG), h);
 
         // subnet manager methods
-        let pool = Arc::new(SubnetManagerPool::new(config.clone(), wallet.clone()));
+        let pool = Arc::new(SubnetManagerPool::new(config, wallet.clone()));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::CREATE_SUBNET), h);
 
@@ -144,11 +144,11 @@ impl Handlers {
             Box::new(ListBottomUpCheckpointsHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::LIST_BOTTOMUP_CHECKPOINTS), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(LastTopDownExecHandler::new(pool));
+        let h: Box<dyn HandlerWrapper> = Box::new(LastTopDownExecHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::LAST_TOPDOWN_EXECUTED), h);
 
         // query validator
-        let h: Box<dyn HandlerWrapper> = Box::new(QueryValidatorSetHandler::new(config));
+        let h: Box<dyn HandlerWrapper> = Box::new(QueryValidatorSetHandler::new(pool));
         handlers.insert(String::from(json_rpc_methods::QUERY_VALIDATOR_SET), h);
 
         Ok(Self { handlers })
