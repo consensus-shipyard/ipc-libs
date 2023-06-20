@@ -260,7 +260,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     ) -> Result<QueryValidatorSetResponse> {
         self.ensure_same_gateway(&gateway)?;
 
-        // get genesis
+        // get genesis epoch from gateway
         let (exists, evm_subnet) = self
             .gateway_contract
             .get_subnet(gateway::SubnetID::try_from(subnet_id)?)
