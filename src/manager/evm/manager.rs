@@ -386,7 +386,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         let address = last_evm_address(subnet_id)?;
         let contract = SubnetContract::new(address, self.eth_client.clone());
 
-        let validators = contract.all_validators().call().await?;
+        let validators = contract.get_validators().call().await?;
         validators
             .iter()
             .map(ethers_address_to_fil_address)
