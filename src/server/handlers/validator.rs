@@ -2,14 +2,11 @@
 // SPDX-License-Identifier: MIT
 //! Expose the subnet actor validator set
 
-use crate::lotus::client::LotusJsonRPCClient;
-use crate::lotus::message::ipc::{QueryValidatorSetResponse, ValidatorSet};
-use crate::lotus::LotusClient;
+use crate::lotus::message::ipc::QueryValidatorSetResponse;
 use crate::server::subnet::SubnetManagerPool;
 use crate::server::{check_subnet, JsonRPCRequestHandler};
 use anyhow::anyhow;
 use async_trait::async_trait;
-use cid::Cid;
 use ipc_sdk::subnet_id::SubnetID;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;

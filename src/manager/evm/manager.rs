@@ -260,10 +260,21 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
     ) -> Result<QueryValidatorSetResponse> {
         self.ensure_same_gateway(&gateway)?;
 
+        // get genesis
+        let (exists, evm_subnet) = self
+            .gateway_contract
+            .get_subnet(gateway::SubnetID::try_from(subnet_id)?)
+            .call()
+            .await?;
+        if !exists {
+            return Err(anyhow!("subnet: {subnet_id:?} does not exists"));
+        }
+        let genesis_epoch = evm_subnet.genesis_epoch.as_u64() as i64;
+
         let min_validators = self.min_validators(subnet_id).await?;
 
         // get validator set
-        let address = contract_address_from_subnet(&subnet_id)?;
+        let address = contract_address_from_subnet(subnet_id)?;
         log::debug!("get validator info for subnet: {subnet_id:} at contract: {address:}");
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
@@ -285,13 +296,6 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             validator_set.validators = Some(validators);
         }
 
-        // get genesis
-        let genesis_epoch = self
-            .gateway_contract
-            .get_subnet(gateway::SubnetID::try_from(subnet_id)?)
-            .call()
-            .await?
-            .genesis_epoch;
         Ok(QueryValidatorSetResponse {
             validator_set,
             min_validators,
