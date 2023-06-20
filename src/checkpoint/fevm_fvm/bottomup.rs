@@ -62,8 +62,8 @@ impl<P, M> Display for BottomUpCheckpointManager<P, M> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "fvm to fevm bottom-up, parent: {:}, child: {:}",
-            self.parent.id, self.child.id
+            "fvm to fevm bottom-up, parent: {:}, child: {:}, period: {:}",
+            self.parent.id, self.child.id, self.checkpoint_period
         )
     }
 }

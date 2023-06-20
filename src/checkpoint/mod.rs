@@ -178,11 +178,20 @@ async fn submit_till_current_epoch(manager: &dyn CheckpointManager) -> Result<()
 
     // we might have to obtain the list of validators as some validators might leave the subnet
     // we can improve the performance by caching if this slows down the process significantly.
-    let validators = manager.child_validators().await?;
+    let validators = manager
+        .child_validators()
+        .await
+        .map_err(|e| anyhow!("cannot get child validators for {manager:} due to {e:}"))?;
     let period = manager.checkpoint_period();
 
-    let last_executed_epoch = manager.last_executed_epoch().await?;
-    let current_epoch = manager.current_epoch().await?;
+    let last_executed_epoch = manager
+        .last_executed_epoch()
+        .await
+        .map_err(|e| anyhow!("cannot get last executed epoch for {manager:} due to {e:}"))?;
+    let current_epoch = manager
+        .current_epoch()
+        .await
+        .map_err(|e| anyhow!("cannot get the current eopch for {manager:} due to {e:}"))?;
 
     log::debug!(
         "latest epoch {:?}, last executed epoch: {:?} for checkpointing: {:}",
