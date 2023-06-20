@@ -149,6 +149,8 @@ pub async fn setup_manager_from_subnet(
         return Ok(vec![]);
     };
 
+    log::info!("setup parent: {:?}, child: {:?}", parent, s);
+
     match (parent.network_type(), s.network_type()) {
         (NetworkType::Fvm, NetworkType::Fvm) => {
             parent_fvm_child_fvm(parent, s, fvm_wallet_store).await
