@@ -1,6 +1,6 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use crate::checkpoint::{gateway_state, CheckpointManager};
+use crate::checkpoint::{chain_head_cid, gateway_state, CheckpointManager};
 use crate::config::Subnet;
 use crate::lotus::LotusClient;
 use crate::manager::EthManager;
@@ -20,6 +20,44 @@ pub struct TopDownCheckpointManager<ParentManager, ChildManager> {
     checkpoint_period: ChainEpoch,
     parent_fevm_manager: ParentManager,
     child_fvm_manager: ChildManager,
+}
+
+impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> TopDownCheckpointManager<P, C> {
+    pub fn new_with_period(
+        parent: Subnet,
+        child: Subnet,
+        checkpoint_period: ChainEpoch,
+        parent_fevm_manager: P,
+        child_fvm_manager: C,
+    ) -> Self {
+        Self {
+            parent,
+            child,
+            checkpoint_period,
+            parent_fevm_manager,
+            child_fvm_manager,
+        }
+    }
+
+    pub async fn new(
+        parent_subnet: Subnet,
+        parent_manager: P,
+        child_subnet: Subnet,
+        child_manager: C,
+    ) -> anyhow::Result<Self> {
+        let child_tip_set = chain_head_cid(&child_manager).await?;
+        let state = child_manager
+            .ipc_read_gateway_state(&child_subnet.gateway_addr(), child_tip_set)
+            .await?;
+        let checkpoint_period = state.top_down_check_period;
+        Ok(Self::new_with_period(
+            parent_subnet,
+            child_subnet,
+            checkpoint_period,
+            parent_manager,
+            child_manager,
+        ))
+    }
 }
 
 impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> Display
