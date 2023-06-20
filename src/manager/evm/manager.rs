@@ -261,9 +261,12 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         self.ensure_same_gateway(&gateway)?;
 
         // get genesis epoch from gateway
+        let evm_subnet_id = gateway::SubnetID::try_from(subnet_id)?;
+        log::debug!("evm subnet id: {evm_subnet_id:?}");
+
         let (exists, evm_subnet) = self
             .gateway_contract
-            .get_subnet(gateway::SubnetID::try_from(subnet_id)?)
+            .get_subnet(evm_subnet_id)
             .call()
             .await?;
         if !exists {
