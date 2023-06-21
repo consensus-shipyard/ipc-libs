@@ -162,6 +162,10 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {
-        self.parent_fevm_manager.gateway_initialized().await
+        if self.parent.id.is_root() {
+            Ok(true)
+        } else {
+            self.parent_fevm_manager.gateway_initialized().await
+        }
     }
 }
