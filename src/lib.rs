@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #![feature(try_blocks)]
 #![feature(let_chains)]
+#![feature(drain_filter)]
 
 pub mod checkpoint;
 pub mod cli;

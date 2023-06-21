@@ -76,6 +76,10 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> Display
 impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManager
     for TopDownCheckpointManager<P, C>
 {
+    fn target_subnet(&self) -> &Subnet {
+        &self.child
+    }
+
     fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }

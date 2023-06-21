@@ -9,6 +9,7 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_identity::Wallet;
 use std::borrow::Borrow;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use tokio::select;
@@ -32,6 +33,11 @@ const SUBMISSION_LOOK_AHEAD_EPOCH: ChainEpoch = 50;
 /// is handling the top-down checkpoint submission for `/r123` to `/r123/t01`.
 #[async_trait]
 pub trait CheckpointManager: Display + Send + Sync {
+    /// Get the subnet config that this manager is submitting checkpoints to. For example, if it is
+    /// top down checkpoints, target subnet return the child subnet config. If it is bottom up, target
+    /// subnet returns parent subnet.
+    fn target_subnet(&self) -> &Subnet;
+
     /// Getter for the parent subnet this checkpoint manager is handling
     fn parent_subnet(&self) -> &Subnet;
 
@@ -41,7 +47,7 @@ pub trait CheckpointManager: Display + Send + Sync {
     /// The checkpoint period that the current manager is submitting upon
     fn checkpoint_period(&self) -> ChainEpoch;
 
-    /// Get the list of validators that submit the checkpoint
+    /// Get the list of validators that should submit checkpoints
     async fn validators(&self) -> Result<Vec<Address>>;
 
     /// Obtain the last executed epoch of the checkpoint submission
@@ -178,10 +184,18 @@ async fn submit_till_current_epoch(manager: &dyn CheckpointManager) -> Result<()
 
     // we might have to obtain the list of validators as some validators might leave the subnet
     // we can improve the performance by caching if this slows down the process significantly.
-    let validators = manager
+    let mut validators = manager
         .validators()
         .await
         .map_err(|e| anyhow!("cannot get child validators for {manager:} due to {e:}"))?;
+    remove_not_managed(&mut validators, &manager.target_subnet().accounts());
+    log::debug!("list of validators: {validators:?} for manager: {manager:}");
+
+    if validators.is_empty() {
+        log::info!("no validators: {validators:?} for manager: {manager:}, not submit checkpoints");
+        return Ok(());
+    }
+
     let period = manager.checkpoint_period();
 
     let last_executed_epoch = manager
@@ -242,4 +256,10 @@ async fn submit_till_current_epoch(manager: &dyn CheckpointManager) -> Result<()
     log::info!("process checkpoint from epoch: {last_executed_epoch:} to {current_epoch:} in manager: {manager:}");
 
     Ok(())
+}
+
+/// Removes the not managed accounts from the list of validators
+fn remove_not_managed(validators: &mut Vec<Address>, managed_accounts: &[Address]) {
+    let set: HashSet<_> = managed_accounts.iter().collect();
+    validators.drain_filter(|v| !set.contains(v));
 }

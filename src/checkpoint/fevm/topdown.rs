@@ -63,6 +63,10 @@ impl<T> Display for TopdownCheckpointManager<T> {
 
 #[async_trait]
 impl<T: EthManager + Send + Sync> CheckpointManager for TopdownCheckpointManager<T> {
+    fn target_subnet(&self) -> &Subnet {
+        &self.child_subnet
+    }
+
     fn parent_subnet(&self) -> &Subnet {
         &self.parent_subnet
     }

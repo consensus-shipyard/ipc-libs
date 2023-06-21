@@ -75,6 +75,10 @@ impl<T, M> Display for BottomUpCheckpointManager<T, M> {
 impl<T: EthManager + Send + Sync, M: LotusClient + Send + Sync> CheckpointManager
     for BottomUpCheckpointManager<T, M>
 {
+    fn target_subnet(&self) -> &Subnet {
+        &self.parent_subnet
+    }
+
     fn parent_subnet(&self) -> &Subnet {
         &self.parent_subnet
     }

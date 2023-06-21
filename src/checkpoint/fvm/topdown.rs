@@ -77,6 +77,10 @@ impl TopDownCheckpointManager {
 
 #[async_trait]
 impl CheckpointManager for TopDownCheckpointManager {
+    fn target_subnet(&self) -> &Subnet {
+        &self.child_subnet
+    }
+
     fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }
