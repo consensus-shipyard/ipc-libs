@@ -293,7 +293,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         }
         let mut validator_set = ValidatorSet {
             validators: None,
-            configuration_number: 0,
+            configuration_number: evm_validator_set.configuration_number,
         };
         if !validators.is_empty() {
             validator_set.validators = Some(validators);
