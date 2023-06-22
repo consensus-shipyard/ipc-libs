@@ -146,9 +146,10 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
         validator: &Address,
         epoch: ChainEpoch,
     ) -> anyhow::Result<bool> {
-        self.parent_fevm_manager
+        let has_voted = self.parent_fevm_manager
             .has_voted_in_subnet(&self.child.id, epoch, validator)
-            .await
+            .await?;
+        Ok(!has_voted)
     }
 
     async fn presubmission_check(&self) -> anyhow::Result<bool> {
