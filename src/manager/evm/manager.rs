@@ -425,16 +425,17 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         let route = agent_subnet_to_evm_addresses(subnet_id)?;
         log::debug!("getting top down messages for route: {route:?}");
 
+        let subnet_id = gateway::SubnetID {
+            root: subnet_id.root_id(),
+            route,
+        };
         let r = self
             .gateway_contract
             .method::<_, Vec<gateway::CrossMsg>>(
                 "getTopDownMsgs",
-                gateway::SubnetID {
-                    root: subnet_id.root_id(),
-                    route,
-                },
+                gateway::GetTopDownMsgsCall { subnet_id },
             )
-            .map_err(|e| anyhow!("cannot create method call getTopDownMsgs: {e:}"))?
+            .map_err(|e| anyhow!("cannot create the top down msg call: {e:}"))?
             .block(epoch as u64)
             .call()
             .await
