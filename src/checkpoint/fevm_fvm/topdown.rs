@@ -96,7 +96,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
     async fn validators(&self) -> anyhow::Result<Vec<Address>> {
         let r = self
             .parent_fevm_manager
-            .get_validator_set(&self.child.id, self.child.gateway_addr())
+            .get_validator_set(&self.child.id, self.parent.gateway_addr())
             .await?;
         if let Some(validators) = r.validator_set.validators {
             let v = validators
