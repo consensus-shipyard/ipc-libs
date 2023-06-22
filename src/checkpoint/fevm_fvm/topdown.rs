@@ -117,6 +117,8 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
             .top_down_msgs(&self.child.id, epoch)
             .await?;
 
+        log::info!("top down messages: {msgs:?}");
+
         // we submit the topdown messages to the CHILD subnet.
         let topdown_checkpoint = TopDownCheckpoint {
             epoch,
@@ -125,6 +127,9 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
                 .map(CrossMsg::try_from)
                 .collect::<anyhow::Result<_>>()?,
         };
+
+        log::info!("top down checkpoint to submit: {topdown_checkpoint:?}");
+
         let submitted_epoch = self
             .child_fvm_manager
             .ipc_submit_top_down_checkpoint(

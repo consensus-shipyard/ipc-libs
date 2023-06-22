@@ -436,7 +436,8 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
             )?
             .block(epoch as u64)
             .call()
-            .await?;
+            .await
+            .map_err(|e| anyhow!("cannot get evm top down messages: {e:}"))?;
         Ok(r)
     }
 
