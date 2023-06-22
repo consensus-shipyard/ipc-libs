@@ -473,7 +473,12 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
             .bottom_up_checkpoint_hash_at_epoch(epoch as u64)
             .await?;
         if !exists {
-            return Err(anyhow!("checkpoint does not exists"));
+            return if epoch == 0 {
+                // first ever epoch, return empty bytes
+                return Ok([0u8; 32]);
+            } else {
+                Err(anyhow!("checkpoint does not exists"))
+            };
         }
         Ok(hash)
     }
