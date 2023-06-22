@@ -133,7 +133,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
         let submitted_epoch = self
             .child_fvm_manager
             .ipc_submit_top_down_checkpoint(
-                self.parent.gateway_addr(),
+                self.child.gateway_addr(),
                 validator,
                 topdown_checkpoint,
             )
