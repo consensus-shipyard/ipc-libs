@@ -292,7 +292,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             validators.push(Validator {
                 addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
                 net_addr: v.net_addresses,
-                worker_addr: None,
+                worker_addr: Some(Address::try_from(v.worker_addr)?.to_string()),
                 weight: v.weight.to_string(),
             });
         }
