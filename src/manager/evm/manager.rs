@@ -477,7 +477,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
                 // first ever epoch, return empty bytes
                 return Ok([0u8; 32]);
             } else {
-                Err(anyhow!("checkpoint does not exists"))
+                Err(anyhow!("checkpoint does not exists: {epoch:}"))
             };
         }
         Ok(hash)
