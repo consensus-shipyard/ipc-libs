@@ -126,7 +126,9 @@ impl TryFrom<crate::manager::evm::subnet_contract::FvmAddress> for Address {
     ) -> Result<Self, Self::Error> {
         let protocol = value.addr_type;
         let addr = match protocol {
-            1 => Address::new_secp256k1(&value.payload)?,
+            1 => Address::from_bytes(
+                &[[1u8].as_slice(), value.payload.to_vec().as_slice()].concat(),
+            )?,
             _ => return Err(anyhow!("address not support now")),
         };
         Ok(addr)
