@@ -10,7 +10,7 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{ConstructParams, JoinParams};
+use ipc_subnet_actor::ConstructParams;
 
 use crate::lotus::message::ipc::QueryValidatorSetResponse;
 use crate::lotus::message::{ipc::SubnetInfo, wallet::WalletKeyType};
@@ -33,7 +33,8 @@ pub trait SubnetManager: Send + Sync {
         subnet: SubnetID,
         from: Address,
         collateral: TokenAmount,
-        params: JoinParams,
+        validator_net_addr: String,
+        worker_addr: Address,
     ) -> Result<()>;
 
     /// Sends a request to leave a subnet from a wallet address.

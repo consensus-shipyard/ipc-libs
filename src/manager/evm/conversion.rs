@@ -5,8 +5,10 @@
 use crate::manager::evm::manager::{
     agent_subnet_to_evm_addresses, ethers_address_to_fil_address, payload_to_evm_address,
 };
+use anyhow::anyhow;
 use ethers::types::U256;
 use fvm_ipld_encoding::RawBytes;
+use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use ipc_gateway::checkpoint::{CheckData, ChildCheck};
@@ -113,6 +115,29 @@ impl TryFrom<&SubnetID> for crate::manager::evm::subnet_contract::SubnetID {
             root: subnet.root_id(),
             route: agent_subnet_to_evm_addresses(subnet)?,
         })
+    }
+}
+
+impl TryFrom<crate::manager::evm::subnet_contract::FvmAddress> for Address {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        value: crate::manager::evm::subnet_contract::FvmAddress,
+    ) -> Result<Self, Self::Error> {
+        let protocol = value.addr_type;
+        let addr = match protocol {
+            1 => Address::new_secp256k1(&value.payload)?,
+            _ => return Err(anyhow!("address not support now")),
+        };
+        Ok(addr)
+    }
+}
+impl From<Address> for crate::manager::evm::subnet_contract::FvmAddress {
+    fn from(value: Address) -> Self {
+        crate::manager::evm::subnet_contract::FvmAddress {
+            addr_type: value.protocol() as u8,
+            payload: ethers::core::types::Bytes::from(value.payload_bytes()),
+        }
     }
 }
 

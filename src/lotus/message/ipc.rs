@@ -113,6 +113,7 @@ pub struct QueryValidatorSetResponse {
 pub struct Validator {
     pub addr: String,
     pub net_addr: String,
+    pub worker_addr: Option<String>,
     pub weight: String,
 }
 

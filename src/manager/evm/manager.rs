@@ -17,7 +17,7 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{ConstructParams, JoinParams};
+use ipc_subnet_actor::ConstructParams;
 use num_traits::ToPrimitive;
 use primitives::EthAddress;
 
@@ -124,7 +124,8 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         subnet: SubnetID,
         _from: Address,
         collateral: TokenAmount,
-        params: JoinParams,
+        validator_net_addr: String,
+        worker_addr: Address,
     ) -> Result<()> {
         let collateral = collateral
             .atto()
@@ -138,7 +139,10 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
 
-        let mut txn = contract.join(params.validator_net_addr);
+        let mut txn = contract.join(
+            validator_net_addr,
+            subnet_contract::FvmAddress::from(worker_addr),
+        );
         txn.tx.set_value(collateral);
 
         txn.send().await?.await?;
@@ -288,6 +292,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             validators.push(Validator {
                 addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
                 net_addr: v.net_addresses,
+                worker_addr: None,
                 weight: v.weight.to_string(),
             });
         }

@@ -68,8 +68,12 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         subnet: SubnetID,
         from: Address,
         collateral: TokenAmount,
-        params: JoinParams,
+        validator_net_addr: String,
+        worker_addr: Address,
     ) -> Result<()> {
+        if from != worker_addr {
+            return Err(anyhow!("worker address should equal sender"));
+        }
         let parent = subnet.parent().ok_or_else(|| anyhow!("cannot join root"))?;
         if !self.is_network_match(&parent).await? {
             return Err(anyhow!("subnet actor being deployed in the wrong parent network, parent network names do not match"));
@@ -80,7 +84,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             to,
             from,
             ipc_subnet_actor::Method::Join as MethodNum,
-            cbor::serialize(&params, "join subnet params")?.to_vec(),
+            cbor::serialize(&JoinParams { validator_net_addr }, "join subnet params")?.to_vec(),
         );
         message.value = collateral;
 

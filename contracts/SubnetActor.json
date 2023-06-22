@@ -171,6 +171,11 @@
   },
   {
     "inputs": [],
+    "name": "WorkerAddressInvalid",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "WrongCheckpointSource",
     "type": "error"
   },
@@ -389,6 +394,23 @@
                 "type": "uint256"
               },
               {
+                "components": [
+                  {
+                    "internalType": "uint8",
+                    "name": "addrType",
+                    "type": "uint8"
+                  },
+                  {
+                    "internalType": "bytes",
+                    "name": "payload",
+                    "type": "bytes"
+                  }
+                ],
+                "internalType": "struct FvmAddress",
+                "name": "workerAddr",
+                "type": "tuple"
+              },
+              {
                 "internalType": "string",
                 "name": "netAddresses",
                 "type": "string"
@@ -468,6 +490,23 @@
         "internalType": "string",
         "name": "netAddr",
         "type": "string"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "addrType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes",
+            "name": "payload",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct FvmAddress",
+        "name": "workerAddr",
+        "type": "tuple"
       }
     ],
     "name": "join",
@@ -875,6 +914,30 @@
         "internalType": "string",
         "name": "",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "validatorWorkerAddresses",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "addrType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes",
+        "name": "payload",
+        "type": "bytes"
       }
     ],
     "stateMutability": "view",
