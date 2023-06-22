@@ -372,8 +372,14 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             .ipc_get_genesis_epoch_for_subnet(subnet_id, gateway)
             .await?;
 
+        let mut validator_set = response.validator_set;
+        if let Some(validators) = validator_set.validators.as_mut() {
+            validators
+                .iter_mut()
+                .for_each(|v| v.worker_addr = Some(v.addr.clone()));
+        }
         Ok(QueryValidatorSetResponse {
-            validator_set: response.validator_set,
+            validator_set,
             min_validators: response.min_validators,
             genesis_epoch,
         })
