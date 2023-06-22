@@ -433,7 +433,8 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
                     root: subnet_id.root_id(),
                     route,
                 },
-            )?
+            )
+            .map_err(|e| anyhow!("cannot create method call getTopDownMsgs: {e:}"))?
             .block(epoch as u64)
             .call()
             .await
