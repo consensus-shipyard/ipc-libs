@@ -87,36 +87,22 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         log::info!("creating subnet on evm with params: {params:?}");
 
         let call = self.registry_contract.new_subnet_actor(params);
-        let pending_tx = call.send().await?;
-        // We need the retry to parse the deployment event. At the time of this writing, it's a bug
-        // in current FEVM that without the retries, events are not picked up.
-        // See https://github.com/filecoin-project/community/discussions/638 for more info and updates.
-        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
-        match receipt {
-            Some(r) => {
-                for log in r.logs {
-                    log::debug!("log: {log:?}");
+        call.send().await?.await?;
 
-                    match ethers_contract::parse_log::<subnet_registry::SubnetDeployedFilter>(log) {
-                        Ok(subnet_deploy) => {
-                            let subnet_registry::SubnetDeployedFilter {
-                                subnet_addr,
-                                subnet_id,
-                            } = subnet_deploy;
-
-                            log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
-                            return ethers_address_to_fil_address(&subnet_addr);
-                        }
-                        Err(_) => {
-                            log::debug!("no event for subnet actor published yet, continue");
-                            continue;
-                        }
-                    }
-                }
-                Err(anyhow!("no logs receipt"))
+        // getting the address
+        let sender = match self.eth_client.default_sender() {
+            Some(sender) => sender,
+            None => {
+                return Err(anyhow!("no default sender in eth client"));
             }
-            None => Err(anyhow!("no receipt for event, txn not successful")),
-        }
+        };
+        let subnet_addr = self
+            .registry_contract
+            .latest_subnet_deployed(sender)
+            .call()
+            .await?;
+
+        ethers_address_to_fil_address(&subnet_addr)
     }
 
     async fn join_subnet(
