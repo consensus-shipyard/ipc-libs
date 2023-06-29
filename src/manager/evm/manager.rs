@@ -276,7 +276,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let mut validators = vec![];
         for v in evm_validator_set.validators.into_iter() {
             validators.push(Validator {
-                addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
+                // using worker address instead of `addr` as this is the FIL address submitted
+                // for the validators and the address that validator membership can understand currently.
+                addr: Address::try_from(v.worker_addr.clone())?.to_string(),
                 net_addr: v.net_addresses,
                 worker_addr: Some(Address::try_from(v.worker_addr)?.to_string()),
                 weight: v.weight.to_string(),
