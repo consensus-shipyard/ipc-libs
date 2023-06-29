@@ -474,7 +474,11 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         Ok(self.gateway_contract.top_down_check_period().call().await? as ChainEpoch)
     }
 
-    async fn prev_bottom_up_checkpoint_hash(&self, subnet_id: &SubnetID, epoch: ChainEpoch) -> Result<[u8; 32]> {
+    async fn prev_bottom_up_checkpoint_hash(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<[u8; 32]> {
         let address = contract_address_from_subnet(subnet_id)?;
         let contract = SubnetContract::new(address, self.eth_client.clone());
         let (exists, hash) = contract
