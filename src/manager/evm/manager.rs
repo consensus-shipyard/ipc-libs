@@ -87,22 +87,34 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         log::info!("creating subnet on evm with params: {params:?}");
 
         let call = self.registry_contract.new_subnet_actor(params);
-        call.send().await?.await?;
+        let pending_tx = call.send().await?;
+        // We need the retry to parse the deployment event. At the time of this writing, it's a bug
+        // in current FEVM that without the retries, events are not picked up.
+        // See https://github.com/filecoin-project/community/discussions/638 for more info and updates.
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        match receipt {
+            Some(r) => {
+                for log in r.logs {
+                    log::debug!("log: {log:?}");
 
-        // getting the address
-        let sender = match self.eth_client.default_sender() {
-            Some(sender) => sender,
-            None => {
-                return Err(anyhow!("no default sender in eth client"));
+                    match ethers_contract::parse_log::<subnet_registry::SubnetDeployedFilter>(log) {
+                        Ok(subnet_deploy) => {
+                            let subnet_registry::SubnetDeployedFilter { subnet_addr } =
+                                subnet_deploy;
+
+                            log::debug!("subnet deployed at {subnet_addr:?}");
+                            return ethers_address_to_fil_address(&subnet_addr);
+                        }
+                        Err(_) => {
+                            log::debug!("no event for subnet actor published yet, continue");
+                            continue;
+                        }
+                    }
+                }
+                Err(anyhow!("no logs receipt"))
             }
-        };
-        let subnet_addr = self
-            .registry_contract
-            .latest_subnet_deployed(sender)
-            .call()
-            .await?;
-
-        ethers_address_to_fil_address(&subnet_addr)
+            None => Err(anyhow!("no receipt for event, txn not successful")),
+        }
     }
 
     async fn join_subnet(
@@ -276,9 +288,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let mut validators = vec![];
         for v in evm_validator_set.validators.into_iter() {
             validators.push(Validator {
-                // using worker address instead of `addr` as this is the FIL address submitted
-                // for the validators and the address that validator membership can understand currently.
-                addr: Address::try_from(v.worker_addr.clone())?.to_string(),
+                addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
                 net_addr: v.net_addresses,
                 worker_addr: Some(Address::try_from(v.worker_addr)?.to_string()),
                 weight: v.weight.to_string(),
