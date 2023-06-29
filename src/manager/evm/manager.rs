@@ -99,12 +99,10 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                     match ethers_contract::parse_log::<subnet_registry::SubnetDeployedFilter>(log) {
                         Ok(subnet_deploy) => {
-                            let subnet_registry::SubnetDeployedFilter {
-                                subnet_addr,
-                                subnet_id,
-                            } = subnet_deploy;
+                            let subnet_registry::SubnetDeployedFilter { subnet_addr } =
+                                subnet_deploy;
 
-                            log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
+                            log::debug!("subnet deployed at {subnet_addr:?}");
                             return ethers_address_to_fil_address(&subnet_addr);
                         }
                         Err(_) => {
@@ -179,22 +177,56 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
     async fn fund(
         &self,
-        _subnet: SubnetID,
-        _gateway_addr: Address,
+        subnet: SubnetID,
+        gateway_addr: Address,
         _from: Address,
-        _amount: TokenAmount,
+        amount: TokenAmount,
     ) -> Result<ChainEpoch> {
-        todo!()
+        self.ensure_same_gateway(&gateway_addr)?;
+
+        let value = amount
+            .atto()
+            .to_u128()
+            .ok_or_else(|| anyhow!("invalid value to fund"))?;
+
+        log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}");
+
+        let route = agent_subnet_to_evm_addresses(&subnet)?;
+        log::debug!("routes to fund: {route:?}");
+
+        let mut txn = self.gateway_contract.fund(gateway::SubnetID {
+            root: subnet.root_id(),
+            route,
+        });
+        txn.tx.set_value(value);
+
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn release(
         &self,
         _subnet: SubnetID,
-        _gateway_addr: Address,
+        gateway_addr: Address,
         _from: Address,
-        _amount: TokenAmount,
+        amount: TokenAmount,
     ) -> Result<ChainEpoch> {
-        todo!()
+        self.ensure_same_gateway(&gateway_addr)?;
+
+        let value = amount
+            .atto()
+            .to_u128()
+            .ok_or_else(|| anyhow!("invalid value to fund"))?;
+
+        log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}");
+
+        let mut txn = self.gateway_contract.release();
+        txn.tx.set_value(value);
+
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn propagate(
@@ -469,9 +501,14 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         Ok(self.gateway_contract.top_down_check_period().call().await? as ChainEpoch)
     }
 
-    async fn prev_bottom_up_checkpoint_hash(&self, epoch: ChainEpoch) -> Result<[u8; 32]> {
-        let (exists, hash) = self
-            .gateway_contract
+    async fn prev_bottom_up_checkpoint_hash(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<[u8; 32]> {
+        let address = contract_address_from_subnet(subnet_id)?;
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        let (exists, hash) = contract
             .bottom_up_checkpoint_hash_at_epoch(epoch as u64)
             .await?;
         if !exists {

@@ -94,7 +94,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
         self.parent_fevm_manager
-            .gateway_last_voting_executed_epoch()
+            .subnet_last_voting_executed_epoch(&self.child.id)
             .await
     }
 
@@ -132,7 +132,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
         let prev_epoch = epoch - self.checkpoint_period;
         checkpoint.prev_hash = self
             .parent_fevm_manager
-            .prev_bottom_up_checkpoint_hash(prev_epoch)
+            .prev_bottom_up_checkpoint_hash(&self.child.id, prev_epoch)
             .await?;
 
         self.parent_fevm_manager
