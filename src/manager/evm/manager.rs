@@ -189,7 +189,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u128()
             .ok_or_else(|| anyhow!("invalid value to fund"))?;
 
-        log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}");
+        log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}, original: {amount:?}");
 
         let route = agent_subnet_to_evm_addresses(&subnet)?;
         log::debug!("routes to fund: {route:?}");
