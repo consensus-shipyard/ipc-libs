@@ -36,12 +36,18 @@ impl TryFrom<CheckData> for crate::manager::evm::subnet_contract::BottomUpCheckp
             .cross_msgs
             .unwrap_or_default()
             .into_iter()
-            .map(crate::manager::evm::subnet_contract::CrossMsg::try_from)
+            .map(|i| {
+                crate::manager::evm::subnet_contract::CrossMsg::try_from(i)
+                    .map_err(|e| anyhow!("cannot convert cross msg due to: {e:}"))
+            })
             .collect::<Result<Vec<_>, _>>()?;
         let children = check_data
             .children
             .into_iter()
-            .map(crate::manager::evm::subnet_contract::ChildCheck::try_from)
+            .map(|i| {
+                crate::manager::evm::subnet_contract::ChildCheck::try_from(i)
+                    .map_err(|e| anyhow!("cannot convert child check due to: {e:}"))
+            })
             .collect::<Result<Vec<_>, _>>()?;
 
         let b = crate::manager::evm::subnet_contract::BottomUpCheckpoint {
@@ -65,7 +71,8 @@ impl TryFrom<CrossMsg> for crate::manager::evm::subnet_contract::CrossMsg {
     fn try_from(value: CrossMsg) -> Result<Self, Self::Error> {
         let c = crate::manager::evm::subnet_contract::CrossMsg {
             wrapped: value.wrapped,
-            message: crate::manager::evm::subnet_contract::StorableMsg::try_from(value.msg)?,
+            message: crate::manager::evm::subnet_contract::StorableMsg::try_from(value.msg)
+                .map_err(|e| anyhow!("cannot convert storable msg due to: {e:}"))?,
         };
         Ok(c)
     }
@@ -87,9 +94,12 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
 
     fn try_from(value: StorableMsg) -> Result<Self, Self::Error> {
         let c = crate::manager::evm::subnet_contract::StorableMsg {
-            from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)?,
-            to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)?,
-            value: U256::from_str(&value.value.atto().to_string())?,
+            from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)
+                .map_err(|e| anyhow!("cannot convert `from` ipc address msg due to: {e:}"))?,
+            to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)
+                .map_err(|e| anyhow!("cannot convert `to`` ipc address due to: {e:}"))?,
+            value: U256::from_str(&value.value.atto().to_string())
+                .map_err(|e| anyhow!("cannot convert value due to: {e:}"))?,
             nonce: value.nonce,
             // FIXME: we might a better way to handle the encoding of methods and params according to the type of message the cross-net message is targetting.
             method: (value.method as u32).to_be_bytes(),
@@ -104,7 +114,8 @@ impl TryFrom<ChildCheck> for crate::manager::evm::subnet_contract::ChildCheck {
 
     fn try_from(value: ChildCheck) -> Result<Self, Self::Error> {
         let c = crate::manager::evm::subnet_contract::ChildCheck {
-            source: crate::manager::evm::subnet_contract::SubnetID::try_from(&value.source)?,
+            source: crate::manager::evm::subnet_contract::SubnetID::try_from(&value.source)
+                .map_err(|e| anyhow!("cannot convert subnet id due to: {e:}"))?,
             checks: value
                 .checks
                 .iter()
