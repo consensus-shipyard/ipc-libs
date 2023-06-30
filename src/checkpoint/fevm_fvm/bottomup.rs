@@ -121,6 +121,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
                     self.child.id
                 )
             })?;
+        log::info!("bottom up template: {template:?}");
 
         let mut checkpoint =
             crate::manager::evm::subnet_contract::BottomUpCheckpoint::try_from(template)?;
@@ -134,6 +135,8 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
             .parent_fevm_manager
             .prev_bottom_up_checkpoint_hash(&self.child.id, prev_epoch)
             .await?;
+
+        log::info!("bottom up checkpoint to submit: {checkpoint:?}");
 
         self.parent_fevm_manager
             .submit_bottom_up_checkpoint(checkpoint)

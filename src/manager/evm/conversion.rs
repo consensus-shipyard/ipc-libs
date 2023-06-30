@@ -31,12 +31,25 @@ impl TryFrom<CheckData> for crate::manager::evm::subnet_contract::BottomUpCheckp
     type Error = anyhow::Error;
 
     fn try_from(check_data: CheckData) -> Result<Self, Self::Error> {
+        let cross_msgs = check_data
+            .cross_msgs
+            .cross_msgs
+            .unwrap_or_default()
+            .into_iter()
+            .map(crate::manager::evm::subnet_contract::CrossMsg::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+        let children = check_data
+            .children
+            .into_iter()
+            .map(crate::manager::evm::subnet_contract::ChildCheck::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+
         let b = crate::manager::evm::subnet_contract::BottomUpCheckpoint {
             source: crate::manager::evm::subnet_contract::SubnetID::try_from(&check_data.source)?,
             epoch: check_data.epoch as u64,
             fee: U256::from_str(&check_data.cross_msgs.fee.atto().to_string())?,
-            cross_msgs: vec![],
-            children: vec![],
+            cross_msgs,
+            children,
 
             // update these two parameters from caller
             prev_hash: [0; 32],
@@ -76,7 +89,7 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
         let c = crate::manager::evm::subnet_contract::StorableMsg {
             from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)?,
             to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)?,
-            value: ethers::core::types::U256::from_str(&value.value.atto().to_string())?,
+            value: U256::from_str(&value.value.atto().to_string())?,
             nonce: value.nonce,
             // FIXME: we might a better way to handle the encoding of methods and params according to the type of message the cross-net message is targetting.
             method: (value.method as u32).to_be_bytes(),
