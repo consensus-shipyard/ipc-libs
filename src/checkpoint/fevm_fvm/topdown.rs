@@ -126,9 +126,17 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
         epoch: ChainEpoch,
         validator: &Address,
     ) -> anyhow::Result<()> {
+        let nonce = gateway_state(&self.child_fvm_manager, &self.child)
+            .await?
+            .applied_topdown_nonce;
+        log::info!(
+            "child subnet: {:?} applied top down nonce: {nonce:}",
+            self.child.id
+        );
+
         let msgs = self
             .parent_fevm_manager
-            .top_down_msgs(&self.child.id, epoch)
+            .top_down_msgs(&self.child.id, epoch, nonce)
             .await?;
 
         log::info!("top down messages: {msgs:?}");

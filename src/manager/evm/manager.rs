@@ -322,7 +322,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let mut validators = vec![];
         for v in evm_validator_set.validators.into_iter() {
             validators.push(Validator {
-                addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
+                // we are using worker address here so that the fvm validator node can pick up
+                // the correct
+                addr: Address::try_from(v.worker_addr.clone())?.to_string(),
                 net_addr: v.net_addresses,
                 worker_addr: Some(Address::try_from(v.worker_addr)?.to_string()),
                 weight: v.weight.to_string(),
@@ -453,6 +455,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
+        nonce: u64,
     ) -> anyhow::Result<Vec<gateway::CrossMsg>> {
         let route = agent_subnet_to_evm_addresses(subnet_id)?;
         log::debug!("getting top down messages for route: {route:?}");
@@ -465,7 +468,10 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
             .gateway_contract
             .method::<_, Vec<gateway::CrossMsg>>(
                 "getTopDownMsgs",
-                gateway::GetTopDownMsgsCall { subnet_id },
+                gateway::GetTopDownMsgsCall {
+                    subnet_id,
+                    from_nonce: nonce,
+                },
             )
             .map_err(|e| anyhow!("cannot create the top down msg call: {e:}"))?
             .block(epoch as u64)

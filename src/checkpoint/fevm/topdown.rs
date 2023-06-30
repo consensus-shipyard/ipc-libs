@@ -3,7 +3,7 @@
 
 use crate::checkpoint::CheckpointManager;
 use crate::config::Subnet;
-use crate::manager::{gateway, EthManager};
+use crate::manager::EthManager;
 use async_trait::async_trait;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
@@ -99,22 +99,11 @@ impl<T: EthManager + Send + Sync> CheckpointManager for TopdownCheckpointManager
 
     async fn submit_checkpoint(
         &self,
-        epoch: ChainEpoch,
+        _epoch: ChainEpoch,
         // TODO: when we support more wallet addresses, we need this variable
         _validator: &Address,
     ) -> anyhow::Result<()> {
-        let msgs = self
-            .parent_manager
-            .top_down_msgs(&self.child_subnet.id, epoch)
-            .await?;
-        let checkpoint = gateway::TopDownCheckpoint {
-            epoch: epoch as u64,
-            top_down_msgs: msgs,
-        };
-        self.child_manager
-            .submit_top_down_checkpoint(checkpoint)
-            .await?;
-        Ok(())
+        todo!()
     }
 
     async fn should_submit_in_epoch(
