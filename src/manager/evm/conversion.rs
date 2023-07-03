@@ -15,6 +15,7 @@ use ipc_gateway::checkpoint::{CheckData, ChildCheck};
 use ipc_gateway::{BottomUpCheckpoint, CrossMsg, StorableMsg};
 use ipc_sdk::address::IPCAddress;
 use ipc_sdk::subnet_id::SubnetID;
+use num_traits::ToPrimitive;
 use std::str::FromStr;
 
 impl TryFrom<BottomUpCheckpoint> for crate::manager::evm::subnet_contract::BottomUpCheckpoint {
@@ -93,10 +94,18 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
     type Error = anyhow::Error;
 
     fn try_from(value: StorableMsg) -> Result<Self, Self::Error> {
+        let msg_value = U256::from(
+            value
+                .value
+                .atto()
+                .to_u128()
+                .ok_or_else(|| anyhow!("cannot convert value: {:?}", value.value))?,
+        );
+
         log::info!(
             "storable message token amount: {:}, converted: {:?}",
             value.value.atto().to_string(),
-            U256::from_str(&value.value.atto().to_string())?
+            msg_value
         );
 
         let c = crate::manager::evm::subnet_contract::StorableMsg {
@@ -120,8 +129,7 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
                     "0xeC2804Dd9B992C10396b5Af176f06923d984D90e",
                 )?,
             },
-            value: U256::from_str(&value.value.atto().to_string())
-                .map_err(|e| anyhow!("cannot convert value due to: {e:}"))?,
+            value: msg_value,
             nonce: value.nonce,
             // FIXME: we might a better way to handle the encoding of methods and params according to the type of message the cross-net message is targetting.
             method: (value.method as u32).to_be_bytes(),
