@@ -94,10 +94,18 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
 
     fn try_from(value: StorableMsg) -> Result<Self, Self::Error> {
         let c = crate::manager::evm::subnet_contract::StorableMsg {
-            from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)
-                .map_err(|e| anyhow!("cannot convert `from` ipc address msg due to: {e:}"))?,
-            to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)
-                .map_err(|e| anyhow!("cannot convert `to`` ipc address due to: {e:}"))?,
+            // from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)
+            //     .map_err(|e| anyhow!("cannot convert `from` ipc address msg due to: {e:}"))?,
+            // to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)
+            //     .map_err(|e| anyhow!("cannot convert `to`` ipc address due to: {e:}"))?,
+            from: crate::manager::evm::subnet_contract::Ipcaddress {
+                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(&value.from.subnet()?)?,
+                raw_address: ethers::types::Address::from_str("0x1A79385eAd0e873FE0C441C034636D3Edf7014cC")?,
+            },
+            to: crate::manager::evm::subnet_contract::Ipcaddress {
+                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(&value.from.subnet()?)?,
+                raw_address: ethers::types::Address::from_str("0x0000000000000000000000000000000000000000")?,
+            },
             value: U256::from_str(&value.value.atto().to_string())
                 .map_err(|e| anyhow!("cannot convert value due to: {e:}"))?,
             nonce: value.nonce,
