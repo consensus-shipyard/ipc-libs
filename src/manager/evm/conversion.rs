@@ -93,6 +93,8 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
     type Error = anyhow::Error;
 
     fn try_from(value: StorableMsg) -> Result<Self, Self::Error> {
+        log::info!("storable message token amount: {:}", value.value.atto().to_string());
+
         let c = crate::manager::evm::subnet_contract::StorableMsg {
             // from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)
             //     .map_err(|e| anyhow!("cannot convert `from` ipc address msg due to: {e:}"))?,
