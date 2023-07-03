@@ -93,7 +93,11 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
     type Error = anyhow::Error;
 
     fn try_from(value: StorableMsg) -> Result<Self, Self::Error> {
-        log::info!("storable message token amount: {:}", value.value.atto().to_string());
+        log::info!(
+            "storable message token amount: {:}, converted: {:?}",
+            value.value.atto().to_string(),
+            U256::from_str(&value.value.atto().to_string())?
+        );
 
         let c = crate::manager::evm::subnet_contract::StorableMsg {
             // from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)
@@ -101,12 +105,20 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
             // to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)
             //     .map_err(|e| anyhow!("cannot convert `to`` ipc address due to: {e:}"))?,
             from: crate::manager::evm::subnet_contract::Ipcaddress {
-                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(&value.from.subnet()?)?,
-                raw_address: ethers::types::Address::from_str("0x1A79385eAd0e873FE0C441C034636D3Edf7014cC")?,
+                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
+                    &value.from.subnet()?,
+                )?,
+                raw_address: ethers::types::Address::from_str(
+                    "0x1A79385eAd0e873FE0C441C034636D3Edf7014cC",
+                )?,
             },
             to: crate::manager::evm::subnet_contract::Ipcaddress {
-                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(&value.to.subnet()?)?,
-                raw_address: ethers::types::Address::from_str("0xeC2804Dd9B992C10396b5Af176f06923d984D90e")?,
+                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
+                    &value.to.subnet()?,
+                )?,
+                raw_address: ethers::types::Address::from_str(
+                    "0xeC2804Dd9B992C10396b5Af176f06923d984D90e",
+                )?,
             },
             value: U256::from_str(&value.value.atto().to_string())
                 .map_err(|e| anyhow!("cannot convert value due to: {e:}"))?,
