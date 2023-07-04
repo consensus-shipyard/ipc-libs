@@ -56,6 +56,7 @@ pub trait SubnetManager: Send + Sync {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch>;
 
@@ -66,6 +67,7 @@ pub trait SubnetManager: Send + Sync {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch>;
 

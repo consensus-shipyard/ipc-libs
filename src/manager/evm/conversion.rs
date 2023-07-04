@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: MIT
 //! Type conversion between evm and fvm
 
-use crate::manager::evm::manager::{
-    agent_subnet_to_evm_addresses, ethers_address_to_fil_address, payload_to_evm_address,
-};
+use crate::manager::evm::manager::{agent_subnet_to_evm_addresses, ethers_address_to_fil_address};
 use anyhow::anyhow;
+use ethers::abi::{ParamType, Token};
 use ethers::types::U256;
 use fvm_ipld_encoding::RawBytes;
-use fvm_shared::address::Address;
+use fvm_shared::address::{Address, Payload};
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use ipc_gateway::checkpoint::{CheckData, ChildCheck};
@@ -85,7 +84,9 @@ impl TryFrom<IPCAddress> for crate::manager::evm::subnet_contract::Ipcaddress {
     fn try_from(value: IPCAddress) -> Result<Self, Self::Error> {
         Ok(crate::manager::evm::subnet_contract::Ipcaddress {
             subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(&value.subnet()?)?,
-            raw_address: payload_to_evm_address(value.raw_addr()?.payload())?,
+            raw_address: crate::manager::evm::subnet_contract::FvmAddress::try_from(
+                value.raw_addr()?,
+            )?,
         })
     }
 }
@@ -109,26 +110,26 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
         );
 
         let c = crate::manager::evm::subnet_contract::StorableMsg {
-            // from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)
-            //     .map_err(|e| anyhow!("cannot convert `from` ipc address msg due to: {e:}"))?,
-            // to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)
-            //     .map_err(|e| anyhow!("cannot convert `to`` ipc address due to: {e:}"))?,
-            from: crate::manager::evm::subnet_contract::Ipcaddress {
-                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
-                    &value.from.subnet()?,
-                )?,
-                raw_address: ethers::types::Address::from_str(
-                    "0x1A79385eAd0e873FE0C441C034636D3Edf7014cC",
-                )?,
-            },
-            to: crate::manager::evm::subnet_contract::Ipcaddress {
-                subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
-                    &value.to.subnet()?,
-                )?,
-                raw_address: ethers::types::Address::from_str(
-                    "0xeC2804Dd9B992C10396b5Af176f06923d984D90e",
-                )?,
-            },
+            from: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.from)
+                .map_err(|e| anyhow!("cannot convert `from` ipc address msg due to: {e:}"))?,
+            to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)
+                .map_err(|e| anyhow!("cannot convert `to`` ipc address due to: {e:}"))?,
+            // from: crate::manager::evm::subnet_contract::Ipcaddress {
+            //     subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
+            //         &value.from.subnet()?,
+            //     )?,
+            //     raw_address: ethers::types::Address::from_str(
+            //         "0x1A79385eAd0e873FE0C441C034636D3Edf7014cC",
+            //     )?,
+            // },
+            // to: crate::manager::evm::subnet_contract::Ipcaddress {
+            //     subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
+            //         &value.to.subnet()?,
+            //     )?,
+            //     raw_address: ethers::types::Address::from_str(
+            //         "0xeC2804Dd9B992C10396b5Af176f06923d984D90e",
+            //     )?,
+            // },
             value: msg_value,
             nonce: value.nonce,
             // FIXME: we might a better way to handle the encoding of methods and params according to the type of message the cross-net message is targetting.
@@ -179,20 +180,63 @@ impl TryFrom<crate::manager::evm::subnet_contract::FvmAddress> for Address {
         value: crate::manager::evm::subnet_contract::FvmAddress,
     ) -> Result<Self, Self::Error> {
         let protocol = value.addr_type;
-        let addr = match protocol {
-            1 => Address::from_bytes(
-                &[[1u8].as_slice(), value.payload.to_vec().as_slice()].concat(),
-            )?,
-            _ => return Err(anyhow!("address not support now")),
-        };
+        let addr = bytes_to_fvm_addr(protocol, &value.payload)?;
         Ok(addr)
     }
 }
+
+fn bytes_to_fvm_addr(protocol: u8, bytes: &[u8]) -> anyhow::Result<Address> {
+    let addr = match protocol {
+        1 => Address::from_bytes(&[[1u8].as_slice(), bytes].concat())?,
+        4 => {
+            let mut data = ethers::abi::decode(
+                &[ParamType::Uint(32), ParamType::Uint(32), ParamType::Bytes],
+                bytes,
+            )?;
+
+            let raw_bytes = data
+                .pop()
+                .ok_or_else(|| anyhow!("invalid length, should be 3"))?
+                .into_bytes()
+                .ok_or_else(|| anyhow!("invalid bytes"))?;
+            let len = data
+                .pop()
+                .ok_or_else(|| anyhow!("invalid length, should be 3"))?
+                .into_uint()
+                .ok_or_else(|| anyhow!("invalid uint"))?
+                .as_u128();
+            let namespace = data
+                .pop()
+                .ok_or_else(|| anyhow!("invalid length, should be 3"))?
+                .into_uint()
+                .ok_or_else(|| anyhow!("invalid uint"))?
+                .as_u64();
+
+            if len as usize != raw_bytes.len() {
+                return Err(anyhow!("bytes len not match"));
+            }
+            Address::new_delegated(namespace, &raw_bytes)?
+        }
+        _ => return Err(anyhow!("address not support now")),
+    };
+    Ok(addr)
+}
+
+impl TryFrom<crate::manager::evm::gateway::FvmAddress> for Address {
+    type Error = anyhow::Error;
+
+    fn try_from(value: crate::manager::evm::gateway::FvmAddress) -> Result<Self, Self::Error> {
+        let protocol = value.addr_type;
+        let addr = bytes_to_fvm_addr(protocol, &value.payload)?;
+        Ok(addr)
+    }
+}
+
 impl From<Address> for crate::manager::evm::subnet_contract::FvmAddress {
     fn from(value: Address) -> Self {
         crate::manager::evm::subnet_contract::FvmAddress {
             addr_type: value.protocol() as u8,
-            payload: ethers::core::types::Bytes::from(value.payload_bytes()),
+            payload: addr_payload_to_bytes(value.into_payload()),
         }
     }
 }
@@ -207,6 +251,33 @@ impl TryFrom<crate::manager::evm::gateway::SubnetID> for SubnetID {
             .map(ethers_address_to_fil_address)
             .collect::<anyhow::Result<Vec<_>>>()?;
         Ok(SubnetID::new(value.root, children))
+    }
+}
+
+fn addr_payload_to_bytes(payload: Payload) -> ethers::types::Bytes {
+    match payload {
+        Payload::Secp256k1(v) => ethers::types::Bytes::from(v),
+        Payload::Delegated(d) => {
+            let addr = d.subaddress();
+            let b = ethers::abi::encode(&[Token::Tuple(vec![
+                Token::Uint(U256::from(d.namespace())),
+                Token::Uint(U256::from(addr.len())),
+                Token::Bytes(addr.to_vec()),
+            ])]);
+            ethers::types::Bytes::from(b)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+impl TryFrom<Address> for crate::manager::evm::gateway::FvmAddress {
+    type Error = anyhow::Error;
+
+    fn try_from(subnet: Address) -> Result<Self, Self::Error> {
+        Ok(crate::manager::evm::gateway::FvmAddress {
+            addr_type: subnet.protocol() as u8,
+            payload: addr_payload_to_bytes(subnet.into_payload()),
+        })
     }
 }
 
@@ -225,10 +296,8 @@ impl TryFrom<crate::manager::evm::gateway::Ipcaddress> for IPCAddress {
     type Error = anyhow::Error;
 
     fn try_from(value: crate::manager::evm::gateway::Ipcaddress) -> Result<Self, Self::Error> {
-        let i = IPCAddress::new(
-            &SubnetID::try_from(value.subnet_id)?,
-            &ethers_address_to_fil_address(&value.raw_address)?,
-        )?;
+        let addr = Address::try_from(value.raw_address)?;
+        let i = IPCAddress::new(&SubnetID::try_from(value.subnet_id)?, &addr)?;
         Ok(i)
     }
 }

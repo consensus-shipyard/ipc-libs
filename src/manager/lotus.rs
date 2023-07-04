@@ -158,8 +158,13 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
+        if from != to {
+            return Err(anyhow!("fvm supports sending to self now only"));
+        }
+
         // When we perform the fund, we should send to the gateway of the subnet's parent
         let parent = subnet.parent().ok_or_else(|| anyhow!("cannot fund root"))?;
         if !self.is_network_match(&parent).await? {
@@ -186,8 +191,13 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
+        if from != to {
+            return Err(anyhow!("fvm supports sending to self now only"));
+        }
+
         // When we perform the release, we should send to the gateway of the subnet
         if !self.is_network_match(&subnet).await? {
             return Err(anyhow!(
