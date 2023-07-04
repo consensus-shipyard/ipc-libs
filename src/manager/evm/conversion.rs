@@ -190,9 +190,19 @@ fn bytes_to_fvm_addr(protocol: u8, bytes: &[u8]) -> anyhow::Result<Address> {
         1 => Address::from_bytes(&[[1u8].as_slice(), bytes].concat())?,
         4 => {
             let mut data = ethers::abi::decode(
-                &[ParamType::Uint(32), ParamType::Uint(32), ParamType::Bytes],
+                &[ParamType::Tuple(vec![
+                    ParamType::Uint(32),
+                    ParamType::Uint(32),
+                    ParamType::Bytes,
+                ])],
                 bytes,
             )?;
+
+            let mut data = data
+                .pop()
+                .ok_or_else(|| anyhow!("invalid tuple data length"))?
+                .into_tuple()
+                .ok_or_else(|| anyhow!("not tuple"))?;
 
             let raw_bytes = data
                 .pop()
@@ -327,5 +337,27 @@ impl TryFrom<crate::manager::evm::gateway::CrossMsg> for CrossMsg {
             msg: StorableMsg::try_from(value.message)?,
         };
         Ok(c)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::manager::evm::subnet_contract::FvmAddress;
+    use fvm_shared::address::Address;
+    use primitives::EthAddress;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_fvm_address_encoding() {
+        let test_evm_addr =
+            EthAddress::from_str("0x1A79385eAd0e873FE0C441C034636D3Edf7014cC").unwrap();
+        let addr = Address::from(test_evm_addr);
+
+        let fvm_address = FvmAddress::try_from(addr).unwrap();
+        assert_eq!(hex::encode(&fvm_address.payload), "0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000141a79385ead0e873fe0c441c034636d3edf7014cc000000000000000000000000");
+
+        let address = Address::try_from(fvm_address).unwrap();
+
+        assert_eq!(addr, address);
     }
 }
