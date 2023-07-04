@@ -60,6 +60,7 @@ ipc-identity = { path = "identity/." }
 
 [dev-dependencies]
 tempfile = "3.4.0"
+hex = "0.4.3"
 
 [workspace.dependencies]
 anyhow = "1.0"

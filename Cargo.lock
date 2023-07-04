@@ -2963,6 +2963,7 @@ dependencies = [
  "futures-util",
  "fvm_ipld_encoding 0.3.3",
  "fvm_shared 3.0.0-alpha.17",
+ "hex",
  "indoc",
  "ipc-gateway",
  "ipc-identity",
