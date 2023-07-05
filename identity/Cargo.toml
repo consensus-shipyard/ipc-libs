@@ -20,7 +20,7 @@ serde_ipld_dagcbor = "0.2"
 libc = "0.2"
 quickcheck = { workspace = true }
 quickcheck_macros = { workspace = true }
-bls-signatures = { version = "0.12", default-features = false, features = ["blst"] }
+bls-signatures = { version = "0.13.0", default-features = false, features = ["blst"] }
 serde_json = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }

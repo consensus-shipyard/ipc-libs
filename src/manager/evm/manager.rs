@@ -180,6 +180,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         subnet: SubnetID,
         gateway_addr: Address,
         _from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         self.ensure_same_gateway(&gateway_addr)?;
@@ -191,13 +192,12 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}, original: {amount:?}");
 
-        let route = agent_subnet_to_evm_addresses(&subnet)?;
-        log::debug!("routes to fund: {route:?}");
+        let evm_subnet_id = gateway::SubnetID::try_from(&subnet)?;
+        log::debug!("evm subnet id to fund: {evm_subnet_id:?}");
 
-        let mut txn = self.gateway_contract.fund(gateway::SubnetID {
-            root: subnet.root_id(),
-            route,
-        });
+        let mut txn = self
+            .gateway_contract
+            .fund(evm_subnet_id, gateway::FvmAddress::try_from(to)?);
         txn.tx.set_value(value);
 
         let pending_tx = txn.send().await?;
@@ -210,6 +210,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         _subnet: SubnetID,
         gateway_addr: Address,
         _from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         self.ensure_same_gateway(&gateway_addr)?;
@@ -221,7 +222,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}");
 
-        let mut txn = self.gateway_contract.release();
+        let mut txn = self
+            .gateway_contract
+            .release(gateway::FvmAddress::try_from(to)?);
         txn.tx.set_value(value);
 
         let pending_tx = txn.send().await?;

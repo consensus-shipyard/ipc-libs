@@ -121,23 +121,33 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
                     self.child.id
                 )
             })?;
+        log::info!("bottom up template: {template:?}");
 
         let mut checkpoint =
-            crate::manager::evm::subnet_contract::BottomUpCheckpoint::try_from(template)?;
+            crate::manager::evm::subnet_contract::BottomUpCheckpoint::try_from(template)
+                .map_err(|e| anyhow!("cannot convert bottom up checkpoint due to: {e:}"))?;
 
-        let proof = create_proof(&self.child_fvm_manager, epoch).await?;
-        let proof_bytes = cbor::serialize(&proof, "fevm-fvm bottom up checkpoint proof")?.to_vec();
+        let proof = create_proof(&self.child_fvm_manager, epoch)
+            .await
+            .map_err(|e| anyhow!("cannot create proof due to: {e:}"))?;
+        let proof_bytes = cbor::serialize(&proof, "fevm-fvm bottom up checkpoint proof")
+            .map_err(|e| anyhow!("cannot serialized bottom up checkpoint due to: {e:}"))?
+            .to_vec();
         checkpoint.proof = ethers::types::Bytes::from(proof_bytes);
 
         let prev_epoch = epoch - self.checkpoint_period;
         checkpoint.prev_hash = self
             .parent_fevm_manager
             .prev_bottom_up_checkpoint_hash(&self.child.id, prev_epoch)
-            .await?;
+            .await
+            .map_err(|e| anyhow!("cannot get prev checkpoint hash due to: {e:}"))?;
+
+        log::info!("bottom up checkpoint to submit: {checkpoint:?}");
 
         self.parent_fevm_manager
             .submit_bottom_up_checkpoint(checkpoint)
-            .await?;
+            .await
+            .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
         Ok(())
     }
 

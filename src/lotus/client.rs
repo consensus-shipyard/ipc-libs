@@ -600,7 +600,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
         let message = fvm_shared::message::Message {
             version: msg
                 .version
-                .ok_or_else(|| anyhow!("version should not be empty"))? as i64,
+                .ok_or_else(|| anyhow!("version should not be empty"))? as u64,
             from: msg.from,
             to: msg.to,
             sequence: msg
@@ -615,7 +615,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 .ok_or_else(|| anyhow!("gas_limit should not be empty"))?
                 .atto()
                 .to_u64()
-                .unwrap() as i64,
+                .unwrap() as u64,
             gas_fee_cap: msg
                 .gas_fee_cap
                 .as_ref()

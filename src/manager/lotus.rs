@@ -12,7 +12,9 @@ use fil_actors_runtime::{builtin::singletons::INIT_ACTOR_ADDR, cbor};
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::METHOD_SEND;
 use fvm_shared::{address::Address, econ::TokenAmount, MethodNum};
-use ipc_gateway::{BottomUpCheckpoint, PropagateParams, WhitelistPropagatorParams};
+use ipc_gateway::{
+    BottomUpCheckpoint, FundParams, PropagateParams, ReleaseParams, WhitelistPropagatorParams,
+};
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::{types::MANIFEST_ID, ConstructParams, JoinParams};
@@ -158,6 +160,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         // When we perform the fund, we should send to the gateway of the subnet's parent
@@ -168,7 +171,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             ));
         }
 
-        let fund_params = cbor::serialize(&subnet, "fund subnet actor params")?;
+        let fund_params = cbor::serialize(&FundParams { subnet, to }, "fund subnet actor params")?;
         let mut message = MpoolPushMessage::new(
             gateway_addr,
             from,
@@ -176,7 +179,6 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             fund_params.to_vec(),
         );
         message.value = amount;
-
         let r = self.mpool_push_and_wait(message).await?;
         Ok(r.height as ChainEpoch)
     }
@@ -186,6 +188,7 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         // When we perform the release, we should send to the gateway of the subnet
@@ -195,11 +198,12 @@ impl<T: JsonRpcClient + Send + Sync> SubnetManager for LotusSubnetManager<T> {
             ));
         }
 
+        let release_params = cbor::serialize(&ReleaseParams { to }, "fund subnet actor params")?;
         let mut message = MpoolPushMessage::new(
             gateway_addr,
             from,
             ipc_gateway::Method::Release as MethodNum,
-            vec![],
+            release_params.to_vec(),
         );
         message.value = amount;
 

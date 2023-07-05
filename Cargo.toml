@@ -60,6 +60,7 @@ ipc-identity = { path = "identity/." }
 
 [dev-dependencies]
 tempfile = "3.4.0"
+hex = "0.4.3"
 
 [workspace.dependencies]
 anyhow = "1.0"
@@ -78,9 +79,9 @@ blake2b_simd = "1.0"
 rand = "0.8"
 serde_json = { version = "1.0.91", features = ["raw_value"] }
 
-fvm_ipld_blockstore = "0.1"
-fvm_ipld_encoding = "0.3"
-fvm_shared = { version = "=3.0.0-alpha.17", default-features = false, features = ["crypto"] }
+fvm_ipld_blockstore = "0.1.1"
+fvm_ipld_encoding = "0.3.3"
+fvm_shared = { version = "=3.2.0", default-features = false, features = ["crypto"] }
 fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }
 ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git" }
 ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
