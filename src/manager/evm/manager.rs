@@ -180,6 +180,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         subnet: SubnetID,
         gateway_addr: Address,
         _from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         self.ensure_same_gateway(&gateway_addr)?;
@@ -189,15 +190,14 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
             .to_u128()
             .ok_or_else(|| anyhow!("invalid value to fund"))?;
 
-        log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}");
+        log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}, original: {amount:?}");
 
-        let route = agent_subnet_to_evm_addresses(&subnet)?;
-        log::debug!("routes to fund: {route:?}");
+        let evm_subnet_id = gateway::SubnetID::try_from(&subnet)?;
+        log::debug!("evm subnet id to fund: {evm_subnet_id:?}");
 
-        let mut txn = self.gateway_contract.fund(gateway::SubnetID {
-            root: subnet.root_id(),
-            route,
-        });
+        let mut txn = self
+            .gateway_contract
+            .fund(evm_subnet_id, gateway::FvmAddress::try_from(to)?);
         txn.tx.set_value(value);
 
         let pending_tx = txn.send().await?;
@@ -210,6 +210,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         _subnet: SubnetID,
         gateway_addr: Address,
         _from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch> {
         self.ensure_same_gateway(&gateway_addr)?;
@@ -221,7 +222,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}");
 
-        let mut txn = self.gateway_contract.release();
+        let mut txn = self
+            .gateway_contract
+            .release(gateway::FvmAddress::try_from(to)?);
         txn.tx.set_value(value);
 
         let pending_tx = txn.send().await?;
@@ -322,7 +325,9 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let mut validators = vec![];
         for v in evm_validator_set.validators.into_iter() {
             validators.push(Validator {
-                addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
+                // we are using worker address here so that the fvm validator node can pick up
+                // the correct one used by the Mir validator.
+                addr: Address::try_from(v.worker_addr.clone())?.to_string(),
                 net_addr: v.net_addresses,
                 worker_addr: Some(Address::try_from(v.worker_addr)?.to_string()),
                 weight: v.weight.to_string(),
@@ -453,6 +458,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
+        nonce: u64,
     ) -> anyhow::Result<Vec<gateway::CrossMsg>> {
         let route = agent_subnet_to_evm_addresses(subnet_id)?;
         log::debug!("getting top down messages for route: {route:?}");
@@ -465,7 +471,10 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
             .gateway_contract
             .method::<_, Vec<gateway::CrossMsg>>(
                 "getTopDownMsgs",
-                gateway::GetTopDownMsgsCall { subnet_id },
+                gateway::GetTopDownMsgsCall {
+                    subnet_id,
+                    from_nonce: nonce,
+                },
             )
             .map_err(|e| anyhow!("cannot create the top down msg call: {e:}"))?
             .block(epoch as u64)

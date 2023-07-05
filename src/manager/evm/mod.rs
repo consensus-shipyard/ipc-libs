@@ -64,6 +64,7 @@ pub trait EthManager: SubnetManager {
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
+        nonce: u64,
     ) -> anyhow::Result<Vec<gateway::CrossMsg>>;
 
     /// Get the list of validators in a subnet
