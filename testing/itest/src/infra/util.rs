@@ -53,6 +53,7 @@ pub async fn join_subnet(
         from: Some(from),
         collateral,
         validator_net_addr,
+        worker_addr: None,
     };
     client.join_subnet(params).await
 }

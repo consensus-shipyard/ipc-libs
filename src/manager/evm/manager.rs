@@ -17,7 +17,7 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{ConstructParams, JoinParams};
+use ipc_subnet_actor::ConstructParams;
 use num_traits::ToPrimitive;
 use primitives::EthAddress;
 
@@ -99,12 +99,10 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
                     match ethers_contract::parse_log::<subnet_registry::SubnetDeployedFilter>(log) {
                         Ok(subnet_deploy) => {
-                            let subnet_registry::SubnetDeployedFilter {
-                                subnet_addr,
-                                subnet_id,
-                            } = subnet_deploy;
+                            let subnet_registry::SubnetDeployedFilter { subnet_addr } =
+                                subnet_deploy;
 
-                            log::debug!("subnet with id {subnet_id:?} deployed at {subnet_addr:?}");
+                            log::debug!("subnet deployed at {subnet_addr:?}");
                             return ethers_address_to_fil_address(&subnet_addr);
                         }
                         Err(_) => {
@@ -124,7 +122,8 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         subnet: SubnetID,
         _from: Address,
         collateral: TokenAmount,
-        params: JoinParams,
+        validator_net_addr: String,
+        worker_addr: Address,
     ) -> Result<()> {
         let collateral = collateral
             .atto()
@@ -138,7 +137,10 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
         let contract = SubnetContract::new(address, self.eth_client.clone());
 
-        let mut txn = contract.join(params.validator_net_addr);
+        let mut txn = contract.join(
+            validator_net_addr,
+            subnet_contract::FvmAddress::from(worker_addr),
+        );
         txn.tx.set_value(collateral);
 
         txn.send().await?.await?;
@@ -175,22 +177,59 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 
     async fn fund(
         &self,
-        _subnet: SubnetID,
-        _gateway_addr: Address,
+        subnet: SubnetID,
+        gateway_addr: Address,
         _from: Address,
-        _amount: TokenAmount,
+        to: Address,
+        amount: TokenAmount,
     ) -> Result<ChainEpoch> {
-        todo!()
+        self.ensure_same_gateway(&gateway_addr)?;
+
+        let value = amount
+            .atto()
+            .to_u128()
+            .ok_or_else(|| anyhow!("invalid value to fund"))?;
+
+        log::info!("fund with evm gateway contract: {gateway_addr:} with value: {value:}, original: {amount:?}");
+
+        let evm_subnet_id = gateway::SubnetID::try_from(&subnet)?;
+        log::debug!("evm subnet id to fund: {evm_subnet_id:?}");
+
+        let mut txn = self
+            .gateway_contract
+            .fund(evm_subnet_id, gateway::FvmAddress::try_from(to)?);
+        txn.tx.set_value(value);
+
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn release(
         &self,
         _subnet: SubnetID,
-        _gateway_addr: Address,
+        gateway_addr: Address,
         _from: Address,
-        _amount: TokenAmount,
+        to: Address,
+        amount: TokenAmount,
     ) -> Result<ChainEpoch> {
-        todo!()
+        self.ensure_same_gateway(&gateway_addr)?;
+
+        let value = amount
+            .atto()
+            .to_u128()
+            .ok_or_else(|| anyhow!("invalid value to fund"))?;
+
+        log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}");
+
+        let mut txn = self
+            .gateway_contract
+            .release(gateway::FvmAddress::try_from(to)?);
+        txn.tx.set_value(value);
+
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn propagate(
@@ -286,8 +325,11 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         let mut validators = vec![];
         for v in evm_validator_set.validators.into_iter() {
             validators.push(Validator {
-                addr: ethers_address_to_fil_address(&v.addr)?.to_string(),
+                // we are using worker address here so that the fvm validator node can pick up
+                // the correct one used by the Mir validator.
+                addr: Address::try_from(v.worker_addr.clone())?.to_string(),
                 net_addr: v.net_addresses,
+                worker_addr: Some(Address::try_from(v.worker_addr)?.to_string()),
                 weight: v.weight.to_string(),
             });
         }
@@ -416,22 +458,29 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
+        nonce: u64,
     ) -> anyhow::Result<Vec<gateway::CrossMsg>> {
         let route = agent_subnet_to_evm_addresses(subnet_id)?;
         log::debug!("getting top down messages for route: {route:?}");
 
+        let subnet_id = gateway::SubnetID {
+            root: subnet_id.root_id(),
+            route,
+        };
         let r = self
             .gateway_contract
             .method::<_, Vec<gateway::CrossMsg>>(
                 "getTopDownMsgs",
-                gateway::SubnetID {
-                    root: subnet_id.root_id(),
-                    route,
+                gateway::GetTopDownMsgsCall {
+                    subnet_id,
+                    from_nonce: nonce,
                 },
-            )?
+            )
+            .map_err(|e| anyhow!("cannot create the top down msg call: {e:}"))?
             .block(epoch as u64)
             .call()
-            .await?;
+            .await
+            .map_err(|e| anyhow!("cannot get evm top down messages: {e:}"))?;
         Ok(r)
     }
 
@@ -461,13 +510,23 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         Ok(self.gateway_contract.top_down_check_period().call().await? as ChainEpoch)
     }
 
-    async fn prev_bottom_up_checkpoint_hash(&self, epoch: ChainEpoch) -> Result<[u8; 32]> {
-        let (exists, hash) = self
-            .gateway_contract
+    async fn prev_bottom_up_checkpoint_hash(
+        &self,
+        subnet_id: &SubnetID,
+        epoch: ChainEpoch,
+    ) -> Result<[u8; 32]> {
+        let address = contract_address_from_subnet(subnet_id)?;
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        let (exists, hash) = contract
             .bottom_up_checkpoint_hash_at_epoch(epoch as u64)
             .await?;
         if !exists {
-            return Err(anyhow!("checkpoint does not exists"));
+            return if epoch == 0 {
+                // first ever epoch, return empty bytes
+                return Ok([0u8; 32]);
+            } else {
+                Err(anyhow!("checkpoint does not exists: {epoch:}"))
+            };
         }
         Ok(hash)
     }

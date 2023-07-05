@@ -10,6 +10,7 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_gateway::{CrossMsg, TopDownCheckpoint};
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 /// Top down checkpoint manager. It reads the state of parent subnet, FEVM, and commits to child subnet,
 /// FVM.
@@ -93,7 +94,20 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
     }
 
     async fn validators(&self) -> anyhow::Result<Vec<Address>> {
-        self.parent_fevm_manager.validators(&self.child.id).await
+        let r = self
+            .parent_fevm_manager
+            .get_validator_set(&self.child.id, self.parent.gateway_addr())
+            .await?;
+        if let Some(validators) = r.validator_set.validators {
+            let v = validators
+                .into_iter()
+                .map(|v| Address::from_str(&v.worker_addr.unwrap()))
+                .collect::<Result<Vec<_>, _>>()?;
+            log::info!("top down validators: {v:?}");
+            Ok(v)
+        } else {
+            Ok(vec![])
+        }
     }
 
     async fn last_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
@@ -112,10 +126,20 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
         epoch: ChainEpoch,
         validator: &Address,
     ) -> anyhow::Result<()> {
+        let nonce = gateway_state(&self.child_fvm_manager, &self.child)
+            .await?
+            .applied_topdown_nonce;
+        log::info!(
+            "child subnet: {:?} applied top down nonce: {nonce:}",
+            self.child.id
+        );
+
         let msgs = self
             .parent_fevm_manager
-            .top_down_msgs(&self.child.id, epoch)
+            .top_down_msgs(&self.child.id, epoch, nonce)
             .await?;
+
+        log::info!("top down messages: {msgs:?}");
 
         // we submit the topdown messages to the CHILD subnet.
         let topdown_checkpoint = TopDownCheckpoint {
@@ -125,10 +149,13 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
                 .map(CrossMsg::try_from)
                 .collect::<anyhow::Result<_>>()?,
         };
+
+        log::info!("top down checkpoint to submit: {topdown_checkpoint:?}");
+
         let submitted_epoch = self
             .child_fvm_manager
             .ipc_submit_top_down_checkpoint(
-                self.parent.gateway_addr(),
+                self.child.gateway_addr(),
                 validator,
                 topdown_checkpoint,
             )
