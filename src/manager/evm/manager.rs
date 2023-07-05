@@ -323,7 +323,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
         for v in evm_validator_set.validators.into_iter() {
             validators.push(Validator {
                 // we are using worker address here so that the fvm validator node can pick up
-                // the correct
+                // the correct one used by the Mir validator.
                 addr: Address::try_from(v.worker_addr.clone())?.to_string(),
                 net_addr: v.net_addresses,
                 worker_addr: Some(Address::try_from(v.worker_addr)?.to_string()),
