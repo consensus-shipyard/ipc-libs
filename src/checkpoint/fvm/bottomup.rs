@@ -61,15 +61,8 @@ impl<T: LotusClient + Send + Sync> BottomUpCheckpointManager<T> {
     }
 
     async fn proof(&self, epoch: ChainEpoch) -> anyhow::Result<Vec<u8>> {
-        let child_chain_head_tip_sets = self.child_client.chain_head().await?.cids;
-        if child_chain_head_tip_sets.is_empty() {
-            return Err(anyhow!(
-                "chain head has empty cid: {:}",
-                self.child_subnet.id
-            ));
-        }
         let proof = create_proof(&self.child_client, epoch).await?;
-        Ok(cbor::serialize(&proof, "bottom up checkpoint proof")?.to_vec())
+        Ok(cbor::serialize(&proof, "fvm bottom up checkpoint proof")?.to_vec())
     }
 }
 

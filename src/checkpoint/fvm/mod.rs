@@ -5,10 +5,24 @@ pub mod bottomup;
 pub mod topdown;
 
 use crate::config::Subnet;
+use crate::lotus::message::ipc::IPCReadGatewayStateResponse;
 use crate::lotus::LotusClient;
 use cid::Cid;
 use fvm_shared::address::Address;
 use std::str::FromStr;
+
+pub async fn gateway_state(
+    client: &(impl LotusClient + Sync),
+    subnet: &Subnet,
+) -> anyhow::Result<IPCReadGatewayStateResponse> {
+    let child_head = client.chain_head().await?;
+    let cid_map = child_head.cids.first().unwrap().clone();
+    let child_tip_set = Cid::try_from(cid_map)?;
+
+    client
+        .ipc_read_gateway_state(&subnet.gateway_addr(), child_tip_set)
+        .await
+}
 
 /// Returns the first cid in the chain head
 pub(crate) async fn chain_head_cid(client: &(impl LotusClient + Sync)) -> anyhow::Result<Cid> {

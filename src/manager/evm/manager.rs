@@ -397,6 +397,27 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
         let initialized = self.gateway_contract.initialized().call().await?;
         Ok(initialized)
     }
+
+    async fn subnet_bottom_up_checkpoint_period(&self, subnet_id: &SubnetID) -> Result<ChainEpoch> {
+        let address = last_evm_address(subnet_id)?;
+        let contract = SubnetContract::new(address, self.eth_client.clone());
+        Ok(contract.bottom_up_check_period().call().await? as ChainEpoch)
+    }
+
+    async fn gateway_top_down_check_period(&self) -> Result<ChainEpoch> {
+        Ok(self.gateway_contract.top_down_check_period().call().await? as ChainEpoch)
+    }
+
+    async fn prev_bottom_up_checkpoint_hash(&self, epoch: ChainEpoch) -> Result<[u8; 32]> {
+        let (exists, hash) = self
+            .gateway_contract
+            .bottom_up_checkpoint_hash_at_epoch(epoch as u64)
+            .await?;
+        if !exists {
+            return Err(anyhow!("checkpoint does not exists"));
+        }
+        Ok(hash)
+    }
 }
 
 impl<M: Middleware + Send + Sync + 'static> EthSubnetManager<M> {
@@ -427,7 +448,7 @@ impl EthSubnetManager<MiddlewareImpl> {
         let url = subnet.rpc_http().clone();
         let auth_token = subnet.auth_token();
 
-        let config = if let SubnetConfig::Evm(config) = &subnet.config {
+        let config = if let SubnetConfig::Fevm(config) = &subnet.config {
             config
         } else {
             return Err(anyhow!("not evm config"));
@@ -454,7 +475,7 @@ impl EthSubnetManager<MiddlewareImpl> {
     }
 }
 
-fn ethers_address_to_fil_address(addr: &ethers::types::Address) -> Result<Address> {
+pub(crate) fn ethers_address_to_fil_address(addr: &ethers::types::Address) -> Result<Address> {
     // subnet_addr.to_string() returns a summary of the actual Ethereum address, not
     // usable in the actual code.
     let raw_addr = format!("{addr:?}");
@@ -494,7 +515,9 @@ fn last_evm_address(subnet: &SubnetID) -> Result<ethers::types::Address> {
 
 /// Convert the ipc SubnetID type to a vec of evm addresses. It extracts all the children addresses
 /// in the subnet id and turns them as a vec of evm addresses.
-fn agent_subnet_to_evm_addresses(subnet: &SubnetID) -> Result<Vec<ethers::types::Address>> {
+pub(crate) fn agent_subnet_to_evm_addresses(
+    subnet: &SubnetID,
+) -> Result<Vec<ethers::types::Address>> {
     let children = subnet.children();
     children
         .iter()
@@ -503,7 +526,7 @@ fn agent_subnet_to_evm_addresses(subnet: &SubnetID) -> Result<Vec<ethers::types:
 }
 
 /// Util function to convert Fil address payload to evm address. Only delegated address is supported.
-fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
+pub(crate) fn payload_to_evm_address(payload: &Payload) -> Result<ethers::types::Address> {
     match payload {
         Payload::Delegated(delegated) => {
             let slice = delegated.subaddress();

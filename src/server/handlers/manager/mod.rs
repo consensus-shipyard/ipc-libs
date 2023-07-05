@@ -33,7 +33,7 @@ pub(crate) fn check_subnet(subnet: &Subnet) -> Result<()> {
                 return Err(anyhow!("Internal server error"));
             }
         }
-        SubnetConfig::Evm(_) => {
+        SubnetConfig::Fevm(_) => {
             // TODO: add more checks later
         }
     }

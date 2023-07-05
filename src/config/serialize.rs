@@ -157,7 +157,7 @@ mod tests {
         let subnet2 = Subnet {
             id: SubnetID::new_root(1234),
             network_name: "test2".to_string(),
-            config: SubnetConfig::Evm(EVMSubnet {
+            config: SubnetConfig::Fevm(EVMSubnet {
                 gateway_addr: Address::from(eth_addr1),
                 provider_http: "http://127.0.0.1:3030/rpc/v1".parse().unwrap(),
                 auth_token: None,

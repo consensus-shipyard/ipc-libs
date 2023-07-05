@@ -17,6 +17,40 @@ pub struct TopdownCheckpointManager<T> {
     checkpoint_period: ChainEpoch,
 }
 
+impl<T: EthManager + Send + Sync> TopdownCheckpointManager<T> {
+    pub fn new_with_period(
+        parent: Subnet,
+        parent_manager: T,
+        child_subnet: Subnet,
+        child_manager: T,
+        checkpoint_period: ChainEpoch,
+    ) -> Self {
+        Self {
+            parent_subnet: parent,
+            parent_manager,
+            child_subnet,
+            child_manager,
+            checkpoint_period,
+        }
+    }
+
+    pub async fn new(
+        parent: Subnet,
+        parent_manager: T,
+        child_subnet: Subnet,
+        child_manager: T,
+    ) -> anyhow::Result<Self> {
+        let checkpoint_period = child_manager.gateway_top_down_check_period().await?;
+        Ok(Self::new_with_period(
+            parent,
+            parent_manager,
+            child_subnet,
+            child_manager,
+            checkpoint_period,
+        ))
+    }
+}
+
 impl<T> Display for TopdownCheckpointManager<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -73,7 +107,7 @@ impl<T: EthManager + Send + Sync> CheckpointManager for TopdownCheckpointManager
             epoch: epoch as u64,
             top_down_msgs: msgs,
         };
-        self.parent_manager
+        self.child_manager
             .submit_top_down_checkpoint(checkpoint)
             .await?;
         Ok(())

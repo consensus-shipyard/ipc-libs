@@ -1,6 +1,7 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
+mod conversion;
 mod manager;
 
 use async_trait::async_trait;
@@ -70,4 +71,16 @@ pub trait EthManager: SubnetManager {
 
     /// Checks if the gateway is initialized
     async fn gateway_initialized(&self) -> anyhow::Result<bool>;
+
+    /// Get the subnet contract bottom up checkpoint period
+    async fn subnet_bottom_up_checkpoint_period(
+        &self,
+        subnet_id: &SubnetID,
+    ) -> anyhow::Result<ChainEpoch>;
+
+    /// Get the gateway contract top down checkpoint period
+    async fn gateway_top_down_check_period(&self) -> anyhow::Result<ChainEpoch>;
+
+    /// Get the previous checkpoint hash from the gateway
+    async fn prev_bottom_up_checkpoint_hash(&self, epoch: ChainEpoch) -> anyhow::Result<[u8; 32]>;
 }
