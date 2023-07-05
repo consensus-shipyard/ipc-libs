@@ -44,7 +44,11 @@ pub(crate) struct FundArgs {
     pub ipc_agent_url: Option<String>,
     #[arg(long, short, help = "The address to send funds from")]
     pub from: Option<String>,
-    #[arg(long, short, help = "The address to send funds to (if not set, amount sent to from address)")]
+    #[arg(
+        long,
+        short,
+        help = "The address to send funds to (if not set, amount sent to from address)"
+    )]
     pub to: Option<String>,
     #[arg(long, short, help = "The subnet to fund")]
     pub subnet: String,
