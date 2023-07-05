@@ -114,22 +114,6 @@ impl TryFrom<StorableMsg> for crate::manager::evm::subnet_contract::StorableMsg 
                 .map_err(|e| anyhow!("cannot convert `from` ipc address msg due to: {e:}"))?,
             to: crate::manager::evm::subnet_contract::Ipcaddress::try_from(value.to)
                 .map_err(|e| anyhow!("cannot convert `to`` ipc address due to: {e:}"))?,
-            // from: crate::manager::evm::subnet_contract::Ipcaddress {
-            //     subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
-            //         &value.from.subnet()?,
-            //     )?,
-            //     raw_address: ethers::types::Address::from_str(
-            //         "0x1A79385eAd0e873FE0C441C034636D3Edf7014cC",
-            //     )?,
-            // },
-            // to: crate::manager::evm::subnet_contract::Ipcaddress {
-            //     subnet_id: crate::manager::evm::subnet_contract::SubnetID::try_from(
-            //         &value.to.subnet()?,
-            //     )?,
-            //     raw_address: ethers::types::Address::from_str(
-            //         "0xeC2804Dd9B992C10396b5Af176f06923d984D90e",
-            //     )?,
-            // },
             value: msg_value,
             nonce: value.nonce,
             // FIXME: we might a better way to handle the encoding of methods and params according to the type of message the cross-net message is targetting.
@@ -185,6 +169,8 @@ impl TryFrom<crate::manager::evm::subnet_contract::FvmAddress> for Address {
     }
 }
 
+/// It takes the bytes from an FVMAddress represented in Solidity and
+/// converts it into the corresponding FVM address Rust type.
 fn bytes_to_fvm_addr(protocol: u8, bytes: &[u8]) -> anyhow::Result<Address> {
     let addr = match protocol {
         1 => Address::from_bytes(&[[1u8].as_slice(), bytes].concat())?,
@@ -264,6 +250,8 @@ impl TryFrom<crate::manager::evm::gateway::SubnetID> for SubnetID {
     }
 }
 
+/// Converts a Rust type FVM address into its underlying payload
+/// so it can be represented internally in a Solidity contract.
 fn addr_payload_to_bytes(payload: Payload) -> ethers::types::Bytes {
     match payload {
         Payload::Secp256k1(v) => ethers::types::Bytes::from(v),
