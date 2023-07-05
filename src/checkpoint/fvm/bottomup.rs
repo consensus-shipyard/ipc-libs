@@ -68,6 +68,10 @@ impl<T: LotusClient + Send + Sync> BottomUpCheckpointManager<T> {
 
 #[async_trait]
 impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManager<T> {
+    fn target_subnet(&self) -> &Subnet {
+        &self.parent
+    }
+
     fn parent_subnet(&self) -> &Subnet {
         &self.parent
     }
@@ -80,7 +84,7 @@ impl<T: LotusClient + Send + Sync> CheckpointManager for BottomUpCheckpointManag
         self.checkpoint_period
     }
 
-    async fn child_validators(&self) -> anyhow::Result<Vec<Address>> {
+    async fn validators(&self) -> anyhow::Result<Vec<Address>> {
         child_validators(&self.parent_client, &self.child_subnet).await
     }
 

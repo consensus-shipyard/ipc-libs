@@ -326,24 +326,19 @@ impl SubnetInfra {
         let mut admin_token = self.nodes.as_ref().unwrap()[0].create_admin_token().await?;
         trim_newline(&mut admin_token);
 
-        let c = match self.config.network_type {
-            NetworkType::Fvm => Subnet {
-                id: self.config.id.clone().unwrap(),
-                network_name: self.config.name.clone(),
-                config: ipc_agent::config::subnet::SubnetConfig::Fvm(FVMSubnet {
-                    gateway_addr: Address::from_str("t064")?,
-                    jsonrpc_api_http: format!(
-                        "http://127.0.0.1:{:}/rpc/v1",
-                        self.nodes.as_ref().unwrap()[0].node.tcp_port
-                    )
-                    .parse()?,
-                    auth_token: None,
-                    accounts,
-                }),
-            },
-            NetworkType::Evm => todo!(),
-        };
-
-        Ok(c)
+        Ok(Subnet {
+            id: self.config.id.clone().unwrap(),
+            network_name: self.config.name.clone(),
+            config: ipc_agent::config::subnet::SubnetConfig::Fvm(FVMSubnet {
+                gateway_addr: Address::from_str("t064")?,
+                jsonrpc_api_http: format!(
+                    "http://127.0.0.1:{:}/rpc/v1",
+                    self.nodes.as_ref().unwrap()[0].node.tcp_port
+                )
+                .parse()?,
+                auth_token: Some(admin_token),
+                accounts,
+            }),
+        })
     }
 }

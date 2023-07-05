@@ -8,6 +8,8 @@ use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
+use tokio::select;
+use tokio::signal::unix::{signal, SignalKind};
 
 #[tokio::main]
 async fn main() {
@@ -59,6 +61,28 @@ async fn run() -> anyhow::Result<()> {
     // wait for the validators to be mining
     sleep(Duration::from_secs(100));
     log::info!("wait for validators to be ready");
+
+    // forever running until kill or ctrl-c
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+    let mut sigint = signal(SignalKind::interrupt()).unwrap();
+    loop {
+        select! {
+            _ = sigterm.recv() => {
+                log::info!("Recieve SIGTERM");
+                break;
+            },
+            _ = sigint.recv() => {
+                log::info!("Recieve SIGTERM");
+                break;
+            },
+        };
+    }
+
+    infra.tear_down()?;
+    log::info!("infra tear down");
+
+    infra.remove_from_ipc_agent_config().await?;
+    log::info!("removed subnet from ipc agent config");
 
     infra.trigger_ipc_config_reload().await?;
     log::info!("triggered ipc agent config reload");

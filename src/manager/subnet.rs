@@ -10,8 +10,9 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{ConstructParams, JoinParams};
+use ipc_subnet_actor::ConstructParams;
 
+use crate::lotus::message::ipc::QueryValidatorSetResponse;
 use crate::lotus::message::{ipc::SubnetInfo, wallet::WalletKeyType};
 
 /// Trait to interact with a subnet and handle its lifecycle.
@@ -32,7 +33,8 @@ pub trait SubnetManager: Send + Sync {
         subnet: SubnetID,
         from: Address,
         collateral: TokenAmount,
-        params: JoinParams,
+        validator_net_addr: String,
+        worker_addr: Address,
     ) -> Result<()>;
 
     /// Sends a request to leave a subnet from a wallet address.
@@ -54,6 +56,7 @@ pub trait SubnetManager: Send + Sync {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch>;
 
@@ -64,6 +67,7 @@ pub trait SubnetManager: Send + Sync {
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch>;
 
@@ -116,4 +120,11 @@ pub trait SubnetManager: Send + Sync {
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
     ) -> Result<Vec<BottomUpCheckpoint>>;
+
+    /// Returns the validator set
+    async fn get_validator_set(
+        &self,
+        subnet_id: &SubnetID,
+        gateway: Address,
+    ) -> Result<QueryValidatorSetResponse>;
 }

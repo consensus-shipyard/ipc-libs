@@ -20,6 +20,16 @@ async fn parent_fvm_child_fvm(
     child: &Subnet,
     wallet_store: Arc<RwLock<Wallet>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
+    // We filter for subnets that have at least one account and for which the parent subnet
+    // is also in the configuration.
+    if child.accounts().is_empty() || parent.accounts().is_empty() {
+        log::info!(
+            "not all parent and child have accounts. Child: {:}, not managing checkpoints",
+            child.id
+        );
+        return Ok(vec![]);
+    }
+
     if parent.network_type() != NetworkType::Fvm || child.network_type() != NetworkType::Fvm {
         return Err(anyhow!("parent not fvm or child not fvm"));
     }
@@ -43,6 +53,43 @@ async fn parent_fvm_child_fvm(
             parent.clone(),
             LotusJsonRPCClient::from_subnet_with_wallet_store(child, wallet_store.clone()),
             child.clone(),
+        )
+        .await?,
+    );
+
+    managers.push(m);
+
+    Ok(managers)
+}
+
+async fn parent_fevm_child_fvm(
+    parent: &Subnet,
+    child: &Subnet,
+    fvm_wallet_store: Arc<RwLock<Wallet>>,
+) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
+    if parent.network_type() != NetworkType::Fevm || child.network_type() != NetworkType::Fvm {
+        return Err(anyhow!("parent not fevm or child not fvm"));
+    }
+
+    let mut managers = vec![];
+    let m: Box<dyn CheckpointManager> = Box::new(
+        crate::checkpoint::fevm_fvm::BottomUpCheckpointManager::new(
+            parent.clone(),
+            EthSubnetManager::from_subnet(parent)?,
+            child.clone(),
+            LotusJsonRPCClient::from_subnet_with_wallet_store(child, fvm_wallet_store.clone()),
+        )
+        .await?,
+    );
+
+    managers.push(m);
+
+    let m: Box<dyn CheckpointManager> = Box::new(
+        crate::checkpoint::fevm_fvm::TopDownCheckpointManager::new(
+            parent.clone(),
+            EthSubnetManager::from_subnet(parent)?,
+            child.clone(),
+            LotusJsonRPCClient::from_subnet_with_wallet_store(child, fvm_wallet_store.clone()),
         )
         .await?,
     );
@@ -104,15 +151,18 @@ pub async fn setup_manager_from_subnet(
 
     match (parent.network_type(), s.network_type()) {
         (NetworkType::Fvm, NetworkType::Fvm) => {
+            log::info!("setup parent: {:?} fvm, child: {:?} fvm", parent.id, s.id);
             parent_fvm_child_fvm(parent, s, fvm_wallet_store).await
         }
         (NetworkType::Fvm, NetworkType::Fevm) => {
             unimplemented!()
         }
         (NetworkType::Fevm, NetworkType::Fvm) => {
-            unimplemented!()
+            log::info!("setup parent: {:?} fevm, child: {:?} fvm", parent.id, s.id);
+            parent_fevm_child_fvm(parent, s, fvm_wallet_store).await
         }
         (NetworkType::Fevm, NetworkType::Fevm) => {
+            log::info!("setup parent: {:?} fevm, child: {:?} fevm", parent.id, s.id);
             parent_fevm_child_fevm(parent, s, fvm_wallet_store).await
         }
     }
@@ -127,23 +177,14 @@ pub async fn setup_managers_from_config(
     for s in subnets.values() {
         log::info!("config checkpoint manager for subnet: {:}", s.id);
 
-        // TODO: once we have added EVM wallet store, we should switch to the below approach.
-        // // We filter for subnets that have at least one account and for which the parent subnet
-        // // is also in the configuration.
-        // if s.accounts().is_empty() {
-        //     log::info!("no accounts in subnet: {:}, not managing checkpoints", s.id);
-        //     continue;
-        // }
-
         let subnet_managers =
             setup_manager_from_subnet(subnets, s, fvm_wallet_store.clone()).await?;
         managers.extend(subnet_managers);
     }
 
-    log::info!(
-        "we are managing checkpoints for {:} number of subnets",
-        managers.len()
-    );
+    for m in managers.iter() {
+        log::info!("we are managing checkpoints with: {m:}");
+    }
 
     Ok(managers)
 }

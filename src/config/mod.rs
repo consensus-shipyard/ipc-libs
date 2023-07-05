@@ -50,7 +50,7 @@ pub const DEFAULT_CONFIG_TEMPLATE: &str = r#"
     network_name = "test2"
 
     [subnets.config]
-    network_type = "evm"
+    network_type = "fevm"
     provider_http = "http://127.0.0.1:3030/rpc/v1"
     registry_addr = "0x6be1ccf648c74800380d0520d797a170c808b624"
     gateway_addr = "0x6be1ccf648c74800380d0520d797a170c808b624"
