@@ -1,0 +1,195 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gateway",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "NotSameGateway",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "subnetAddr",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address[]",
+            "name": "route",
+            "type": "address[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct SubnetID",
+        "name": "subnetId",
+        "type": "tuple"
+      }
+    ],
+    "name": "SubnetDeployed",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "gateway",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "uint64",
+                "name": "root",
+                "type": "uint64"
+              },
+              {
+                "internalType": "address[]",
+                "name": "route",
+                "type": "address[]"
+              }
+            ],
+            "internalType": "struct SubnetID",
+            "name": "parentId",
+            "type": "tuple"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "name",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "ipcGatewayAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "enum ConsensusType",
+            "name": "consensus",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minActivationCollateral",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "minValidators",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "bottomUpCheckPeriod",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "topDownCheckPeriod",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint8",
+            "name": "majorityPercentage",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes",
+            "name": "genesis",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct SubnetActor.ConstructParams",
+        "name": "_params",
+        "type": "tuple"
+      }
+    ],
+    "name": "newSubnetActor",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "subnetAddr",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "root",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address[]",
+            "name": "route",
+            "type": "address[]"
+          }
+        ],
+        "internalType": "struct SubnetID",
+        "name": "_subnetId",
+        "type": "tuple"
+      }
+    ],
+    "name": "subnetAddress",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "subnet",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "subnets",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

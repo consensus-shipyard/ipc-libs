@@ -3,6 +3,7 @@
 #![feature(try_blocks)]
 #![feature(let_chains)]
 
+pub mod checkpoint;
 pub mod cli;
 pub mod config;
 pub mod jsonrpc;

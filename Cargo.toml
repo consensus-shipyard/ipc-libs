@@ -82,14 +82,13 @@ fvm_ipld_blockstore = "0.1"
 fvm_ipld_encoding = "0.3"
 fvm_shared = { version = "=3.0.0-alpha.17", default-features = false, features = ["crypto"] }
 fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }
-ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git", branch = "adlrocha/subnetid-refactor" }
-ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "adlrocha/subnetid-refactor" }
-ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "adlrocha/subnetid-refactor" }
-#ipc_ipld_resolver = { git = "https://github.com/consensus-shipyard/ipc-ipld-resolver.git", branch = "main" }
+ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git" }
+ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
+ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
 libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
 primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
-ethers = "2.0.7"
-ethers-contract = "2.0.7"
+ethers = { git = "https://github.com/cryptoAtwill/ethers-rs.git" }
+ethers-contract = { git = "https://github.com/cryptoAtwill/ethers-rs.git" }
 
 # Uncomment to point to you local versions
 # [patch."https://github.com/consensus-shipyard/fvm-utils"]
