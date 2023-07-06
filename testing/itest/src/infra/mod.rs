@@ -144,7 +144,7 @@ impl SubnetInfra {
             self.config.name.clone(),
             self.config.number_of_nodes as u64,
         )
-            .await?;
+        .await?;
 
         self.config.id = Some(SubnetID::new_from_parent(
             &self.config.parent,
@@ -298,7 +298,7 @@ impl SubnetInfra {
                     "http://127.0.0.1:{:}/rpc/v1",
                     self.nodes.as_ref().unwrap()[0].node.tcp_port
                 )
-                    .parse()?,
+                .parse()?,
                 auth_token: Some(admin_token),
                 accounts,
             }),
