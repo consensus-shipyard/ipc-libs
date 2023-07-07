@@ -1,3 +1,6 @@
+// Copyright 2022-2023 Protocol Labs
+// SPDX-License-Identifier: MIT
+
 //! Persistent file key store
 
 use crate::memory::MemoryKeyStore;
