@@ -123,11 +123,14 @@ The `/r31415926` section of the agent's `config.toml` must be updated to connect
 ```toml
 [[subnets]]
 id = "/r31415926"
-gateway_addr = "f064"
 network_name = "root"
-jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
-auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.j94YYOr8_AWhGGHQd0q8JuQVuNhJA017SK9EUkqDOO0"
+
+[subnets.config]
+network_type = "fvm"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
+auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.j94YYOr8_AWhGGHQd0q8JuQVuNhJA017SK9EUkqDOO0"
+gateway_addr = "t064"
+jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
 ```
 
 > 💡 In the current implementation of Spacenet, the gateway is always deployed in the `f064` address. This should be the address always reflected on your config for the gateway. In the future, this will change, and the gateway may be deployed in different addresses.

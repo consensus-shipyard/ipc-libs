@@ -109,11 +109,14 @@ The end of the log of the execution of this script provides a bit more of inform
 ```toml
 [[subnets]]
 id = "/r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq"
-gateway_addr = "f064"
 network_name = "test"
-jsonrpc_api_http = "http://127.0.0.1:1250/rpc/v1"
-auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA"
+
+[subnets.config]
+network_type = "fvm"
 accounts = ["t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq"]
+auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.TnoDqZJ1fqdkr_oCHFEXvdwU6kYR7Va_ALyEuoPnksA"
+gateway_addr = "t064"
+jsonrpc_api_http = "http://127.0.0.1:1250/rpc/v1"
 ```
 > 💡 Remember to run `./bin/ipc-agent config reload` for changes in the config of the agent to be picked up by the daemon.
 
@@ -192,14 +195,19 @@ To configure the agent for its use with all the validators, we need to connect t
 
 Here's an example of the configuration connecting to the RPC of the first validator, and configuring all the wallets for the validators in the subnet.
 ```toml
+
 [[subnets]]
 id = "/r31415926/t2xwzbdu7z5sam6hc57xxwkctciuaz7oe5omipwbq"
-gateway_addr = "f064"
 network_name = "test"
-jsonrpc_api_http = "http://127.0.0.1:1240/rpc/v1"
-auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.JTiumQwFIutkTb0gUC5JWTATs-lUvDaopEDE0ewgzLk"
+
+[subnets.config]
+network_type = "fvm"
 accounts = ["t1ivy6mo2ofxw4fdmft22nel66w63fb7cuyslm4cy", "t1cp4q4lqsdhob23ysywffg2tvbmar5cshia4rweq", "t1nv5jrdxk4ljzndaecfjgmu35k6iz54pkufktvua"]
+auth_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.JTiumQwFIutkTb0gUC5JWTATs-lUvDaopEDE0ewgzLk"
+gateway_addr = "t064"
+jsonrpc_api_http = "http://127.0.0.1:1240/rpc/v1"
 ```
+
 Remember to run `./bin/ipc-agent config reload` for your agent to pick up the latest changes for the config.
 
 ### Joining the subnet

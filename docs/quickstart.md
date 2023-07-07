@@ -88,11 +88,14 @@ json_rpc_address = "0.0.0.0:3030"
 
 [[subnets]]
 id = "/r31415926"
-gateway_addr = "t064"
-network_name = "andromeda"
-jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
-auth_token = "<AUTH_TOKEN_0>"
+network_name = "root"
+
+[subnets.config]
+network_type = "fvm"
 accounts = []
+auth_token = "<AUTH_TOKEN_0>"
+gateway_addr = "t064"
+jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
 ```
 * [**In a new session**] Start your IPC Agent
 ```bash
@@ -179,6 +182,7 @@ We can deploy the subnet nodes. Note that each node should be importing a differ
 ## Step 7: Configure the IPC agent
 
 For ease of use, we'll import the remaining keys into the first validator, via which the IPC Agent will act on behalf of all.
+
 * Edit the IPC agent configuration `config.toml`
 ```bash
 nano ~/.ipc-agent/config.toml
@@ -187,11 +191,14 @@ nano ~/.ipc-agent/config.toml
 ```toml
 [[subnets]]
 id = "/r31415926/<SUBNET_ID>"
-gateway_addr = "t064"
 network_name = "andromeda"
-jsonrpc_api_http = "http://127.0.0.1:1251/rpc/v1"
-auth_token = "<AUTH_TOKEN_1>"
+
+[subnets.config]
+network_type = "fvm"
 accounts = ["<WALLET_1>", "<WALLET_2>", "<WALLET_3>"]
+auth_token = "<AUTH_TOKEN_1>"
+gateway_addr = "t064"
+jsonrpc_api_http = "http://127.0.0.1:1251/rpc/v1"
 ```
 * Reload the config
 ```bash 
