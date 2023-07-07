@@ -1535,6 +1535,18 @@ dependencies = [
 
 [[package]]
 name = "eth-keystore"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ethers",
+ "hex",
+ "serde",
+ "serde_json",
+ "zeroize",
+]
+
+[[package]]
+name = "eth-keystore"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fda3bf123be441da5260717e0661c25a2fd9cb2b2c1d20bf2e05580047158ab"
@@ -1798,7 +1810,7 @@ dependencies = [
  "coins-bip32",
  "coins-bip39",
  "elliptic-curve",
- "eth-keystore",
+ "eth-keystore 0.5.0",
  "ethers-core",
  "hex",
  "rand 0.8.5",

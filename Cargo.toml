@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "testing/e2e", "identity", "testing/itest"]
+members = [".", "testing/e2e", "identity", "testing/itest", "eth-keystore"]
 
 [workspace.package]
 authors = ["Protocol Labs"]
