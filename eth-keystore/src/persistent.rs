@@ -71,7 +71,8 @@ impl<T: Clone + Eq + Hash + Into<String> + TryFrom<KeyInfo>> PersistentKeyStore<
             let key_info = KeyInfo {
                 private_key: hex::decode(&info.private_key)?,
             };
-            let addr = T::try_from(key_info.clone()).map_err(|_| anyhow!("cannot convert private key to address"))?;
+            let addr = T::try_from(key_info.clone())
+                .map_err(|_| anyhow!("cannot convert private key to address"))?;
 
             key_infos.insert(addr, key_info);
         }
