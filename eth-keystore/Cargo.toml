@@ -15,4 +15,3 @@ hex = "0.4.3"
 
 [features]
 with-ethers = ["ethers"]
-default = ["with-ethers"]
