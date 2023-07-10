@@ -57,7 +57,7 @@ fvm_ipld_encoding = { workspace = true }
 primitives = { workspace = true }
 
 ipc-identity = { path = "identity/." }
-eth-keystore = { path = "eth-keystore" }
+eth-keystore = { path = "eth-keystore", features = ["with-ethers"] }
 
 [dev-dependencies]
 tempfile = "3.4.0"

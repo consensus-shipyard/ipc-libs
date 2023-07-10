@@ -29,12 +29,14 @@ pub trait EthManager: SubnetManager {
     /// Submit top down checkpoint the gateway.
     async fn submit_top_down_checkpoint(
         &self,
+        from: &Address,
         checkpoint: gateway::TopDownCheckpoint,
     ) -> anyhow::Result<ChainEpoch>;
 
     /// Submit bottom up checkpoint to the subnet actor.
     async fn submit_bottom_up_checkpoint(
         &self,
+        from: &Address,
         checkpoint: subnet_contract::BottomUpCheckpoint,
     ) -> anyhow::Result<ChainEpoch>;
 

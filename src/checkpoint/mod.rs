@@ -16,6 +16,7 @@ use tokio::select;
 use tokio::time::sleep;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
+use eth_keystore::PersistentKeyStore;
 pub use fvm::*;
 use std::fmt::Display;
 
@@ -76,15 +77,21 @@ pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
     /// management are those in the latest version of the config.
     config: Arc<ReloadableConfig>,
-    wallet_store: Arc<RwLock<Wallet>>,
+    fvm_keystore: Arc<RwLock<Wallet>>,
+    evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 }
 
 impl CheckpointSubsystem {
     /// Creates a new `CheckpointSubsystem` with a configuration `config`.
-    pub fn new(config: Arc<ReloadableConfig>, wallet_store: Arc<RwLock<Wallet>>) -> Self {
+    pub fn new(
+        config: Arc<ReloadableConfig>,
+        fvm_keystore: Arc<RwLock<Wallet>>,
+        evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
+    ) -> Self {
         Self {
             config,
-            wallet_store,
+            fvm_keystore,
+            evm_keystore,
         }
     }
 }
@@ -100,7 +107,8 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
             let config = self.config.get_config();
             let managers = match setup::setup_managers_from_config(
                 &config.subnets,
-                self.wallet_store.clone(),
+                self.fvm_keystore.clone(),
+                self.evm_keystore.clone(),
             )
             .await
             {

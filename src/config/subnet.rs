@@ -1,10 +1,7 @@
-use ethers::signers::Signer;
-use std::str::FromStr;
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
-use primitives::EthAddress;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -75,16 +72,7 @@ impl Subnet {
     pub fn accounts(&self) -> Vec<Address> {
         match &self.config {
             SubnetConfig::Fvm(s) => s.accounts.clone(),
-            SubnetConfig::Fevm(s) => {
-                // TODO: to use the actual configured accounts when EVM wallet store is integrated
-                let wallet = s
-                    .private_key
-                    .parse::<ethers::signers::LocalWallet>()
-                    .expect("invalid private key");
-                // safe to unwrap as the check is passed in previous step
-                let eth_addr = EthAddress::from_str(&format!("{:?}", wallet.address())).unwrap();
-                vec![Address::from(eth_addr)]
-            }
+            SubnetConfig::Fevm(s) => s.accounts.clone(),
         }
     }
 }

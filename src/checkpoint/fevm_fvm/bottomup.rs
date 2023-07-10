@@ -105,7 +105,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
     async fn submit_checkpoint(
         &self,
         epoch: ChainEpoch,
-        _validator: &Address,
+        validator: &Address,
     ) -> anyhow::Result<()> {
         log::debug!(
             "Getting fevm to fvm checkpoint bottom-up template for {epoch:} in subnet: {:?}",
@@ -145,7 +145,7 @@ impl<P: EthManager + Send + Sync, C: LotusClient + Send + Sync> CheckpointManage
         log::info!("bottom up checkpoint to submit: {checkpoint:?}");
 
         self.parent_fevm_manager
-            .submit_bottom_up_checkpoint(checkpoint)
+            .submit_bottom_up_checkpoint(validator, checkpoint)
             .await
             .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
         Ok(())

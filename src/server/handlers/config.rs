@@ -6,6 +6,7 @@ use crate::config::ReloadableConfig;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
+use eth_keystore::PersistentKeyStore;
 use ipc_identity::{KeyStore, KeyStoreConfig, KEYSTORE_NAME};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
@@ -41,10 +42,23 @@ impl JsonRPCRequestHandler for ReloadConfigHandler {
     }
 }
 
-pub fn new_keystore_from_config(config: Arc<ReloadableConfig>) -> anyhow::Result<KeyStore> {
+pub fn new_fvm_keystore_from_config(config: Arc<ReloadableConfig>) -> anyhow::Result<KeyStore> {
     let repo_str = config.get_config_repo();
     if let Some(repo_str) = repo_str {
         new_keystore_from_path(&repo_str)
+    } else {
+        Err(anyhow!("No keystore repo found in config"))
+    }
+}
+
+pub fn new_evm_keystore_from_config(
+    config: Arc<ReloadableConfig>,
+) -> anyhow::Result<PersistentKeyStore<ethers::types::Address>> {
+    let repo_str = config.get_config_repo();
+    if let Some(repo_str) = repo_str {
+        let repo = Path::new(&repo_str);
+        PersistentKeyStore::new(repo.into())
+            .map_err(|e| anyhow!("Failed to create evm keystore: {}", e))
     } else {
         Err(anyhow!("No keystore repo found in config"))
     }

@@ -10,6 +10,7 @@ use crate::config::Subnet;
 use crate::lotus::client::LotusJsonRPCClient;
 use crate::manager::EthSubnetManager;
 use anyhow::anyhow;
+use eth_keystore::PersistentKeyStore;
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;
@@ -66,6 +67,7 @@ async fn parent_fevm_child_fvm(
     parent: &Subnet,
     child: &Subnet,
     fvm_wallet_store: Arc<RwLock<Wallet>>,
+    evm_wallet_store: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
     if parent.network_type() != NetworkType::Fevm || child.network_type() != NetworkType::Fvm {
         return Err(anyhow!("parent not fevm or child not fvm"));
@@ -75,7 +77,7 @@ async fn parent_fevm_child_fvm(
     let m: Box<dyn CheckpointManager> = Box::new(
         crate::checkpoint::fevm_fvm::BottomUpCheckpointManager::new(
             parent.clone(),
-            EthSubnetManager::from_subnet(parent)?,
+            EthSubnetManager::from_subnet_with_wallet_store(parent, evm_wallet_store.clone())?,
             child.clone(),
             LotusJsonRPCClient::from_subnet_with_wallet_store(child, fvm_wallet_store.clone()),
         )
@@ -87,7 +89,7 @@ async fn parent_fevm_child_fvm(
     let m: Box<dyn CheckpointManager> = Box::new(
         crate::checkpoint::fevm_fvm::TopDownCheckpointManager::new(
             parent.clone(),
-            EthSubnetManager::from_subnet(parent)?,
+            EthSubnetManager::from_subnet_with_wallet_store(parent, evm_wallet_store.clone())?,
             child.clone(),
             LotusJsonRPCClient::from_subnet_with_wallet_store(child, fvm_wallet_store.clone()),
         )
@@ -103,6 +105,7 @@ async fn parent_fevm_child_fevm(
     parent: &Subnet,
     child: &Subnet,
     fvm_wallet_store: Arc<RwLock<Wallet>>,
+    evm_wallet_store: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
     if parent.network_type() != NetworkType::Fevm || child.network_type() != NetworkType::Fevm {
         return Err(anyhow!("parent not fevm or child not fevm"));
@@ -112,9 +115,9 @@ async fn parent_fevm_child_fevm(
     let m: Box<dyn CheckpointManager> = Box::new(
         FEVMBottomUpCheckpointManager::new(
             parent.clone(),
-            EthSubnetManager::from_subnet(parent)?,
+            EthSubnetManager::from_subnet_with_wallet_store(parent, evm_wallet_store.clone())?,
             child.clone(),
-            EthSubnetManager::from_subnet(child)?,
+            EthSubnetManager::from_subnet_with_wallet_store(child, evm_wallet_store.clone())?,
             LotusJsonRPCClient::from_subnet_with_wallet_store(child, fvm_wallet_store),
         )
         .await?,
@@ -125,9 +128,9 @@ async fn parent_fevm_child_fevm(
     let m: Box<dyn CheckpointManager> = Box::new(
         FEVMTopdownCheckpointManager::new(
             parent.clone(),
-            EthSubnetManager::from_subnet(parent)?,
+            EthSubnetManager::from_subnet_with_wallet_store(parent, evm_wallet_store.clone())?,
             child.clone(),
-            EthSubnetManager::from_subnet(child)?,
+            EthSubnetManager::from_subnet_with_wallet_store(child, evm_wallet_store.clone())?,
         )
         .await?,
     );
@@ -141,6 +144,7 @@ pub async fn setup_manager_from_subnet(
     subnets: &HashMap<SubnetID, Subnet>,
     s: &Subnet,
     fvm_wallet_store: Arc<RwLock<Wallet>>,
+    evm_wallet_store: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
     let parent = if let Some(p) = s.id.parent() && subnets.contains_key(&p) {
         subnets.get(&p).unwrap()
@@ -159,11 +163,11 @@ pub async fn setup_manager_from_subnet(
         }
         (NetworkType::Fevm, NetworkType::Fvm) => {
             log::info!("setup parent: {:?} fevm, child: {:?} fvm", parent.id, s.id);
-            parent_fevm_child_fvm(parent, s, fvm_wallet_store).await
+            parent_fevm_child_fvm(parent, s, fvm_wallet_store, evm_wallet_store).await
         }
         (NetworkType::Fevm, NetworkType::Fevm) => {
             log::info!("setup parent: {:?} fevm, child: {:?} fevm", parent.id, s.id);
-            parent_fevm_child_fevm(parent, s, fvm_wallet_store).await
+            parent_fevm_child_fevm(parent, s, fvm_wallet_store, evm_wallet_store).await
         }
     }
 }
@@ -171,14 +175,20 @@ pub async fn setup_manager_from_subnet(
 pub async fn setup_managers_from_config(
     subnets: &HashMap<SubnetID, Subnet>,
     fvm_wallet_store: Arc<RwLock<Wallet>>,
+    evm_wallet_store: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
     let mut managers = vec![];
 
     for s in subnets.values() {
         log::info!("config checkpoint manager for subnet: {:}", s.id);
 
-        let subnet_managers =
-            setup_manager_from_subnet(subnets, s, fvm_wallet_store.clone()).await?;
+        let subnet_managers = setup_manager_from_subnet(
+            subnets,
+            s,
+            fvm_wallet_store.clone(),
+            evm_wallet_store.clone(),
+        )
+        .await?;
         managers.extend(subnet_managers);
     }
 
