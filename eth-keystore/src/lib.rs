@@ -15,7 +15,7 @@ pub use crate::persistent::PersistentKeyStore;
 /// The key store trait for different evm key store
 pub trait KeyStore {
     /// The type of the key that is stored
-    type Key: Clone + Eq + Hash + Into<String> + TryFrom<KeyInfo>;
+    type Key: Clone + Eq + Hash + TryFrom<KeyInfo>;
 
     /// Get the key info by address string
     fn get(&self, addr: &Self::Key) -> Result<Option<KeyInfo>>;
