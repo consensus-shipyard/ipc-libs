@@ -29,7 +29,7 @@ pub trait KeyStore {
 }
 
 /// The struct that contains evm private key info
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct KeyInfo {
     private_key: Vec<u8>,
 }

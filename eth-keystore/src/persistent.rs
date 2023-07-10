@@ -73,7 +73,9 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> PersistentKeyStore<T
                 return if e.kind() == ErrorKind::NotFound {
                     log::info!("key store does not exist, initialized to empty key store");
                     Ok(Self {
-                        memory: MemoryKeyStore { data: Default::default() },
+                        memory: MemoryKeyStore {
+                            data: Default::default(),
+                        },
                         file_path: path,
                     })
                 } else {
@@ -149,14 +151,16 @@ mod tests {
 
     #[derive(Clone, Eq, PartialEq, Hash)]
     struct Key {
-        data: String
+        data: String,
     }
 
     impl TryFrom<KeyInfo> for Key {
         type Error = ();
 
         fn try_from(value: KeyInfo) -> Result<Self, Self::Error> {
-            Ok(Key { data: hex::encode(value.private_key.clone()) })
+            Ok(Key {
+                data: hex::encode(value.private_key.clone()),
+            })
         }
     }
 
@@ -173,7 +177,9 @@ mod tests {
 
         let mut ks = PersistentKeyStore::new(keystore_location.clone()).unwrap();
 
-        let key_info = KeyInfo{ private_key: vec![0, 1, 2] };
+        let key_info = KeyInfo {
+            private_key: vec![0, 1, 2],
+        };
         let addr = Key::try_from(key_info.clone()).unwrap();
 
         ks.put(key_info.clone()).unwrap();
@@ -183,7 +189,7 @@ mod tests {
         assert_eq!(key_from_store.unwrap(), key_info);
 
         // Create the key store again
-        let ks = PersistentKeyStore::new(keystore_location.clone()).unwrap();
+        let ks = PersistentKeyStore::new(keystore_location).unwrap();
         let key_from_store = ks.get(&addr).unwrap();
         assert!(key_from_store.is_some());
         assert_eq!(key_from_store.unwrap(), key_info);
