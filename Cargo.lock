@@ -1540,8 +1540,10 @@ dependencies = [
  "anyhow",
  "ethers",
  "hex",
+ "log",
  "serde",
  "serde_json",
+ "tempfile",
  "zeroize",
 ]
 

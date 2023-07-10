@@ -20,7 +20,7 @@ impl<T: Clone + Eq + Hash + TryFrom<KeyInfo>> KeyStore for MemoryKeyStore<T> {
         Ok(self.data.get(addr).cloned())
     }
 
-    fn list_all(&self) -> Result<Vec<Self::Key>> {
+    fn list(&self) -> Result<Vec<Self::Key>> {
         Ok(self.data.keys().cloned().collect())
     }
 
@@ -28,6 +28,11 @@ impl<T: Clone + Eq + Hash + TryFrom<KeyInfo>> KeyStore for MemoryKeyStore<T> {
         let addr = Self::Key::try_from(info.clone())
             .map_err(|_| anyhow!("cannot convert private key to public key"))?;
         self.data.insert(addr, info);
+        Ok(())
+    }
+
+    fn remove(&mut self, addr: &Self::Key) -> Result<()> {
+        self.data.remove(addr);
         Ok(())
     }
 }

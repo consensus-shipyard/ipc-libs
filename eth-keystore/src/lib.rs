@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
@@ -20,13 +21,15 @@ pub trait KeyStore {
     /// Get the key info by address string
     fn get(&self, addr: &Self::Key) -> Result<Option<KeyInfo>>;
     /// List all addresses in the key store
-    fn list_all(&self) -> Result<Vec<Self::Key>>;
+    fn list(&self) -> Result<Vec<Self::Key>>;
     /// Put a new info to the addr
     fn put(&mut self, info: KeyInfo) -> Result<()>;
+    /// Remove address from the key store
+    fn remove(&mut self, addr: &Self::Key) -> Result<()>;
 }
 
 /// The struct that contains evm private key info
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct KeyInfo {
     private_key: Vec<u8>,
 }
