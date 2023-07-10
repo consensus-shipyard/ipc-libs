@@ -54,7 +54,7 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> KeyStore for Persist
     }
 }
 
-impl<T: Clone + Eq + Hash + Into<String> + TryFrom<KeyInfo>> PersistentKeyStore<T> {
+impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> PersistentKeyStore<T> {
     pub fn new(path: PathBuf) -> Result<Self> {
         let reader = BufReader::new(File::open(&path)?);
 
