@@ -37,7 +37,7 @@ impl Drop for PersistentKeyInfo {
     }
 }
 
-impl<T: Clone + Eq + Hash + Into<String> + TryFrom<KeyInfo>> KeyStore for PersistentKeyStore<T> {
+impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> KeyStore for PersistentKeyStore<T> {
     type Key = T;
 
     fn get(&self, addr: &Self::Key) -> Result<Option<KeyInfo>> {
@@ -103,7 +103,7 @@ impl<T: Clone + Eq + Hash + Into<String> + TryFrom<KeyInfo>> PersistentKeyStore<
             .data
             .iter()
             .map(|(key, val)| {
-                let address = key.clone().into();
+                let address = hex::encode(key.as_ref());
                 let private_key = hex::encode(&val.private_key);
                 PersistentKeyInfo {
                     address,

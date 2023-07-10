@@ -13,7 +13,7 @@ pub struct MemoryKeyStore<T> {
     pub(crate) data: HashMap<T, KeyInfo>,
 }
 
-impl<T: Clone + Eq + Hash + Into<String> + TryFrom<KeyInfo>> KeyStore for MemoryKeyStore<T> {
+impl<T: Clone + Eq + Hash + TryFrom<KeyInfo>> KeyStore for MemoryKeyStore<T> {
     type Key = T;
 
     fn get(&self, addr: &Self::Key) -> Result<Option<KeyInfo>> {
