@@ -9,7 +9,6 @@ use async_trait::async_trait;
 use cid::Cid;
 use eth_keystore::{KeyStore, PersistentKeyStore};
 use ethers::abi::Tokenizable;
-use ethers::core::k256::elliptic_curve::weierstrass::add;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::{abigen, Signer, SignerMiddleware};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
@@ -49,7 +48,7 @@ pub struct EthSubnetManager {
     gateway_contract: Gateway<Arc<MiddlewareImpl>>,
     #[deprecated]
     registry_contract: SubnetRegistry<Arc<MiddlewareImpl>>,
-    keystore: PersistentKeyStore<Address>,
+    keystore: PersistentKeyStore<ethers::types::Address>,
     on_chain_info: OnChainInfo,
 }
 
@@ -576,21 +575,21 @@ impl EthSubnetManager {
         }
     }
 
-    fn get_registry_instance(&self, addr: &Address) -> Result<SubnetRegistry<MiddlewareImpl>> {
+    fn get_registry_instance(&self, addr: &ethers::types::Address) -> Result<SubnetRegistry<MiddlewareImpl>> {
         Ok(SubnetRegistry::new(
             self.on_chain_info.registry_addr,
             Arc::new(self.get_signer(addr)?),
         ))
     }
 
-    fn get_gateway_instance(&self, addr: &Address) -> Result<Gateway<MiddlewareImpl>> {
+    fn get_gateway_instance(&self, addr: &ethers::types::Address) -> Result<Gateway<MiddlewareImpl>> {
         Ok(Gateway::new(
             self.on_chain_info.gateway_addr,
             Arc::new(self.get_signer(addr)?),
         ))
     }
 
-    fn get_signer(&self, addr: &Address) -> Result<MiddlewareImpl> {
+    fn get_signer(&self, addr: &ethers::types::Address) -> Result<MiddlewareImpl> {
         let private_key = self
             .keystore
             .get(addr)?
