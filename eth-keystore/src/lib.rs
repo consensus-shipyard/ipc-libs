@@ -42,3 +42,14 @@ impl Drop for KeyInfo {
         self.private_key.zeroize();
     }
 }
+
+#[cfg(feature = "with-ethers")]
+impl TryFrom<KeyInfo> for ethers::types::Address {
+    type Error = anyhow::Error;
+
+    fn try_from(value: KeyInfo) -> std::result::Result<Self, Self::Error> {
+        use ethers::signers::Signer;
+        let key = ethers::signers::Wallet::from_bytes(&value.private_key)?;
+        Ok(key.address())
+    }
+}
