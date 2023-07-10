@@ -7,11 +7,14 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
+use eth_keystore::{KeyStore, PersistentKeyStore};
 use ethers::abi::Tokenizable;
+use ethers::core::k256::elliptic_curve::weierstrass::add;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::{abigen, Signer, SignerMiddleware};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
 use ethers::signers::{LocalWallet, Wallet};
+use ethers::types::Res;
 use fvm_shared::address::Payload;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
@@ -39,15 +42,28 @@ abigen!(Gateway, "contracts/Gateway.json");
 abigen!(SubnetContract, "contracts/SubnetActor.json");
 abigen!(SubnetRegistry, "contracts/SubnetRegistry.json");
 
-pub struct EthSubnetManager<M: Middleware> {
-    eth_client: Arc<M>,
-    gateway_contract: Gateway<Arc<M>>,
-    registry_contract: SubnetRegistry<Arc<M>>,
+pub struct EthSubnetManager {
+    #[deprecated]
+    eth_client: Arc<MiddlewareImpl>,
+    #[deprecated]
+    gateway_contract: Gateway<Arc<MiddlewareImpl>>,
+    #[deprecated]
+    registry_contract: SubnetRegistry<Arc<MiddlewareImpl>>,
+    keystore: PersistentKeyStore<Address>,
+    on_chain_info: OnChainInfo,
+}
+
+/// Keep track of the on chain information for the subnet manager
+struct OnChainInfo {
+    gateway_addr: ethers::types::Address,
+    registry_addr: ethers::types::Address,
+    chain_id: u64,
+    provider: Provider<Http>,
 }
 
 #[async_trait]
-impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M> {
-    async fn create_subnet(&self, _from: Address, params: ConstructParams) -> Result<Address> {
+impl SubnetManager for EthSubnetManager {
+    async fn create_subnet(&self, from: Address, params: ConstructParams) -> Result<Address> {
         self.ensure_same_gateway(&params.ipc_gateway_addr)?;
 
         let name_len = params.name.as_bytes().len();
@@ -74,7 +90,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
                 route,
             },
             name,
-            ipc_gateway_addr: (*self.gateway_contract).address(),
+            ipc_gateway_addr: self.on_chain_info.gateway_addr.clone(),
             consensus: params.consensus as u64 as u8,
             min_activation_collateral: ethers::types::U256::from(min_validator_stake),
             min_validators: params.min_validators,
@@ -350,7 +366,7 @@ impl<M: Middleware + Send + Sync + 'static> SubnetManager for EthSubnetManager<M
 }
 
 #[async_trait]
-impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
+impl EthManager for EthSubnetManager {
     async fn gateway_last_voting_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
         let u = self
             .gateway_contract
@@ -495,7 +511,7 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
             .collect::<Result<Vec<_>>>()
     }
 
-    async fn gateway_initialized(&self) -> anyhow::Result<bool> {
+    async fn gateway_initialized(&self) -> Result<bool> {
         let initialized = self.gateway_contract.initialized().call().await?;
         Ok(initialized)
     }
@@ -538,11 +554,11 @@ impl<M: Middleware + Send + Sync + 'static> EthManager for EthSubnetManager<M> {
     }
 }
 
-impl<M: Middleware + Send + Sync + 'static> EthSubnetManager<M> {
+impl EthSubnetManager {
     pub fn new(
-        eth_client: Arc<M>,
-        gateway_contract: Gateway<Arc<M>>,
-        registry_contract: SubnetRegistry<Arc<M>>,
+        eth_client: Arc<MiddlewareImpl>,
+        gateway_contract: Gateway<Arc<MiddlewareImpl>>,
+        registry_contract: SubnetRegistry<Arc<MiddlewareImpl>>,
     ) -> Self {
         Self {
             eth_client,
@@ -551,17 +567,42 @@ impl<M: Middleware + Send + Sync + 'static> EthSubnetManager<M> {
         }
     }
 
-    pub fn ensure_same_gateway(&self, gateway: &Address) -> anyhow::Result<()> {
+    pub fn ensure_same_gateway(&self, gateway: &Address) -> Result<()> {
         let evm_gateway_addr = payload_to_evm_address(gateway.payload())?;
-        if evm_gateway_addr != (*self.gateway_contract).address() {
+        if evm_gateway_addr != self.on_chain_info.gateway_addr {
             Err(anyhow!("Gateway address not matching with config"))
         } else {
             Ok(())
         }
     }
+
+    fn get_registry_instance(&self, addr: &Address) -> Result<SubnetRegistry<MiddlewareImpl>> {
+        Ok(SubnetRegistry::new(
+            self.on_chain_info.registry_addr,
+            Arc::new(self.get_signer(addr)?),
+        ))
+    }
+
+    fn get_gateway_instance(&self, addr: &Address) -> Result<Gateway<MiddlewareImpl>> {
+        Ok(Gateway::new(
+            self.on_chain_info.gateway_addr,
+            Arc::new(self.get_signer(addr)?),
+        ))
+    }
+
+    fn get_signer(&self, addr: &Address) -> Result<MiddlewareImpl> {
+        let private_key = self
+            .keystore
+            .get(addr)?
+            .ok_or_else(|| anyhow!("address {addr:} does not have private key in key store"))?;
+        let wallet =
+            LocalWallet::from_bytes(private_key.private_key())?.with_chain_id(self.on_chain_info.chain_id);
+
+        Ok(SignerMiddleware::new(self.on_chain_info.provider.clone(), wallet))
+    }
 }
 
-impl EthSubnetManager<MiddlewareImpl> {
+impl EthSubnetManager {
     pub fn from_subnet(subnet: &Subnet) -> Result<Self> {
         let url = subnet.rpc_http().clone();
         let auth_token = subnet.auth_token();
@@ -586,6 +627,7 @@ impl EthSubnetManager<MiddlewareImpl> {
         let registry_address = payload_to_evm_address(config.registry_addr.payload())?;
 
         let signer = Arc::new(SignerMiddleware::new(provider, wallet));
+
         let gateway_contract = Gateway::new(gateway_address, Arc::new(signer.clone()));
         let evm_registry_contract = SubnetRegistry::new(registry_address, Arc::new(signer.clone()));
 

@@ -2957,6 +2957,7 @@ dependencies = [
  "clap 4.3.10",
  "derive_builder",
  "env_logger 0.10.0",
+ "eth-keystore 0.1.0",
  "ethers",
  "ethers-contract",
  "fil_actors_runtime",

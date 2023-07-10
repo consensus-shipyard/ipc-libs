@@ -31,6 +31,12 @@ pub struct KeyInfo {
     private_key: Vec<u8>,
 }
 
+impl KeyInfo {
+    pub fn private_key(&self) -> &[u8] {
+        &self.private_key
+    }
+}
+
 impl Drop for KeyInfo {
     fn drop(&mut self) {
         self.private_key.zeroize();
