@@ -7,7 +7,6 @@ use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
-use ipc_identity::{EvmKeyStore, PersistentKeyStore};
 use ethers::abi::Tokenizable;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::{abigen, Signer, SignerMiddleware};
@@ -17,6 +16,7 @@ use fvm_shared::address::Payload;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
 use ipc_gateway::BottomUpCheckpoint;
+use ipc_identity::{EvmKeyStore, PersistentKeyStore};
 use ipc_sdk::subnet_id::SubnetID;
 use ipc_subnet_actor::ConstructParams;
 use num_traits::ToPrimitive;
@@ -28,13 +28,13 @@ use crate::lotus::message::ipc::{QueryValidatorSetResponse, SubnetInfo, Validato
 use crate::lotus::message::wallet::WalletKeyType;
 use crate::manager::{EthManager, SubnetManager};
 
-pub type MiddlewareImpl = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
+pub type NonSignerM = Provider<Http>;
+pub type SignerM = SignerMiddleware<NonSignerM, Wallet<SigningKey>>;
 
 /// The majority vote percentage for checkpoint submission when creating a subnet.
 const SUBNET_MAJORITY_PERCENTAGE: u8 = 60;
 const TRANSACTION_RECEIPT_RETRIES: usize = 10;
 const SUBNET_NAME_MAX_LEN: usize = 32;
-const RANDOM_PRIVATE_KEY: [u8; 32] = [0; 32];
 
 // Create type bindings for the IPC Solidity contracts
 abigen!(Gateway, "contracts/Gateway.json");
@@ -43,11 +43,11 @@ abigen!(SubnetRegistry, "contracts/SubnetRegistry.json");
 
 pub struct EthSubnetManager {
     keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
-    on_chain_info: OnChainInfo,
+    ipc_contract_info: IPCContractInfo,
 }
 
 /// Keep track of the on chain information for the subnet manager
-struct OnChainInfo {
+struct IPCContractInfo {
     gateway_addr: ethers::types::Address,
     registry_addr: ethers::types::Address,
     chain_id: u64,
@@ -83,7 +83,7 @@ impl SubnetManager for EthSubnetManager {
                 route,
             },
             name,
-            ipc_gateway_addr: self.on_chain_info.gateway_addr,
+            ipc_gateway_addr: self.ipc_contract_info.gateway_addr,
             consensus: params.consensus as u64 as u8,
             min_activation_collateral: ethers::types::U256::from(min_validator_stake),
             min_validators: params.min_validators,
@@ -95,8 +95,10 @@ impl SubnetManager for EthSubnetManager {
 
         log::info!("creating subnet on evm with params: {params:?}");
 
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
         let registry_contract =
-            self.get_registry_instance(Some(&payload_to_evm_address(from.payload())?))?;
+            SubnetRegistry::new(self.ipc_contract_info.registry_addr, Arc::new(signer));
+
         let call = registry_contract.new_subnet_actor(params);
         let pending_tx = call.send().await?;
         // We need the retry to parse the deployment event. At the time of this writing, it's a bug
@@ -146,10 +148,8 @@ impl SubnetManager for EthSubnetManager {
             "interacting with evm subnet contract: {address:} with collateral: {collateral:}"
         );
 
-        let contract = self.get_subnet_contract_instance(
-            address,
-            Some(&payload_to_evm_address(from.payload())?),
-        )?;
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let contract = SubnetContract::new(address, Arc::new(signer));
 
         let mut txn = contract.join(
             validator_net_addr,
@@ -166,10 +166,9 @@ impl SubnetManager for EthSubnetManager {
         let address = contract_address_from_subnet(&subnet)?;
         log::info!("leaving evm subnet: {subnet:} at contract: {address:}");
 
-        let contract = self.get_subnet_contract_instance(
-            address,
-            Some(&payload_to_evm_address(from.payload())?),
-        )?;
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let contract = SubnetContract::new(address, Arc::new(signer));
+
         contract.leave().send().await?.await?;
 
         Ok(())
@@ -179,10 +178,9 @@ impl SubnetManager for EthSubnetManager {
         let address = contract_address_from_subnet(&subnet)?;
         log::info!("kill evm subnet: {subnet:} at contract: {address:}");
 
-        let contract = self.get_subnet_contract_instance(
-            address,
-            Some(&payload_to_evm_address(from.payload())?),
-        )?;
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let contract = SubnetContract::new(address, Arc::new(signer));
+
         contract.kill().send().await?.await?;
 
         Ok(())
@@ -215,8 +213,8 @@ impl SubnetManager for EthSubnetManager {
         let evm_subnet_id = gateway::SubnetID::try_from(&subnet)?;
         log::debug!("evm subnet id to fund: {evm_subnet_id:?}");
 
-        let gateway_contract =
-            self.get_gateway_instance(Some(&payload_to_evm_address(from.payload())?))?;
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let gateway_contract = Gateway::new(self.ipc_contract_info.gateway_addr, Arc::new(signer));
         let mut txn = gateway_contract.fund(evm_subnet_id, gateway::FvmAddress::try_from(to)?);
         txn.tx.set_value(value);
 
@@ -242,8 +240,8 @@ impl SubnetManager for EthSubnetManager {
 
         log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}");
 
-        let gateway_contract =
-            self.get_gateway_instance(Some(&payload_to_evm_address(from.payload())?))?;
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let gateway_contract = Gateway::new(self.ipc_contract_info.gateway_addr, Arc::new(signer));
         let mut txn = gateway_contract.release(gateway::FvmAddress::try_from(to)?);
         txn.tx.set_value(value);
 
@@ -323,7 +321,10 @@ impl SubnetManager for EthSubnetManager {
         let evm_subnet_id = gateway::SubnetID::try_from(subnet_id)?;
         log::debug!("evm subnet id: {evm_subnet_id:?}");
 
-        let gateway_contract = self.get_gateway_instance(None)?;
+        let gateway_contract = Gateway::new(
+            self.ipc_contract_info.gateway_addr,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         let (exists, evm_subnet) = gateway_contract.get_subnet(evm_subnet_id).call().await?;
         if !exists {
             return Err(anyhow!("subnet: {subnet_id:?} does not exists"));
@@ -336,7 +337,10 @@ impl SubnetManager for EthSubnetManager {
         let address = contract_address_from_subnet(subnet_id)?;
         log::debug!("get validator info for subnet: {subnet_id:} at contract: {address:}");
 
-        let contract = self.get_subnet_contract_instance(address, None)?;
+        let contract = SubnetContract::new(
+            address,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         let evm_validator_set = contract.get_validator_set().call().await?;
 
         let mut validators = vec![];
@@ -368,22 +372,26 @@ impl SubnetManager for EthSubnetManager {
 
 #[async_trait]
 impl EthManager for EthSubnetManager {
-    async fn gateway_last_voting_executed_epoch(&self) -> anyhow::Result<ChainEpoch> {
-        let gateway_contract = self.get_gateway_instance(None)?;
+    async fn gateway_last_voting_executed_epoch(&self) -> Result<ChainEpoch> {
+        let gateway_contract = Gateway::new(
+            self.ipc_contract_info.gateway_addr,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         let u = gateway_contract.last_voting_executed_epoch().call().await?;
         Ok(u as ChainEpoch)
     }
 
     async fn subnet_last_voting_executed_epoch(&self, subnet_id: &SubnetID) -> Result<ChainEpoch> {
         let address = contract_address_from_subnet(subnet_id)?;
-        let contract = self.get_subnet_contract_instance(address, None)?;
+        let contract =
+            SubnetContract::new(address, Arc::new(self.ipc_contract_info.provider.clone()));
         let u = contract.last_voting_executed_epoch().call().await?;
         Ok(u as ChainEpoch)
     }
 
-    async fn current_epoch(&self) -> anyhow::Result<ChainEpoch> {
+    async fn current_epoch(&self) -> Result<ChainEpoch> {
         let block_number = self
-            .on_chain_info
+            .ipc_contract_info
             .provider
             .get_block_number()
             .await?
@@ -398,8 +406,9 @@ impl EthManager for EthSubnetManager {
     ) -> Result<ChainEpoch> {
         log::debug!("submit top down checkpoint: {:?}", checkpoint);
 
-        let gateway_contract =
-            self.get_gateway_instance(Some(&payload_to_evm_address(from.payload())?))?;
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let gateway_contract = Gateway::new(self.ipc_contract_info.gateway_addr, Arc::new(signer));
+
         let txn = gateway_contract.submit_top_down_checkpoint(checkpoint);
         let pending_tx = txn.send().await?;
         let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
@@ -419,10 +428,8 @@ impl EthManager for EthSubnetManager {
             route[route.len() - 1]
         );
 
-        let contract = self.get_subnet_contract_instance(
-            route[route.len() - 1],
-            Some(&payload_to_evm_address(from.payload())?),
-        )?;
+        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let contract = SubnetContract::new(route[route.len() - 1], Arc::new(signer));
 
         let txn = contract.submit_checkpoint(checkpoint);
         let pending_tx = txn.send().await?;
@@ -439,7 +446,8 @@ impl EthManager for EthSubnetManager {
         let address = contract_address_from_subnet(subnet_id)?;
         let validator = payload_to_evm_address(validator.payload())?;
 
-        let contract = self.get_subnet_contract_instance(address, None)?;
+        let contract =
+            SubnetContract::new(address, Arc::new(self.ipc_contract_info.provider.clone()));
 
         let has_voted = contract
             .has_validator_voted_for_submission(epoch as u64, validator)
@@ -451,7 +459,10 @@ impl EthManager for EthSubnetManager {
     async fn has_voted_in_gateway(&self, epoch: ChainEpoch, validator: &Address) -> Result<bool> {
         let address = payload_to_evm_address(validator.payload())?;
 
-        let gateway_contract = self.get_gateway_instance(None)?;
+        let gateway_contract = Gateway::new(
+            self.ipc_contract_info.gateway_addr,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         let has_voted = gateway_contract
             .has_validator_voted_for_submission(epoch as u64, address)
             .call()
@@ -463,7 +474,10 @@ impl EthManager for EthSubnetManager {
         &self,
         epoch: ChainEpoch,
     ) -> Result<subnet_contract::BottomUpCheckpoint> {
-        let gateway_contract = self.get_gateway_instance(None)?;
+        let gateway_contract = Gateway::new(
+            self.ipc_contract_info.gateway_addr,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         let (exists, checkpoint) = gateway_contract
             .bottom_up_checkpoint_at_epoch(epoch as u64)
             .call()
@@ -492,7 +506,10 @@ impl EthManager for EthSubnetManager {
             root: subnet_id.root_id(),
             route,
         };
-        let gateway_contract = self.get_gateway_instance(None)?;
+        let gateway_contract = Gateway::new(
+            self.ipc_contract_info.gateway_addr,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         let r = gateway_contract
             .method::<_, Vec<gateway::CrossMsg>>(
                 "getTopDownMsgs",
@@ -511,7 +528,8 @@ impl EthManager for EthSubnetManager {
 
     async fn validators(&self, subnet_id: &SubnetID) -> Result<Vec<Address>> {
         let address = contract_address_from_subnet(subnet_id)?;
-        let contract = self.get_subnet_contract_instance(address, None)?;
+        let contract =
+            SubnetContract::new(address, Arc::new(self.ipc_contract_info.provider.clone()));
 
         let validators = contract.get_validators().call().await?;
         validators
@@ -521,19 +539,26 @@ impl EthManager for EthSubnetManager {
     }
 
     async fn gateway_initialized(&self) -> Result<bool> {
-        let gateway_contract = self.get_gateway_instance(None)?;
+        let gateway_contract = Gateway::new(
+            self.ipc_contract_info.gateway_addr,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         let initialized = gateway_contract.initialized().call().await?;
         Ok(initialized)
     }
 
     async fn subnet_bottom_up_checkpoint_period(&self, subnet_id: &SubnetID) -> Result<ChainEpoch> {
         let address = contract_address_from_subnet(subnet_id)?;
-        let contract = self.get_subnet_contract_instance(address, None)?;
+        let contract =
+            SubnetContract::new(address, Arc::new(self.ipc_contract_info.provider.clone()));
         Ok(contract.bottom_up_check_period().call().await? as ChainEpoch)
     }
 
     async fn gateway_top_down_check_period(&self) -> Result<ChainEpoch> {
-        let gateway_contract = self.get_gateway_instance(None)?;
+        let gateway_contract = Gateway::new(
+            self.ipc_contract_info.gateway_addr,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
         Ok(gateway_contract.top_down_check_period().call().await? as ChainEpoch)
     }
 
@@ -543,7 +568,8 @@ impl EthManager for EthSubnetManager {
         epoch: ChainEpoch,
     ) -> Result<[u8; 32]> {
         let address = contract_address_from_subnet(subnet_id)?;
-        let contract = self.get_subnet_contract_instance(address, None)?;
+        let contract =
+            SubnetContract::new(address, Arc::new(self.ipc_contract_info.provider.clone()));
         let (exists, hash) = contract
             .bottom_up_checkpoint_hash_at_epoch(epoch as u64)
             .await?;
@@ -560,7 +586,8 @@ impl EthManager for EthSubnetManager {
 
     async fn min_validators(&self, subnet_id: &SubnetID) -> Result<u64> {
         let address = contract_address_from_subnet(subnet_id)?;
-        let contract = self.get_subnet_contract_instance(address, None)?;
+        let contract =
+            SubnetContract::new(address, Arc::new(self.ipc_contract_info.provider.clone()));
         Ok(contract.min_validators().call().await?)
     }
 }
@@ -575,7 +602,7 @@ impl EthSubnetManager {
     ) -> Self {
         Self {
             keystore,
-            on_chain_info: OnChainInfo {
+            ipc_contract_info: IPCContractInfo {
                 gateway_addr,
                 registry_addr,
                 chain_id,
@@ -586,61 +613,24 @@ impl EthSubnetManager {
 
     pub fn ensure_same_gateway(&self, gateway: &Address) -> Result<()> {
         let evm_gateway_addr = payload_to_evm_address(gateway.payload())?;
-        if evm_gateway_addr != self.on_chain_info.gateway_addr {
+        if evm_gateway_addr != self.ipc_contract_info.gateway_addr {
             Err(anyhow!("Gateway address not matching with config"))
         } else {
             Ok(())
         }
     }
 
-    fn get_registry_instance(
-        &self,
-        signer_addr: Option<&ethers::types::Address>,
-    ) -> Result<SubnetRegistry<MiddlewareImpl>> {
-        Ok(SubnetRegistry::new(
-            self.on_chain_info.registry_addr,
-            Arc::new(self.get_ethers_client(signer_addr)?),
-        ))
-    }
-
-    fn get_gateway_instance(
-        &self,
-        signer_addr: Option<&ethers::types::Address>,
-    ) -> Result<Gateway<MiddlewareImpl>> {
-        Ok(Gateway::new(
-            self.on_chain_info.gateway_addr,
-            Arc::new(self.get_ethers_client(signer_addr)?),
-        ))
-    }
-
-    fn get_subnet_contract_instance(
-        &self,
-        contract_addr: ethers::types::Address,
-        signer_addr: Option<&ethers::types::Address>,
-    ) -> Result<SubnetContract<MiddlewareImpl>> {
-        Ok(SubnetContract::new(
-            contract_addr,
-            Arc::new(self.get_ethers_client(signer_addr)?),
-        ))
-    }
-
-    /// Get the ethers client instance. If addr is None, we expect the client to call only `view`
-    /// functions. To do that, we use a random generated byte private key (dont send any funds to it)
-    /// so that the interface is consistent.
-    fn get_ethers_client(&self, addr: Option<&ethers::types::Address>) -> Result<MiddlewareImpl> {
-        let wallet = if let Some(addr) = addr {
-            let keystore = self.keystore.read().unwrap();
-            let private_key = keystore
-                .get(addr)?
-                .ok_or_else(|| anyhow!("address {addr:} does not have private key in key store"))?;
-            LocalWallet::from_bytes(private_key.private_key())?
-                .with_chain_id(self.on_chain_info.chain_id)
-        } else {
-            LocalWallet::from_bytes(&RANDOM_PRIVATE_KEY)?
-        };
+    /// Get the ethers singer instance.
+    fn get_signer(&self, addr: &ethers::types::Address) -> Result<SignerM> {
+        let keystore = self.keystore.read().unwrap();
+        let private_key = keystore
+            .get(addr)?
+            .ok_or_else(|| anyhow!("address {addr:} does not have private key in key store"))?;
+        let wallet = LocalWallet::from_bytes(private_key.private_key())?
+            .with_chain_id(self.ipc_contract_info.chain_id);
 
         Ok(SignerMiddleware::new(
-            self.on_chain_info.provider.clone(),
+            self.ipc_contract_info.provider.clone(),
             wallet,
         ))
     }
