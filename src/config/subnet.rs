@@ -101,8 +101,6 @@ pub struct EVMSubnet {
     #[serde(deserialize_with = "deserialize_eth_address_from_str")]
     #[serde(serialize_with = "serialize_eth_address_to_str")]
     pub gateway_addr: Address,
-    /// TODO: this will be replace with keystore path
-    pub private_key: String,
     #[serde(deserialize_with = "deserialize_eth_accounts", default)]
     #[serde(serialize_with = "serialize_eth_accounts")]
     pub accounts: Vec<Address>,

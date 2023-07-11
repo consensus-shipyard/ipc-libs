@@ -337,10 +337,8 @@ impl SubnetManager for EthSubnetManager {
         let address = contract_address_from_subnet(subnet_id)?;
         log::debug!("get validator info for subnet: {subnet_id:} at contract: {address:}");
 
-        let contract = SubnetContract::new(
-            address,
-            Arc::new(self.ipc_contract_info.provider.clone()),
-        );
+        let contract =
+            SubnetContract::new(address, Arc::new(self.ipc_contract_info.provider.clone()));
         let evm_validator_set = contract.get_validator_set().call().await?;
 
         let mut validators = vec![];
