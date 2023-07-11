@@ -42,7 +42,7 @@ pub async fn create_subnet(
 /// Join the subnet
 pub async fn join_subnet(
     ipc_agent_url: String,
-    from: Some(String),
+    from: Option<String>,
     subnet: String,
     collateral: f64,
     validator_net_addr: String,
