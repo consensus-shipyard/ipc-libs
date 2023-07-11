@@ -16,7 +16,7 @@ use tokio::select;
 use tokio::time::sleep;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 
-use eth_keystore::PersistentKeyStore;
+use ipc_identity::PersistentKeyStore;
 pub use fvm::*;
 use std::fmt::Display;
 

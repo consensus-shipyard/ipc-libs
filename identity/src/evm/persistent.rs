@@ -3,8 +3,8 @@
 
 //! Persistent file key store
 
-use crate::memory::MemoryKeyStore;
-use crate::{KeyInfo, KeyStore};
+use crate::evm::memory::MemoryKeyStore;
+use crate::evm::{KeyInfo, KeyStore};
 use anyhow::anyhow;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::hash::Hash;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, ErrorKind};
 use std::path::PathBuf;
 use zeroize::Zeroize;
 
@@ -22,6 +22,7 @@ pub struct PersistentKeyStore<T> {
     file_path: PathBuf,
 }
 
+/// The persistent key information written to disk
 #[derive(Serialize, Deserialize)]
 struct PersistentKeyInfo {
     /// The address associated with the private key. We can derive this from the private key
@@ -44,19 +45,45 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> KeyStore for Persist
         self.memory.get(addr)
     }
 
-    fn list_all(&self) -> Result<Vec<Self::Key>> {
-        self.memory.list_all()
+    fn list(&self) -> Result<Vec<Self::Key>> {
+        self.memory.list()
     }
 
     fn put(&mut self, info: KeyInfo) -> Result<()> {
         self.memory.put(info)?;
-        self.write_all_no_encryption()
+        // TODO: We can flush to disk only after certain number of `put` is called.
+        self.flush_no_encryption()
+    }
+
+    fn remove(&mut self, addr: &Self::Key) -> Result<()> {
+        self.memory.remove(addr)?;
+        self.flush_no_encryption()
     }
 }
 
 impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> PersistentKeyStore<T> {
     pub fn new(path: PathBuf) -> Result<Self> {
-        let reader = BufReader::new(File::open(&path)?);
+        if let Some(p) = path.parent() && !p.exists() {
+            return Err(anyhow!("parent does not exist for key store"));
+        }
+
+        let p = match File::open(&path) {
+            Ok(p) => p,
+            Err(e) => {
+                return if e.kind() == ErrorKind::NotFound {
+                    log::info!("key store does not exist, initialized to empty key store");
+                    Ok(Self {
+                        memory: MemoryKeyStore {
+                            data: Default::default(),
+                        },
+                        file_path: path,
+                    })
+                } else {
+                    Err(anyhow!("cannot create key store: {e:}"))
+                };
+            }
+        };
+        let reader = BufReader::new(p);
 
         let persisted_key_info: Vec<PersistentKeyInfo> =
             serde_json::from_reader(reader).map_err(|e| {
@@ -84,7 +111,7 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> PersistentKeyStore<T
     }
 
     /// Write all keys to file without any encryption.
-    fn write_all_no_encryption(&self) -> Result<()> {
+    fn flush_no_encryption(&self) -> Result<()> {
         let dir = self
             .file_path
             .parent()
@@ -116,5 +143,56 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> PersistentKeyStore<T
             .map_err(|e| anyhow!("failed to serialize and write key info: {e}"))?;
 
         Ok(())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use crate::evm::KeyInfo;
+    use crate::{EvmKeyStore, PersistentKeyStore};
+
+    #[derive(Clone, Eq, PartialEq, Hash)]
+    struct Key {
+        data: String,
+    }
+
+    impl TryFrom<KeyInfo> for Key {
+        type Error = ();
+
+        fn try_from(value: KeyInfo) -> Result<Self, Self::Error> {
+            Ok(Key {
+                data: hex::encode(value.private_key.clone()),
+            })
+        }
+    }
+
+    impl AsRef<[u8]> for Key {
+        fn as_ref(&self) -> &[u8] {
+            self.data.as_bytes()
+        }
+    }
+
+    #[test]
+    fn test_read_write_keystore() {
+        let keystore_folder = tempfile::tempdir().unwrap().into_path();
+        let keystore_location = keystore_folder.join("eth_keystore");
+
+        let mut ks = PersistentKeyStore::new(keystore_location.clone()).unwrap();
+
+        let key_info = KeyInfo {
+            private_key: vec![0, 1, 2],
+        };
+        let addr = Key::try_from(key_info.clone()).unwrap();
+
+        ks.put(key_info.clone()).unwrap();
+
+        let key_from_store = ks.get(&addr).unwrap();
+        assert!(key_from_store.is_some());
+        assert_eq!(key_from_store.unwrap(), key_info);
+
+        // Create the key store again
+        let ks = PersistentKeyStore::new(keystore_location).unwrap();
+        let key_from_store = ks.get(&addr).unwrap();
+        assert!(key_from_store.is_some());
+        assert_eq!(key_from_store.unwrap(), key_info);
     }
 }

@@ -10,7 +10,7 @@ use crate::config::Subnet;
 use crate::lotus::client::LotusJsonRPCClient;
 use crate::manager::EthSubnetManager;
 use anyhow::anyhow;
-use eth_keystore::PersistentKeyStore;
+use ipc_identity::PersistentKeyStore;
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use std::collections::HashMap;

@@ -5,7 +5,7 @@
 use crate::config::subnet::SubnetConfig;
 use crate::config::{ReloadableConfig, Subnet};
 use crate::manager::{EthSubnetManager, LotusSubnetManager, SubnetManager};
-use eth_keystore::PersistentKeyStore;
+use ipc_identity::PersistentKeyStore;
 use ipc_identity::Wallet;
 use ipc_sdk::subnet_id::SubnetID;
 use std::borrow::Borrow;

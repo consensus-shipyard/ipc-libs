@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cid::Cid;
-use eth_keystore::{KeyStore, PersistentKeyStore};
+use ipc_identity::{EvmKeyStore, PersistentKeyStore};
 use ethers::abi::Tokenizable;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::{abigen, Signer, SignerMiddleware};

@@ -112,7 +112,6 @@ impl<T: EthManager + Send + Sync, M: LotusClient + Send + Sync> CheckpointManage
     async fn submit_checkpoint(
         &self,
         epoch: ChainEpoch,
-        // TODO: when we support more wallet addresses, we need this variable
         validator: &Address,
     ) -> anyhow::Result<()> {
         let mut checkpoint = self.child_manager.bottom_up_checkpoint(epoch).await?;

@@ -10,7 +10,7 @@ use anyhow::Result;
 use std::hash::Hash;
 use zeroize::Zeroize;
 
-pub use crate::persistent::PersistentKeyStore;
+pub use crate::evm::persistent::PersistentKeyStore;
 
 /// The key store trait for different evm key store
 pub trait KeyStore {
@@ -20,13 +20,15 @@ pub trait KeyStore {
     /// Get the key info by address string
     fn get(&self, addr: &Self::Key) -> Result<Option<KeyInfo>>;
     /// List all addresses in the key store
-    fn list_all(&self) -> Result<Vec<Self::Key>>;
+    fn list(&self) -> Result<Vec<Self::Key>>;
     /// Put a new info to the addr
     fn put(&mut self, info: KeyInfo) -> Result<()>;
+    /// Remove address from the key store
+    fn remove(&mut self, addr: &Self::Key) -> Result<()>;
 }
 
 /// The struct that contains evm private key info
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct KeyInfo {
     private_key: Vec<u8>,
 }

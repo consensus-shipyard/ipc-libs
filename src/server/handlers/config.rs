@@ -6,7 +6,7 @@ use crate::config::ReloadableConfig;
 use crate::server::JsonRPCRequestHandler;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use eth_keystore::PersistentKeyStore;
+use ipc_identity::PersistentKeyStore;
 use ipc_identity::{KeyStore, KeyStoreConfig, KEYSTORE_NAME};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};

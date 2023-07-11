@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 pub use config::ReloadConfigParams;
-use eth_keystore::PersistentKeyStore;
+use ipc_identity::PersistentKeyStore;
 use fvm_shared::econ::TokenAmount;
 use manager::create::CreateSubnetHandler;
 use manager::join::JoinSubnetHandler;
