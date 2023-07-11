@@ -365,7 +365,7 @@ impl SubnetNode {
     pub async fn join_subnet(&self) -> Result<()> {
         util::join_subnet(
             self.ipc_agent_url.clone(),
-            self.wallet_address.clone().unwrap(),
+            None,
             self.id.to_string(),
             DEFAULT_MIN_STAKE,
             self.validator.net_addr.clone().unwrap(),

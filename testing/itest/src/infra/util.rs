@@ -42,7 +42,7 @@ pub async fn create_subnet(
 /// Join the subnet
 pub async fn join_subnet(
     ipc_agent_url: String,
-    from: String,
+    from: Some(String),
     subnet: String,
     collateral: f64,
     validator_net_addr: String,
@@ -50,7 +50,7 @@ pub async fn join_subnet(
     let client = client_from_url(ipc_agent_url)?;
     let params = JoinSubnetParams {
         subnet,
-        from: Some(from),
+        from,
         collateral,
         validator_net_addr,
         worker_addr: None,
