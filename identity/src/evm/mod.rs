@@ -22,7 +22,7 @@ pub trait KeyStore {
     /// List all addresses in the key store
     fn list(&self) -> Result<Vec<Self::Key>>;
     /// Put a new info to the addr
-    fn put(&mut self, info: KeyInfo) -> Result<()>;
+    fn put(&mut self, info: KeyInfo) -> Result<Self::Key>;
     /// Remove address from the key store
     fn remove(&mut self, addr: &Self::Key) -> Result<()>;
 }
@@ -31,6 +31,12 @@ pub trait KeyStore {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct KeyInfo {
     private_key: Vec<u8>,
+}
+
+impl KeyInfo {
+    pub fn new(private_key: Vec<u8>) -> Self {
+        Self { private_key }
+    }
 }
 
 impl KeyInfo {

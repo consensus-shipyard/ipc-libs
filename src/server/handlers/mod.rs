@@ -96,7 +96,7 @@ impl Handlers {
         let pool = Arc::new(SubnetManagerPool::new(
             config,
             fvm_wallet.clone(),
-            evm_keystore,
+            evm_keystore.clone(),
         ));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::CREATE_SUBNET), h);
@@ -131,7 +131,7 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(fvm_wallet.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_NEW), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(WalletImportHandler::new(fvm_wallet.clone()));
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletImportHandler::new(fvm_wallet.clone(), evm_keystore));
         handlers.insert(String::from(json_rpc_methods::WALLET_IMPORT), h);
 
         let _h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(fvm_wallet.clone()));
