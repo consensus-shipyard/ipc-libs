@@ -57,7 +57,7 @@ pub fn new_evm_keystore_from_config(
     let repo_str = config.get_config_repo();
     if let Some(repo_str) = repo_str {
         let repo = Path::new(&repo_str).join(DEFAULT_KEYSTORE_NAME);
-        PersistentKeyStore::new(repo.into())
+        PersistentKeyStore::new(repo)
             .map_err(|e| anyhow!("Failed to create evm keystore: {}", e))
     } else {
         Err(anyhow!("No keystore repo found in config"))
