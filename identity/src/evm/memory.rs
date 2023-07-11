@@ -3,7 +3,7 @@
 
 //! Memory key store
 
-use crate::{KeyInfo, KeyStore};
+use crate::evm::{KeyInfo, KeyStore};
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::hash::Hash;

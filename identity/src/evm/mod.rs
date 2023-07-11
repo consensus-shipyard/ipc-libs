@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
@@ -11,7 +10,7 @@ use anyhow::Result;
 use std::hash::Hash;
 use zeroize::Zeroize;
 
-pub use crate::persistent::PersistentKeyStore;
+pub use crate::evm::persistent::PersistentKeyStore;
 
 /// The key store trait for different evm key store
 pub trait KeyStore {

@@ -80,7 +80,7 @@ pub fn send_token(
         .status()?;
 
     if status.success() {
-        log::info!("funded wallet: {:} with amount: {:} fil", addr, amount);
+        log::info!("funded wallet: {:} with amount: {:} fvm", addr, amount);
         Ok(())
     } else {
         Err(anyhow!("cannot send token to wallet:{:}", addr))

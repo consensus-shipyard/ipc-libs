@@ -25,13 +25,18 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
-
 fvm_shared = { workspace = true }
-
 ipc-sdk = { workspace = true }
 
+zeroize = "1.6.0"
+ethers = { workspace = true, optional = true }
+hex = { workspace = true }
 
 [dev-dependencies]
+tempfile = { workspace = true }
 tokio = { workspace = true }
 log = { workspace = true }
-tempfile = "3.4.0"
+
+[features]
+with-ethers = ["ethers"]
+

@@ -3,8 +3,8 @@
 
 //! Persistent file key store
 
-use crate::memory::MemoryKeyStore;
-use crate::{KeyInfo, KeyStore};
+use crate::evm::memory::MemoryKeyStore;
+use crate::evm::{KeyInfo, KeyStore};
 use anyhow::anyhow;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -147,7 +147,8 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> PersistentKeyStore<T
 }
 #[cfg(test)]
 mod tests {
-    use crate::{KeyInfo, KeyStore, PersistentKeyStore};
+    use crate::evm::KeyInfo;
+    use crate::{EvmKeyStore, PersistentKeyStore};
 
     #[derive(Clone, Eq, PartialEq, Hash)]
     struct Key {
