@@ -38,7 +38,7 @@ use crate::server::JsonRPCRequestHandler;
 use ipc_identity::Wallet;
 
 pub use self::config::new_evm_keystore_from_config;
-pub use self::config::{new_fvm_keystore_from_config, new_keystore_from_path};
+pub use self::config::{new_fvm_wallet_from_config, new_keystore_from_path};
 use self::rpc::RPCSubnetHandler;
 use self::topdown_executed::LastTopDownExecHandler;
 use self::wallet::export::WalletExportHandler;
@@ -84,7 +84,7 @@ impl Handlers {
 
     pub fn new(
         config: Arc<ReloadableConfig>,
-        fvm_keystore: Arc<RwLock<Wallet>>,
+        fvm_wallet: Arc<RwLock<Wallet>>,
         evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
     ) -> Result<Self> {
         let mut handlers = HashMap::new();
@@ -95,7 +95,7 @@ impl Handlers {
         // subnet manager methods
         let pool = Arc::new(SubnetManagerPool::new(
             config,
-            fvm_keystore.clone(),
+            fvm_wallet.clone(),
             evm_keystore,
         ));
         let h: Box<dyn HandlerWrapper> = Box::new(CreateSubnetHandler::new(pool.clone()));
@@ -128,20 +128,20 @@ impl Handlers {
         let h: Box<dyn HandlerWrapper> = Box::new(SendValueHandler::new(pool.clone()));
         handlers.insert(String::from(json_rpc_methods::SEND_VALUE), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(fvm_keystore.clone()));
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletNewHandler::new(fvm_wallet.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_NEW), h);
 
-        let h: Box<dyn HandlerWrapper> = Box::new(WalletImportHandler::new(fvm_keystore.clone()));
+        let h: Box<dyn HandlerWrapper> = Box::new(WalletImportHandler::new(fvm_wallet.clone()));
         handlers.insert(String::from(json_rpc_methods::WALLET_IMPORT), h);
 
-        let _h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(fvm_keystore.clone()));
+        let _h: Box<dyn HandlerWrapper> = Box::new(WalletExportHandler::new(fvm_wallet.clone()));
         // FIXME: For security reasons currently not exposing the ability to export wallet
         // remotely through the RPC API, only directly through the CLI.
         // We can consider re-enabling once we have RPC authentication in the agent.
         // handlers.insert(String::from(json_rpc_methods::WALLET_EXPORT), h);
 
         let h: Box<dyn HandlerWrapper> =
-            Box::new(WalletBalancesHandler::new(pool.clone(), fvm_keystore));
+            Box::new(WalletBalancesHandler::new(pool.clone(), fvm_wallet));
         handlers.insert(String::from(json_rpc_methods::WALLET_BALANCES), h);
 
         let h: Box<dyn HandlerWrapper> = Box::new(SetValidatorNetAddrHandler::new(pool.clone()));

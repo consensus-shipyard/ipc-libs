@@ -33,19 +33,19 @@ impl Connection {
 /// As such, there is no need to re-init the same SubnetManager for different methods to reuse connections.
 pub struct SubnetManagerPool {
     config: Arc<ReloadableConfig>,
-    fvm_keystore: Arc<RwLock<Wallet>>,
+    fvm_wallet: Arc<RwLock<Wallet>>,
     evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 }
 
 impl SubnetManagerPool {
     pub fn new(
         reload_config: Arc<ReloadableConfig>,
-        fvm_keystore: Arc<RwLock<Wallet>>,
+        fvm_wallet: Arc<RwLock<Wallet>>,
         evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
     ) -> Self {
         Self {
             config: reload_config,
-            fvm_keystore,
+            fvm_wallet,
             evm_keystore,
         }
     }
@@ -59,7 +59,7 @@ impl SubnetManagerPool {
                 SubnetConfig::Fvm(_) => {
                     let manager = Box::new(LotusSubnetManager::from_subnet_with_wallet_store(
                         subnet,
-                        self.fvm_keystore.clone(),
+                        self.fvm_wallet.clone(),
                     ));
                     Some(Connection {
                         manager,

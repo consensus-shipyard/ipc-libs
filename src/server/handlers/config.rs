@@ -42,7 +42,7 @@ impl JsonRPCRequestHandler for ReloadConfigHandler {
     }
 }
 
-pub fn new_fvm_keystore_from_config(config: Arc<ReloadableConfig>) -> anyhow::Result<KeyStore> {
+pub fn new_fvm_wallet_from_config(config: Arc<ReloadableConfig>) -> anyhow::Result<KeyStore> {
     let repo_str = config.get_config_repo();
     if let Some(repo_str) = repo_str {
         new_keystore_from_path(&repo_str)

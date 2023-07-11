@@ -77,7 +77,7 @@ pub struct CheckpointSubsystem {
     /// The subsystem uses a `ReloadableConfig` to ensure that, at all, times, the subnets under
     /// management are those in the latest version of the config.
     config: Arc<ReloadableConfig>,
-    fvm_keystore: Arc<RwLock<Wallet>>,
+    fvm_wallet: Arc<RwLock<Wallet>>,
     evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 }
 
@@ -85,12 +85,12 @@ impl CheckpointSubsystem {
     /// Creates a new `CheckpointSubsystem` with a configuration `config`.
     pub fn new(
         config: Arc<ReloadableConfig>,
-        fvm_keystore: Arc<RwLock<Wallet>>,
+        fvm_wallet: Arc<RwLock<Wallet>>,
         evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
     ) -> Self {
         Self {
             config,
-            fvm_keystore,
+            fvm_wallet,
             evm_keystore,
         }
     }
@@ -107,7 +107,7 @@ impl IntoSubsystem<anyhow::Error> for CheckpointSubsystem {
             let config = self.config.get_config();
             let managers = match setup::setup_managers_from_config(
                 &config.subnets,
-                self.fvm_keystore.clone(),
+                self.fvm_wallet.clone(),
                 self.evm_keystore.clone(),
             )
             .await
