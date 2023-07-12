@@ -72,7 +72,7 @@ impl WalletNewHandler {
         let addr = keystore.put(key_info)?;
 
         Ok(WalletNewResponse {
-            address: format!("{:}", addr),
+            address: format!("{:?}", addr),
         })
     }
 }
