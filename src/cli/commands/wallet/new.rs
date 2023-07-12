@@ -55,7 +55,7 @@ pub(crate) struct WalletNewArgs {
     #[arg(
         long,
         short,
-        help = "Key type of the wallet (secp256k1, bls, secp256k1-ledger)"
+        help = "The fvm key type of the wallet (secp256k1, bls, secp256k1-ledger)"
     )]
     pub key_type: String,
     #[arg(long, short, help = "The type of the wallet, i.e. fvm, evm")]
