@@ -39,6 +39,10 @@ impl PersistentKeyInfo {
             private_key,
         }
     }
+
+    pub fn private_key(&self) -> &str {
+        &self.private_key
+    }
 }
 
 impl Drop for PersistentKeyInfo {
