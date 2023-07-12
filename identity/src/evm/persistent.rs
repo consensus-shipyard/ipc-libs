@@ -51,7 +51,6 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> KeyStore for Persist
 
     fn put(&mut self, info: KeyInfo) -> Result<Self::Key> {
         let addr = self.memory.put(info)?;
-        // TODO: We can flush to disk only after certain number of `put` is called.
         self.flush_no_encryption()?;
         Ok(addr)
     }
