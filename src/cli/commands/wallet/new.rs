@@ -30,7 +30,7 @@ impl CommandLineHandler for WalletNew {
         let params = match wallet_type {
             WalletType::Evm => WalletNewParams::Evm,
             WalletType::Fvm => WalletNewParams::Fvm(NewFvmWallet {
-                key_type: arguments.key_type.clone(),
+                key_type: arguments.key_type.clone().expect("key type not specified"),
             }),
         };
 
@@ -57,7 +57,7 @@ pub(crate) struct WalletNewArgs {
         short,
         help = "The fvm key type of the wallet (secp256k1, bls, secp256k1-ledger), only for fvm wallet type"
     )]
-    pub key_type: String,
+    pub key_type: Option<String>,
     #[arg(long, short, help = "The type of the wallet, i.e. fvm, evm")]
     pub wallet_type: String,
 }
