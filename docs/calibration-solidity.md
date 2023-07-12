@@ -1,6 +1,6 @@
 # Deploying an IPC Solidity instance on Calibration
 
-This guide will guide you through deploying IPC over an FEVM-compatible rootnet. Specifically, after this tutorial you'll have IPC deployed over Fileoin's [Calibration testnet](https://docs.filecoin.io/networks/calibration/details/), and you'll be able to deploy new subnets with Calibration as the rootnet.
+This guide will guide you through deploying IPC over an FEVM-compatible rootnet. Specifically, after this tutorial, you'll have IPC deployed over Filecoin's [Calibration testnet](https://docs.filecoin.io/networks/calibration/details/), and you'll be able to deploy new subnets with Calibration as the rootnet.
 
 > TODO: A video walkthrough of this guide is also [available <TODO: We need to record this!](). We still encourage you to try it for yourself!
 
