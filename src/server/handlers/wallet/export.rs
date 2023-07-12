@@ -37,9 +37,7 @@ pub enum WalletExportResponse {
     #[serde(rename = "fvm")]
     Fvm(KeyInfoJson),
     #[serde(rename = "evm")]
-    Evm {
-        private_key: String,
-    },
+    Evm { private_key: String },
 }
 
 /// Send value between two addresses within a subnet
