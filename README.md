@@ -151,8 +151,8 @@ To check if the agent has connected to the rootnet successfully, you can try usi
 
 *Example*:
 ```console
-$ ./bin/ipc-agent wallet new --key-type bls --subnet /r31415926
-2023-03-30T12:01:11Z INFO  ipc_agent::cli::commands::manager::wallet] created new wallet with address WalletNewResponse { address: "t1om5pijjq5dqic4ccnqqrvv6zgzwrlxf6bh2apvi" } in subnet "/r31415926"
+$ ./bin/ipc-agent wallet new -w fvm --key-type bls
+2023-03-30T12:01:11Z INFO  ipc_agent::cli::commands::manager::wallet] created new wallet with address WalletNewResponse { address: "t3u7djutz4kwshntg4abams37ssy63irkfykqimodh4fs7krdst3y5qwcptvexmvic6gs5q6qygerminm2r3la" } in subnet "/r31415926"
 ```
 
 ## Help

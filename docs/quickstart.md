@@ -104,7 +104,7 @@ jsonrpc_api_http = "http://127.0.0.1:1234/rpc/v1"
 
 * Create a new wallet in your agent
 ```bash
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type secp256k1
 ```
 
 * Add your new wallet address in the accounts field of your config:
@@ -139,15 +139,15 @@ Although we set a minimum of 2 active validators in the previous, we'll deploy 3
 
 * First, we'll need to create a wallet for each validator
 ```bash
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type secp256k1
 ```
 * Export each wallet (WALLET_1, WALLET_2, and WALLET_3) by substituting their addresses below
 ```bash
-./ipc-agent/bin/ipc-agent wallet export --address <WALLET_1> --output ~/.ipc-agent/wallet1.key
-./ipc-agent/bin/ipc-agent wallet export --address <WALLET_2> --output ~/.ipc-agent/wallet2.key
-./ipc-agent/bin/ipc-agent wallet export --address <WALLET_3> --output ~/.ipc-agent/wallet3.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_1> --output ~/.ipc-agent/wallet1.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_2> --output ~/.ipc-agent/wallet2.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_3> --output ~/.ipc-agent/wallet3.key
 ```
 * We also need to fund the wallets with enough collateral to; we'll send the funds from our default wallet 
 ```bash

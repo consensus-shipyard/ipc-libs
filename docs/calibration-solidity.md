@@ -21,6 +21,8 @@ At a high-level, the steps that you need to follow are the following (for those 
 
 With this, we have the funds we need to start deploying IPC.
 
+>💡 Instead of creating you new EVM wallet using Metamask, you can also use the IPC-agent for this. You'll need to first compile your IPC agent (see step 3), run the daemon with `./ipc-agent/bin/ipc-agent daemon` and create the new wallet with `./bin/ipc-agent wallet new -w evm`. You can get the private key for your wallet by exporting the key through `./bin/ipc-agent wallet export -w evm -a <EVM_ADDR> -o <OUTPUT_FILE>`. More information available in the [EVM IPC agent support docs](./evm-usage.md#key-management).
+
 ## Step 2: Deploy IPC Solidity contracts to Calibration
 
 In order to deploy the latest version of the IPC Solidity contracts, you'll need to pull the following repo: 
@@ -28,7 +30,7 @@ In order to deploy the latest version of the IPC Solidity contracts, you'll need
 https://github.com/consensus-shipyard/ipc-solidity-actors
 cd ipc-soldity-actors
 ``` 
-Once inside the repo, you'll need to populate the `.env.template` file with the private key of the address you provided with funds in the previous step, and the endpoint of the target network you want to deploy IPC to (in our case Calibration) : 
+Once inside the repo, you'll need to populate the `.env.template` file with the private key of the address you provided with funds in the previous step, and the endpoint of the target network you want to deploy IPC to (in our case Calibration): 
 ```bash
 export PRIVATE_KEY=<your_private_key>
 export RPC_URL=https://api.calibration.node.glif.io/rpc/v1
@@ -82,17 +84,15 @@ id = "/r314159"
 network_name = "calibration"
 
 [subnets.config]
-accounts = ["0x6BE1Ccf648c74800380d0520D797a170c808b624"]
+accounts = []
 gateway_addr = "0x2bA26fe8EB6b5C8488132900F00d853ca840F2FB"
 network_type = "fevm"
-private_key = <your_private_key>
 provider_http = "https://api.calibration.node.glif.io/rpc/v1"
 registry_addr = "0x221485C0948dAa7C8dC1bCbcf813684C5EC1ecED"
 
 ```
 
-In `accounts` you should include the address that you want to use to interact with IPC (remember to have some funds in this address)
-, and in `private_key` its corresponding private key. The gateway and registry addresses should be the ones we received after deploying our IPC instance (in the previous step). Finally, the `provider_http` should be our endpoint to calibration (or our rootnet).
+The gateway and registry addresses should be the ones we received after deploying our IPC instance (in the previous step). Finally, the `provider_http` should be our endpoint to calibration (or our rootnet).
 
 >💡 Remember that the subnetID depends on the chainID of that network. Thus, when you are configuring your IPC agent to connect to an instance deployed over localnet or spacenet, their rootnet ID will be `/r31415926`, while the one for Calibration is `/r314159`.
 
@@ -100,37 +100,57 @@ In `accounts` you should include the address that you want to use to interact wi
 ```bash
 ./ipc-agent/bin/ipc-agent daemon 
 ```
-## Step 4: Create a child subnet
 
-* [**In a new session**] The next step is to create a subnet under `/r314159` in calibration
+## Step 4: Creating or importing an EVM account
+In order to interact with Calibration through the IPC agent you'll need to either create a new wallet through the agent and provide it with funds, or import the private key that you created to deploy the contracts.
+* [**In a new session**] You can create a new wallet through the following command:
+```bash
+./ipc-agent/bin/ipc-agent wallet new -w evm
+```
+* Or you can import it by running the following command and passing the private key of your wallet: 
+```bash
+./ipc-agent/bin/ipc-agent import -w evm --private_key=<PRIVATE>
+```
+* Once the wallet of the IPC agent has the management key you want to use to interact with IPC, you'll have to add it to the `accounts` list of your `~/.ipc-agent/config.toml`.
+```bash
+accounts = [<EVM-ADDRESS>]
+```
+* Finally, you'll need to reload the config to apply the changes.
+```bash
+./ipc-agent/bin/ipc-agent config reload
+```
+
+## Step 5: Create a child subnet
+
+* The next step is to create a subnet under `/r314159` in calibration
 ```bash
 ./ipc-agent/bin/ipc-agent subnet create --parent /r314159 --name andromeda --min-validator-stake 1 --min-validators 2 --bottomup-check-period 30 --topdown-check-period 30
 ```
 * Make a note of the address of the subnet you created (`/r314159/<SUBNET_ID>`)
 
 
-## Step 5: Create and export validator wallets
+## Step 6: Create and export validator wallets
 
 Although we set a minimum of 2 active validators in the previous, we'll deploy 3 validators to add some redundancy. These will become the worker addresses of the validators in the child subnet.
 
 * First, we'll need to create a wallet for each validator
 ```bash
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
-./ipc-agent/bin/ipc-agent wallet new --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type secp256k1
 ```
 * Export each wallet (WALLET_1, WALLET_2, and WALLET_3) by substituting their addresses below
 ```bash
-./ipc-agent/bin/ipc-agent wallet export --address <WALLET_1> --output ~/.ipc-agent/worker-wallet1.key
-./ipc-agent/bin/ipc-agent wallet export --address <WALLET_2> --output ~/.ipc-agent/worker-wallet2.key
-./ipc-agent/bin/ipc-agent wallet export --address <WALLET_3> --output ~/.ipc-agent/worker-wallet3.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_1> --output ~/.ipc-agent/worker-wallet1.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_2> --output ~/.ipc-agent/worker-wallet2.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_3> --output ~/.ipc-agent/worker-wallet3.key
 ```
 
 >💡 Mir validators do not support the use of Ethereum addresses to create new blocks. This is why since the deployment of IPC Solidity instances, we introduced the concept of `worker_addresses`, which is the address use by validators to create new blocks. Validators have an `owner_address`, used to join a network, and they can optionally include a `worker_address`. Setting a `worker_address` is mandatory when interacting with an FEVM-based parent and not required for FVM-based.
 
 We will also have to create two new Ethereum addresses to be used as the owner addresses to join the subnet in the FEVM-based IPC instance from calibration. You can do this directly using Metamask (or following [this guide](https://docs.filecoin.io/basics/assets/metamask-setup/)).
 
-## Step 6: Deploy the infrastructure
+## Step 7: Deploy the infrastructure
 
 We can deploy the subnet nodes. Note that each node should be importing a different worker wallet key for their validator, and should be exposing different ports. If these ports are unavailable in your system, please pick different ones.
 
@@ -151,7 +171,7 @@ We can deploy the subnet nodes. Note that each node should be importing a differ
 >>> Validator listening in host port <VALIDATOR_PORT_#>
 ```
 
-## Step 7: Configure the IPC agent
+## Step 8: Configure the IPC agent
 
 For ease of use in the management of the validators the IPC Agent will act on behalf of all validators.
 
@@ -177,7 +197,7 @@ network_type = "fvm"
 ./ipc-agent/bin/ipc-agent config reload
 ```
 
-## Step 8: Join the subnet 
+## Step 9: Join the subnet 
 
 All the infrastructure for the subnet is now deployed, and we can join our validators to the subnet. For this, we need to send a `join` command from each of our validators from their validator owner addresses providing the validators multiaddress. 
 
@@ -189,7 +209,7 @@ All the infrastructure for the subnet is now deployed, and we can join our valid
 ```
 >💡 We currently do not support the use of `from` for Ethereum addresses ([see issue](https://github.com/consensus-shipyard/ipc-agent/issues/244)), in order to send a `join` from different owner Ethreum accounts, you'll need to set the `private_key` from each account of a validator address in `~/.ipc-agent/config.toml` and `./ipc-agent/bin/ipc-agent config reload` before every join to use a different owner key to join the subnet for each worker key.
 
-## Step 9: Start validating! 
+## Step 10: Start validating! 
 
 We have everything in place now to start validating. Run the following script for each of the validators [**each in a new session**], passing the container names:
 ```bash
@@ -200,12 +220,12 @@ We have everything in place now to start validating. Run the following script fo
 
 >💡 When starting mining and reloading the config to include the new subnet, you can sometimes get errors in the agent logs saying that the checkpoint manager couldn't be spawned successfully because the on-chain ID of the validator couldn't be change. This is because the subnet hasn't been fully initialized yet. You can `./ipc-agent/bin/ipc-agent config reload` to re-spawn the checkpoint manager and fix the error.
 
-## Step 10: Cross-net messages
+## Step 11: Cross-net messages
 
 We are now going to test the use of cross-net messages between the parent and the child subnet.
 - We will first create a new wallet and send a some funds to it in the child subnet.
 ```bash
-./ipc-agent/bin/ipc-agent wallet new --key-type=secp256k1
+./ipc-agent/bin/ipc-agent wallet new -w fvm --key-type=secp256k1
 
 ./ipc-agent/bin/ipc-agent cross-msg fund --subnet=<SUBNET_ID> --to=<NEW_WALLET> <AMOUNT>
 ```
@@ -223,7 +243,6 @@ The epoch of this command should be higher or equal to the epoch in the output o
 ./bin/ipc-agent wallet balances --subnet=<SUBNET_ID>
 ```
 
-
-## Step 10: What now?
+## Step 12: What now?
 * If something went wrong, please have a look at the [README](https://github.com/consensus-shipyard/ipc-agent). If it doesn't help, please join us in #ipc-help. In either case, let us know your experience!
 * Please note that to repeat this guide or spawn a new subnet, you may need to change the parameters or reset your system.
