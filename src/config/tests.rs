@@ -151,12 +151,11 @@ fn config_str() -> String {
         network_name = "child"
 
         [subnets.config]
-        network_type = "evm"
+        network_type = "fevm"
         auth_token = "{CHILD_AUTH_TOKEN}"
         provider_http = "{PROVIDER_HTTP}"
         registry_addr = "{ETH_ADDRESS}"
         gateway_addr = "{ETH_ADDRESS}"
-        private_key = "{ETH_ADDRESS}"
         accounts = ["{ETH_ADDRESS}", "{ETH_ADDRESS}"]
         "#
     )
@@ -184,12 +183,11 @@ fn config_str_diff_addr() -> String {
         network_name = "child"
 
         [subnets.config]
-        network_type = "evm"
+        network_type = "fevm"
         auth_token = "{CHILD_AUTH_TOKEN}"
         provider_http = "{PROVIDER_HTTP}"
         registry_addr = "{ETH_ADDRESS}"
         gateway_addr = "{ETH_ADDRESS}"
-        private_key = "{ETH_ADDRESS}"
         accounts = ["{ETH_ADDRESS}", "{ETH_ADDRESS}"]
         "#
     )
