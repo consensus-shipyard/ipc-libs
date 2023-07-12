@@ -10,7 +10,7 @@ use anyhow::Result;
 use std::hash::Hash;
 use zeroize::Zeroize;
 
-pub use crate::evm::persistent::PersistentKeyStore;
+pub use crate::evm::persistent::{PersistentKeyInfo, PersistentKeyStore};
 
 pub const DEFAULT_KEYSTORE_NAME: &str = "evm_keystore.json";
 
@@ -62,4 +62,10 @@ impl TryFrom<KeyInfo> for ethers::types::Address {
         let key = ethers::signers::Wallet::from_bytes(&value.private_key)?;
         Ok(key.address())
     }
+}
+
+#[cfg(feature = "with-ethers")]
+pub fn random_key_info() -> KeyInfo {
+    let key = ethers::core::k256::SecretKey::random(&mut rand::thread_rng());
+    KeyInfo::new(key.to_bytes().to_vec())
 }

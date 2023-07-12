@@ -10,6 +10,7 @@ use crate::server::wallet::import::{
     EvmImportParams, FvmImportParams, WalletImportParams, WalletImportResponse,
 };
 use fvm_shared::crypto::signature::SignatureType;
+use ipc_identity::PersistentKeyInfo;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use zeroize::Zeroize;
@@ -25,8 +26,11 @@ impl<T: JsonRpcClient> IpcAgentClient<T> {
     }
 
     /// Import a wallet address in the form of lotus json
-    pub async fn import_evm_private_key(&self, private_key: String) -> anyhow::Result<String> {
-        let params = WalletImportParams::Evm(EvmImportParams { private_key });
+    pub async fn import_evm_private_key(&self, raw_str: String) -> anyhow::Result<String> {
+        let persisted: PersistentKeyInfo = serde_json::from_str(&raw_str)?;
+        let params = WalletImportParams::Evm(EvmImportParams {
+            private_key: persisted.private_key().parse()?,
+        });
         self.import(params).await
     }
 
