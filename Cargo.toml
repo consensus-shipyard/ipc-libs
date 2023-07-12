@@ -43,6 +43,7 @@ bytes = "1.4.0"
 serde_bytes = "0.11.9"
 clap = { version = "4.1.4", features = ["env", "derive"] }
 thiserror = { workspace = true }
+hex = { workspace = true }
 serde_tuple = "0.5.0"
 zeroize = "1.6.0"
 
@@ -56,11 +57,11 @@ ipc-gateway = { workspace = true }
 fvm_ipld_encoding = { workspace = true }
 primitives = { workspace = true }
 
-ipc-identity = { path = "identity/." }
+ipc-identity = { path = "identity/.", features = ["with-ethers"] }
 
 [dev-dependencies]
-tempfile = "3.4.0"
-hex = "0.4.3"
+tempfile = { workspace = true }
+hex = { workspace = true }
 
 [workspace.dependencies]
 anyhow = "1.0"
@@ -77,6 +78,8 @@ quickcheck = "1"
 quickcheck_macros = "1"
 blake2b_simd = "1.0"
 rand = "0.8"
+hex = "0.4.3"
+tempfile = "3.4.0"
 serde_json = { version = "1.0.91", features = ["raw_value"] }
 
 fvm_ipld_blockstore = "0.1.1"

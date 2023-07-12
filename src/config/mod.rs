@@ -54,7 +54,6 @@ pub const DEFAULT_CONFIG_TEMPLATE: &str = r#"
     provider_http = "http://127.0.0.1:3030/rpc/v1"
     registry_addr = "0x6be1ccf648c74800380d0520d797a170c808b624"
     gateway_addr = "0x6be1ccf648c74800380d0520d797a170c808b624"
-    private_key = "0x6BE1Ccf648c74800380d0520D797a170c808b624"
     accounts = ["0x6be1ccf648c74800380d0520d797a170c808b624", "0x6be1ccf648c74800380d0520d797a170c808b624"]
 "#;
 

@@ -8,6 +8,7 @@ use std::fmt::Debug;
 use std::str::FromStr;
 
 use crate::cli::commands::get_ipc_agent_url;
+use crate::cli::wallet::WalletType;
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::sdk::{IpcAgentClient, LotusJsonKeyType};
 
@@ -28,11 +29,17 @@ impl CommandLineHandler for WalletImport {
             return Err(anyhow::anyhow!("stdin not supported yet"));
         };
 
-        let key_type = LotusJsonKeyType::from_str(&keyinfo)?;
         let url = get_ipc_agent_url(&arguments.ipc_agent_url, global)?;
-
         let client = IpcAgentClient::default_from_url(url);
-        let addr = client.import_lotus_json(key_type).await?;
+
+        let wallet_type = WalletType::from_str(&arguments.wallet_type)?;
+        let addr = match wallet_type {
+            WalletType::Fvm => {
+                let key_type = LotusJsonKeyType::from_str(&keyinfo)?;
+                client.import_lotus_json(key_type).await?
+            }
+            WalletType::Evm => client.import_evm_private_key(keyinfo).await?,
+        };
 
         log::info!("imported wallet with address {:?}", addr);
 
@@ -45,6 +52,8 @@ impl CommandLineHandler for WalletImport {
 pub(crate) struct WalletImportArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
+    #[arg(long, short, help = "The type of the wallet, i.e. fvm, evm")]
+    pub wallet_type: String,
     #[arg(long, short, help = "Path of keyinfo file for the key to import")]
     pub path: Option<String>,
 }

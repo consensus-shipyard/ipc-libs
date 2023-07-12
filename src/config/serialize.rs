@@ -163,7 +163,6 @@ mod tests {
                 auth_token: None,
                 accounts: vec![Address::from(eth_addr1), Address::from(eth_addr1)],
                 registry_addr: Address::from(eth_addr1),
-                private_key: "0x6BE1Ccf648c74800380d0520D797a170c808b624".to_string(),
             }),
         };
         config.add_subnet(subnet1);
