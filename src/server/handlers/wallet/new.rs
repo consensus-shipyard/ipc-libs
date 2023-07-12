@@ -18,7 +18,7 @@ use std::sync::{Arc, RwLock};
 pub enum WalletNewParams {
     #[serde(rename = "fvm")]
     Fvm(NewFvmWallet),
-    #[serde(rename = "fvm")]
+    #[serde(rename = "evm")]
     Evm,
 }
 

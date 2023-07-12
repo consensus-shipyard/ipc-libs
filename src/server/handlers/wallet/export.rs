@@ -36,6 +36,7 @@ pub struct EvmExportParams {
 pub enum WalletExportResponse {
     #[serde(rename = "fvm")]
     Fvm(KeyInfoJson),
+    #[serde(rename = "evm")]
     Evm {
         private_key: String,
     },
