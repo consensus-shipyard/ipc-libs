@@ -3,6 +3,7 @@
 //! Type conversion between evm and fvm
 
 use crate::manager::evm::manager::{agent_subnet_to_evm_addresses, ethers_address_to_fil_address};
+use crate::manager::SubnetInfo;
 use anyhow::anyhow;
 use ethers::abi::{ParamType, Token};
 use ethers::types::U256;
@@ -11,7 +12,7 @@ use fvm_shared::address::{Address, Payload};
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use ipc_gateway::checkpoint::{CheckData, ChildCheck};
-use ipc_gateway::{BottomUpCheckpoint, CrossMsg, StorableMsg};
+use ipc_gateway::{BottomUpCheckpoint, CrossMsg, Status, StorableMsg};
 use ipc_sdk::address::IPCAddress;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::ToPrimitive;
@@ -216,6 +217,24 @@ fn bytes_to_fvm_addr(protocol: u8, bytes: &[u8]) -> anyhow::Result<Address> {
         _ => return Err(anyhow!("address not support now")),
     };
     Ok(addr)
+}
+
+impl TryFrom<crate::manager::evm::gateway::Subnet> for SubnetInfo {
+    type Error = anyhow::Error;
+
+    fn try_from(value: crate::manager::evm::gateway::Subnet) -> Result<Self, Self::Error> {
+        Ok(SubnetInfo {
+            id: SubnetID::try_from(value.id)?,
+            stake: TokenAmount::from_atto(value.stake.as_u128()),
+            circ_supply: TokenAmount::from_atto(value.circ_supply.as_u128()),
+            status: match value.status {
+                1 => Status::Active,
+                2 => Status::Inactive,
+                3 => Status::Killed,
+                _ => return Err(anyhow!("invalid status: {:}", value.status)),
+            },
+        })
+    }
 }
 
 impl TryFrom<crate::manager::evm::gateway::FvmAddress> for Address {
