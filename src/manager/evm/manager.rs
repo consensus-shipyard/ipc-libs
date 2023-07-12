@@ -28,8 +28,7 @@ use crate::lotus::message::ipc::{QueryValidatorSetResponse, SubnetInfo, Validato
 use crate::lotus::message::wallet::WalletKeyType;
 use crate::manager::{EthManager, SubnetManager};
 
-pub type NonSignerM = Provider<Http>;
-pub type SignerM = SignerMiddleware<NonSignerM, Wallet<SigningKey>>;
+pub type DefaultSignerMiddleware = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 
 /// The majority vote percentage for checkpoint submission when creating a subnet.
 const SUBNET_MAJORITY_PERCENTAGE: u8 = 60;
@@ -622,7 +621,7 @@ impl EthSubnetManager {
     }
 
     /// Get the ethers singer instance.
-    fn get_signer(&self, addr: &ethers::types::Address) -> Result<SignerM> {
+    fn get_signer(&self, addr: &ethers::types::Address) -> Result<DefaultSignerMiddleware> {
         let keystore = self.keystore.read().unwrap();
         let private_key = keystore
             .get(addr)?

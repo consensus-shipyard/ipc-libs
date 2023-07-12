@@ -24,12 +24,21 @@ pub struct PersistentKeyStore<T> {
 
 /// The persistent key information written to disk
 #[derive(Serialize, Deserialize)]
-struct PersistentKeyInfo {
+pub struct PersistentKeyInfo {
     /// The address associated with the private key. We can derive this from the private key
     /// but for the ease of debugging, we keep this field
     address: String,
     /// Hex encoded private key
     private_key: String,
+}
+
+impl PersistentKeyInfo {
+    pub fn new(address: String, private_key: String) -> Self {
+        Self {
+            address,
+            private_key,
+        }
+    }
 }
 
 impl Drop for PersistentKeyInfo {
@@ -145,6 +154,7 @@ impl<T: Clone + Eq + Hash + AsRef<[u8]> + TryFrom<KeyInfo>> PersistentKeyStore<T
         Ok(())
     }
 }
+
 #[cfg(test)]
 mod tests {
     use crate::evm::KeyInfo;

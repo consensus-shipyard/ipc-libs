@@ -56,11 +56,17 @@ pub fn new_evm_keystore_from_config(
 ) -> anyhow::Result<PersistentKeyStore<ethers::types::Address>> {
     let repo_str = config.get_config_repo();
     if let Some(repo_str) = repo_str {
-        let repo = Path::new(&repo_str).join(DEFAULT_KEYSTORE_NAME);
-        PersistentKeyStore::new(repo).map_err(|e| anyhow!("Failed to create evm keystore: {}", e))
+        new_evm_keystore_from_path(&repo_str)
     } else {
         Err(anyhow!("No keystore repo found in config"))
     }
+}
+
+pub fn new_evm_keystore_from_path(
+    repo_str: &str,
+) -> anyhow::Result<PersistentKeyStore<ethers::types::Address>> {
+    let repo = Path::new(&repo_str).join(DEFAULT_KEYSTORE_NAME);
+    PersistentKeyStore::new(repo).map_err(|e| anyhow!("Failed to create evm keystore: {}", e))
 }
 
 pub fn new_keystore_from_path(repo_str: &str) -> anyhow::Result<KeyStore> {

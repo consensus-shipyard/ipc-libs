@@ -2,18 +2,15 @@
 // SPDX-License-Identifier: MIT
 //! Wallet import cli handler
 
-use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Args;
 use std::fmt::Debug;
 use std::str::FromStr;
 
 use crate::cli::commands::get_ipc_agent_url;
+use crate::cli::wallet::WalletType;
 use crate::cli::{CommandLineHandler, GlobalArguments};
 use crate::sdk::{IpcAgentClient, LotusJsonKeyType};
-
-const FVM_WALLET: u8 = 0;
-const EVM_WALLET: u8 = 1;
 
 pub(crate) struct WalletImport;
 
@@ -35,13 +32,13 @@ impl CommandLineHandler for WalletImport {
         let url = get_ipc_agent_url(&arguments.ipc_agent_url, global)?;
         let client = IpcAgentClient::default_from_url(url);
 
-        let addr = match arguments.network_type {
-            FVM_WALLET => {
+        let wallet_type = WalletType::from_str(&arguments.wallet_type)?;
+        let addr = match wallet_type {
+            WalletType::Fvm => {
                 let key_type = LotusJsonKeyType::from_str(&keyinfo)?;
                 client.import_lotus_json(key_type).await?
             }
-            EVM_WALLET => client.import_evm_private_key(keyinfo).await?,
-            _ => return Err(anyhow!("invalid network type")),
+            WalletType::Evm => client.import_evm_private_key(keyinfo).await?,
         };
 
         log::info!("imported wallet with address {:?}", addr);
@@ -55,12 +52,8 @@ impl CommandLineHandler for WalletImport {
 pub(crate) struct WalletImportArgs {
     #[arg(long, short, help = "The JSON RPC server url for ipc agent")]
     pub ipc_agent_url: Option<String>,
-    #[arg(
-        long,
-        short,
-        help = "The network the key belongs to, 0 for fvm, 1 for evm"
-    )]
-    pub network_type: u8,
+    #[arg(long, short, help = "The type of the wallet, i.e. fvm, evm")]
+    pub wallet_type: String,
     #[arg(long, short, help = "Path of keyinfo file for the key to import")]
     pub path: Option<String>,
 }
