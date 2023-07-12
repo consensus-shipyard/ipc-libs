@@ -27,7 +27,8 @@ impl CommandLineHandler for WalletImport {
         let client = IpcAgentClient::default_from_url(url);
 
         let addr = if matches!(wallet_type, WalletType::Evm) && let Some(key) = &arguments.private_key {
-            client.import_evm_from_private_key(key.clone()).await?
+            let p = if let Some(stripped) = key.strip_prefix("0x") { stripped } else { key };
+            client.import_evm_from_private_key(String::from(p)).await?
         } else {
             // Get keyinfo from file or stdin
             let keyinfo = if arguments.path.is_some() {
