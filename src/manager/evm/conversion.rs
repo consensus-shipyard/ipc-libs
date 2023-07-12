@@ -228,9 +228,9 @@ impl TryFrom<crate::manager::evm::gateway::Subnet> for SubnetInfo {
             stake: TokenAmount::from_atto(value.stake.as_u128()),
             circ_supply: TokenAmount::from_atto(value.circ_supply.as_u128()),
             status: match value.status {
-                0 => Status::Active,
-                1 => Status::Inactive,
-                2 => Status::Killed,
+                1 => Status::Active,
+                2 => Status::Inactive,
+                3 => Status::Killed,
                 _ => return Err(anyhow!("invalid status: {:}", value.status)),
             },
         })
