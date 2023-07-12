@@ -139,7 +139,7 @@ impl SubnetInfra {
 
         let actor_addr = util::create_subnet(
             self.config.ipc_agent_url(),
-            self.config.parent_wallet_address.clone(),
+            Some(self.config.parent_wallet_address.clone()),
             parent,
             self.config.name.clone(),
             self.config.number_of_nodes as u64,
