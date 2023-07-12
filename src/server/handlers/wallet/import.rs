@@ -30,7 +30,7 @@ pub struct FvmImportParams {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EvmImportParams {
-    /// Base64 encoded private key string
+    /// Hex encoded private key string
     pub private_key: String,
 }
 
@@ -93,7 +93,11 @@ impl WalletImportHandler {
     fn import_evm(&self, request: &EvmImportParams) -> anyhow::Result<WalletImportResponse> {
         let mut keystore = self.evm_keystore.write().unwrap();
 
-        let private_key = base64::engine::general_purpose::STANDARD.decode(&request.private_key)?;
+        let private_key = if !request.private_key.starts_with("0x") {
+            hex::decode(&request.private_key)?
+        } else {
+            hex::decode(&request.private_key.as_str()[2..])?
+        };
         let addr = keystore.put(EvmKeyInfo::new(private_key))?;
 
         Ok(WalletImportResponse {

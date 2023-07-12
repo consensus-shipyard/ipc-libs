@@ -12,6 +12,8 @@ use zeroize::Zeroize;
 
 pub use crate::evm::persistent::PersistentKeyStore;
 
+pub const DEFAULT_KEYSTORE_NAME: &str = "evm_keystore.json";
+
 /// The key store trait for different evm key store
 pub trait KeyStore {
     /// The type of the key that is stored

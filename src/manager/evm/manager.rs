@@ -95,7 +95,10 @@ impl SubnetManager for EthSubnetManager {
 
         log::info!("creating subnet on evm with params: {params:?}");
 
-        let signer = self.get_signer(&payload_to_evm_address(from.payload())?)?;
+        let evm_from = payload_to_evm_address(from.payload())?;
+        log::debug!("original from address: {from:?}, evm: {evm_from:?}");
+
+        let signer = self.get_signer(&evm_from)?;
         let registry_contract =
             SubnetRegistry::new(self.ipc_contract_info.registry_addr, Arc::new(signer));
 
