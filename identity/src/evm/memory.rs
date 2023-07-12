@@ -24,11 +24,11 @@ impl<T: Clone + Eq + Hash + TryFrom<KeyInfo>> KeyStore for MemoryKeyStore<T> {
         Ok(self.data.keys().cloned().collect())
     }
 
-    fn put(&mut self, info: KeyInfo) -> Result<()> {
+    fn put(&mut self, info: KeyInfo) -> Result<Self::Key> {
         let addr = Self::Key::try_from(info.clone())
             .map_err(|_| anyhow!("cannot convert private key to public key"))?;
-        self.data.insert(addr, info);
-        Ok(())
+        self.data.insert(addr.clone(), info);
+        Ok(addr)
     }
 
     fn remove(&mut self, addr: &Self::Key) -> Result<()> {

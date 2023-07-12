@@ -43,6 +43,7 @@ bytes = "1.4.0"
 serde_bytes = "0.11.9"
 clap = { version = "4.1.4", features = ["env", "derive"] }
 thiserror = { workspace = true }
+hex = { workspace = true }
 serde_tuple = "0.5.0"
 zeroize = "1.6.0"
 
@@ -56,7 +57,7 @@ ipc-gateway = { workspace = true }
 fvm_ipld_encoding = { workspace = true }
 primitives = { workspace = true }
 
-ipc-identity = { path = "identity/." }
+ipc-identity = { path = "identity/.", features = ["with-ethers"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }

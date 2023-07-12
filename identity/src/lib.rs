@@ -6,5 +6,7 @@
 mod evm;
 mod fvm;
 
-pub use crate::evm::{KeyInfo as EvmKeyInfo, KeyStore as EvmKeyStore, PersistentKeyStore};
+pub use crate::evm::{
+    KeyInfo as EvmKeyInfo, KeyStore as EvmKeyStore, PersistentKeyStore, DEFAULT_KEYSTORE_NAME,
+};
 pub use crate::fvm::*;
