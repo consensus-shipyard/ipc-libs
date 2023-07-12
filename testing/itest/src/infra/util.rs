@@ -43,6 +43,7 @@ pub async fn create_subnet(
 pub async fn join_subnet(
     ipc_agent_url: String,
     from: Option<String>,
+    worker_addr: Option<String>,
     subnet: String,
     collateral: f64,
     validator_net_addr: String,
@@ -53,7 +54,7 @@ pub async fn join_subnet(
         from,
         collateral,
         validator_net_addr,
-        worker_addr: None,
+        worker_addr,
     };
     client.join_subnet(params).await
 }

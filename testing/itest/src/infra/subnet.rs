@@ -366,6 +366,7 @@ impl SubnetNode {
         util::join_subnet(
             self.ipc_agent_url.clone(),
             None,
+            Some(self.wallet_address.clone().unwrap()),
             self.id.to_string(),
             DEFAULT_MIN_STAKE,
             self.validator.net_addr.clone().unwrap(),
