@@ -25,12 +25,18 @@ impl<T: JsonRpcClient> IpcAgentClient<T> {
         self.import(params).await
     }
 
-    /// Import a wallet address in the form of lotus json
-    pub async fn import_evm_private_key(&self, raw_str: String) -> anyhow::Result<String> {
+    /// Import a wallet address in the form of { "address": "0x...", "private_key": ... } json
+    pub async fn import_evm_from_json(&self, raw_str: String) -> anyhow::Result<String> {
         let persisted: PersistentKeyInfo = serde_json::from_str(&raw_str)?;
         let params = WalletImportParams::Evm(EvmImportParams {
             private_key: persisted.private_key().parse()?,
         });
+        self.import(params).await
+    }
+
+    /// Import a wallet address in the form of a private_key
+    pub async fn import_evm_from_private_key(&self, private_key: String) -> anyhow::Result<String> {
+        let params = WalletImportParams::Evm(EvmImportParams { private_key });
         self.import(params).await
     }
 
