@@ -254,6 +254,6 @@ git clone --branch spacenet https://github.com/consensus-shipyard/lotus.git
 
 
 ## Step 12: What now?
-* Proceed to the [usage](evm-usage.md) guide to learn how you can test your new subnet.
+* Proceed to the [usage](usage.md) guide to learn how you can test your new subnet.
 * If something went wrong, please have a look at the [README](https://github.com/consensus-shipyard/ipc-agent). If it doesn't help, please join us in #ipc-help. In either case, let us know your experience!
 * Please note that to repeat this guide or spawn a new subnet, you may need to change the parameters or reset your system.
