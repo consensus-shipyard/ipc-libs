@@ -253,12 +253,24 @@ git clone --branch spacenet https://github.com/consensus-shipyard/lotus.git
 (cd lotus && make spacenet && make lotus-gateway)
 ```
 
-* Edit your `api` and `token` files under `~/.lotus` and replace them with the `http://127.0.0.1:1251/rpc/v1` and `<AUTH_TOKEN_1>`, respectively.
+* Create the config directory and populate the configuration
+```bash
+mkdir -p ~/.lotus/datastore
+echo '/ip4/127.0.0.1/tcp/1251/http' > ~/.lotus/api
+echo '<AUTH_TOKEN_1>' > ~/.lotus/token
+```
+
+* Obtain your Chain ID
+```bash
+./ipc-agent/bin/ipc-agent subnet rpc --subnet <SUBNET_ID>
+```
 
 * [**In a new session**] Start your lotus-gateway
 ```bash
-./lotus/lotus-gateway run --api-max-lookback=1600000h00m0s --api-wait-lookback-limit 2000
+./lotus/lotus-gateway run --api-max-lookback=1600000h --api-wait-lookback-limit 2000
 ```
+
+* You may now use `http://<IP_ADDR>:2346/rpc/v1` as your RPC endpoint and the chain ID you obtained to configure your EVM tooling.
 
 
 ## Step 12: What now?
