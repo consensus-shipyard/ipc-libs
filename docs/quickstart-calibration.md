@@ -241,6 +241,8 @@ We have everything in place now to start validating. Run the following script fo
 
 If you'd like to interact with your subnet using Metamask or other tooling, you should deploy a `lotus-gateway` instance for tokenless RPC access.
 
+>💡 The instructions below assume you do not have a local `lotus` set-up. If you do, you may want to create a separate directory for `lotus-gw` and pass it as an argument to the application.
+
 * Install Go [Linux] ([details](https://go.dev/doc/install))
 ```bash
 curl -fsSL https://golang.org/dl/go1.19.7.linux-amd64.tar.gz | sudo tar -xz -C /usr/local
@@ -270,7 +272,7 @@ echo '<AUTH_TOKEN_1>' > ~/.lotus/token
 ./lotus/lotus-gateway run --api-max-lookback=1600000h --api-wait-lookback-limit 2000
 ```
 
-* You may now use `http://<IP_ADDR>:2346/rpc/v1` as your RPC endpoint and the chain ID you obtained to configure your EVM tooling.
+>💡 You may now use `http://<IP_ADDR>:2346/rpc/v1` as your RPC endpoint and the chain ID you obtained to configure your EVM tooling.
 
 
 ## Step 12: What now?
