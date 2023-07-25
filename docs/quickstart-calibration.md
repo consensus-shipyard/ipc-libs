@@ -23,13 +23,6 @@ sudo apt update && sudo apt install build-essential libssl-dev mesa-opencl-icd o
 ```bash
 curl https://sh.rustup.rs -sSf | sh
 source "$HOME/.cargo/env"
-rustup target add wasm32-unknown-unknown
-```
-
-* Install Go [Linux] ([details](https://go.dev/doc/install))
-```bash
-curl -fsSL https://golang.org/dl/go1.19.7.linux-amd64.tar.gz | sudo tar -xz -C /usr/local
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc && source ~/.bashrc
 ```
 
 * Install Docker Engine [Ubuntu] ([details](https://docs.docker.com/engine/install/))
