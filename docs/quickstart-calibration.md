@@ -8,7 +8,7 @@ Several steps in this guide involve running long-lived processes. In each of the
 
 >💡A video walkthrough of this guide is current being prepared. We still encourage you to try it for yourself!
 
->💡If you're only looking to connect to an existing subnet, please see XXX instead.
+>💡If you're only looking to connect to an existing subnet, please see the [README](deploying-hierarchy.md) instead.
 
 ## Step 0: Prepare your system
 
