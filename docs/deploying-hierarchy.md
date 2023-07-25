@@ -4,7 +4,7 @@ We recommend that you connect to the existing contracts on CalibrationNet. Never
 
 ## Install prerequisites
 
-* Install the basic requirements for IPC (see README)
+* Install the basic requirements for IPC (see [README](/README.md))
 
 * Install Node.js [Ubuntu] ([details](https://github.com/nodesource/distributions))
 ```bash
