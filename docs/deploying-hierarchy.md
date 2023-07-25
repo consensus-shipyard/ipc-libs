@@ -25,7 +25,7 @@ cd ipc-solidity-actors
 npm install
 ``` 
 
-## Set up and found an EVM account
+## Set up and fund an EVM account
 
 * Connect Metamask to the parent network (for calibrationnet, use `https://api.calibration.node.glif.io/rpc/v1` as the RPC and `314159` as the chain id)
 
