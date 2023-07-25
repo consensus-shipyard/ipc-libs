@@ -106,23 +106,30 @@ accounts = ["<PRIMARY_ADDRESS>"]
 ./ipc-agent/bin/ipc-agent config reload
 ```
 
-* Go to the [Calibration faucet](https://faucet.calibration.fildev.network/) and get some funds sent to each of your addresses. 
+* Go to the [Calibration faucet](https://faucet.calibration.fildev.network/) and get some funds sent to your address. 
 
->💡 In case you'd like to import an EVM accounts into Metamask, you can use export the private key using `./ipc-agent/bin/ipc-agent wallet export -w evm -a <ADDRESS>`. More information is available in the [EVM IPC agent support docs](./evm-usage.md#key-management).
+>💡 In case you'd like to import an EVM account into Metamask, you can use export the private key using `./ipc-agent/bin/ipc-agent wallet export -w evm -a <ADDRESS>`. More information is available in the [EVM IPC agent support docs](./evm-usage.md#key-management).
 
 
 ## Step 4: Set up your validator owner wallets
 
-* Create the owner wallets for each validator (OWNER_1, OWNER_2, and OWNER_3) 
+* Create the owner wallets for each validator (OWNER1, OWNER2, and OWNER3) 
 ```bash
 ./ipc-agent/bin/ipc-agent wallet new -w evm
 ./ipc-agent/bin/ipc-agent wallet new -w evm
 ./ipc-agent/bin/ipc-agent wallet new -w evm
 ```
 
-* Go to the [Calibration faucet](https://faucet.calibration.fildev.network/) and get some funds sent to each of your addresses. 
+* Go to the [Calibration faucet](https://faucet.calibration.fildev.network/) and get some funds sent to each of your addresses 
 
->💡 Note that you may hit faucet rate limits. In that case, wait a few minutes or continue with the guide and come back to this before step XXX. Alternatively, you can send funds from your primary wallet to your owner wallets.
+* Convert the 0x addresses to f4 addresses for later usage (OWNER_1_F4, OWNER_2_F4, and OWNER_3_F4) 
+```bash
+./ipc-agent/bin/ipc-agent util eth-to-f4-addr --addr <OWNER_1>
+./ipc-agent/bin/ipc-agent util eth-to-f4-addr --addr <OWNER_2>
+./ipc-agent/bin/ipc-agent util eth-to-f4-addr --addr <OWNER_3>
+```
+
+>💡 Note that you may hit faucet rate limits. In that case, wait a few minutes or continue with the guide and come back to this before step 9. Alternatively, you can send funds from your primary wallet to your owner wallets.
 
 
 ## Step 5: Set up your validator worker wallets
@@ -138,9 +145,9 @@ Mir validators do not support the use of EVM addresses to create new blocks. The
 
 * Export each wallet by substituting their addresses below
 ```bash
-./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_1> --output ~/.ipc-agent/worker-wallet1.key
-./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_2> --output ~/.ipc-agent/worker-wallet2.key
-./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WALLET_3> --output ~/.ipc-agent/worker-wallet3.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WORKER_1> --output ~/.ipc-agent/worker-wallet1.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WORKER_2> --output ~/.ipc-agent/worker-wallet2.key
+./ipc-agent/bin/ipc-agent wallet export -w fvm --address <WORKER_3> --output ~/.ipc-agent/worker-wallet3.key
 ```
 
 
@@ -210,10 +217,12 @@ All the infrastructure for the subnet is now deployed, and we can join our valid
 
 * Join the subnet with each validator
 ```bash
-./ipc-agent/bin/ipc-agent subnet join --subnet /r314159/<SUBNET_ID> --collateral 10 --from <OWNER_1> --validator-net-addr <VALIDATOR_ADDR_1> --worker-addr <WORKER_1> 
-./ipc-agent/bin/ipc-agent subnet join --subnet /r314159/<SUBNET_ID> --collateral 10 --from <OWNER_2> --validator-net-addr <VALIDATOR_ADDR_2> --worker-addr <WORKER_2>
-./ipc-agent/bin/ipc-agent subnet join --subnet /r314159/<SUBNET_ID> --collateral 10 --from <OWNER_3> --validator-net-addr <VALIDATOR_ADDR_3> --worker-addr <WORKER_3>
+./ipc-agent/bin/ipc-agent subnet join --subnet /r314159/<SUBNET_ID> --collateral 10 --from <OWNER_1_F4> --validator-net-addr <VALIDATOR_ADDR_1> --worker-addr <WORKER_1> 
+./ipc-agent/bin/ipc-agent subnet join --subnet /r314159/<SUBNET_ID> --collateral 10 --from <OWNER_2_F4> --validator-net-addr <VALIDATOR_ADDR_2> --worker-addr <WORKER_2>
+./ipc-agent/bin/ipc-agent subnet join --subnet /r314159/<SUBNET_ID> --collateral 10 --from <OWNER_3_F4> --validator-net-addr <VALIDATOR_ADDR_3> --worker-addr <WORKER_3>
 ```
+
+>💡 Make sure to use the f4 addresses for the owner wallets
 
 
 ## Step 10: Start validating! 
@@ -231,6 +240,12 @@ We have everything in place now to start validating. Run the following script fo
 ## Step 11: Deploy IPC Gateway [optional]
 
 If you'd like to interact with your subnet using Metamask or other tooling, you should deploy a `lotus-gateway` instance for tokenless RPC access.
+
+* Install Go [Linux] ([details](https://go.dev/doc/install))
+```bash
+curl -fsSL https://golang.org/dl/go1.19.7.linux-amd64.tar.gz | sudo tar -xz -C /usr/local
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc && source ~/.bashrc
+```
 
 * Download and compile eudico (might take a while)
 ```bash
