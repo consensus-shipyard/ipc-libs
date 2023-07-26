@@ -272,7 +272,7 @@ echo '<AUTH_TOKEN_1>' > ~/.lotus/token
 ./lotus/lotus-gateway run --api-max-lookback=1600000h --api-wait-lookback-limit 2000
 ```
 
->💡 You may now use `http://<IP_ADDR>:2346/rpc/v1` as your RPC endpoint and the chain ID you obtained to configure your EVM tooling.
+>💡 You may now use your chain ID and `http://<IP_ADDR>:2346/rpc/v1` as your RPC endpoint in EVM tooling.
 
 
 ## Step 12: What now?
