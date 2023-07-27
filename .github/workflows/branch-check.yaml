@@ -2,7 +2,7 @@ name: Redirect PRs to dev branch
 
 on:
   pull_request_target: # Do not combine with explicit checkout for security reasons
-    types: [opened] # Removed "edited" to allow a forced path to main if needed
+    types: [opened] # Not triggering on "edited" to allow a forced path to main
 
 jobs:
   check-branch:
@@ -18,4 +18,4 @@ jobs:
           comment: |
               Your PR was set to target `main`. PRs should be target `dev`.
               The base branch of this PR has been automatically changed to `dev`.
-              If you really intend to target `main`, you may edit the PR.
+              If you really intend to target `main`, edit the PR.
