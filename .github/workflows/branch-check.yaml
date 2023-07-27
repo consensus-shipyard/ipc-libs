@@ -1,4 +1,4 @@
-name: Redirect PRs to dev branch
+name: Check branch
 
 on:
   pull_request_target: # Do not combine with explicit checkout for security reasons
