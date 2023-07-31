@@ -5,7 +5,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use crate::manager::SubnetManager;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use fvm_shared::clock::ChainEpoch;
@@ -47,6 +46,9 @@ impl JsonRPCRequestHandler for LastTopDownExecHandler {
         let subnet_config = conn.subnet();
         check_subnet(subnet_config)?;
 
-        Ok(conn.manager().last_topdown_executed().await?)
+        Ok(conn
+            .manager()
+            .last_topdown_executed(&subnet_config.gateway_addr())
+            .await?)
     }
 }

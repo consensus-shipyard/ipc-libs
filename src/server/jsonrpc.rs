@@ -1,10 +1,12 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use bytes::Bytes;
+use ipc_identity::PersistentKeyStore;
+use ipc_identity::Wallet;
 use tokio::sync::Notify;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 use warp::http::StatusCode;
@@ -27,19 +29,23 @@ type ArcHandlers = Arc<Handlers>;
 ///
 /// # Examples
 /// ```no_run
-/// use std::sync::Arc;
+/// use std::sync::{Arc, RwLock};
 /// use std::time::Duration;
 ///
 /// use tokio_graceful_shutdown::{IntoSubsystem, Toplevel};
 ///
 /// use ipc_agent::config::ReloadableConfig;
 /// use ipc_agent::server::jsonrpc::JsonRPCServer;
+/// use ipc_agent::server::{new_evm_keystore_from_config, new_fvm_wallet_from_config};
+/// use ipc_identity::Wallet;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let path = "PATH TO YOUR CONFIG FILE";
+/// let path = "PATH TO YOUR CONFIG FILE";
 ///     let config = Arc::new(ReloadableConfig::new(path.to_string()).unwrap());
-///     let server = JsonRPCServer::new(config);
+///     let fvm_wallet = Arc::new(RwLock::new(Wallet::new(new_fvm_wallet_from_config(config.clone()).unwrap())));
+///     let evm_keystore = Arc::new(RwLock::new((new_evm_keystore_from_config(config.clone()).unwrap()));
+///     let server = JsonRPCServer::new(config, fvm_wallet, evm_keystore);
 ///     Toplevel::new()
 ///         .start("JSON-RPC server subsystem", server.into_subsystem())
 ///         .catch_signals()
@@ -50,11 +56,21 @@ type ArcHandlers = Arc<Handlers>;
 /// ```
 pub struct JsonRPCServer {
     config: Arc<ReloadableConfig>,
+    fvm_wallet: Arc<RwLock<Wallet>>,
+    evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 }
 
 impl JsonRPCServer {
-    pub fn new(config: Arc<ReloadableConfig>) -> Self {
-        Self { config }
+    pub fn new(
+        config: Arc<ReloadableConfig>,
+        fvm_wallet: Arc<RwLock<Wallet>>,
+        evm_keystore: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
+    ) -> Self {
+        Self {
+            config,
+            fvm_wallet,
+            evm_keystore,
+        }
     }
 }
 
@@ -72,7 +88,11 @@ impl IntoSubsystem<anyhow::Error> for JsonRPCServer {
         let notify_recv = notify_send.clone();
 
         // Start the server.
-        let handlers = Arc::new(Handlers::new(self.config.clone())?);
+        let handlers = Arc::new(Handlers::new(
+            self.config.clone(),
+            self.fvm_wallet.clone(),
+            self.evm_keystore.clone(),
+        )?);
         let (_, server) = warp::serve(json_rpc_filter(handlers)).bind_with_graceful_shutdown(
             self.config.get_config().server.json_rpc_address,
             async move { notify_recv.notified().await },

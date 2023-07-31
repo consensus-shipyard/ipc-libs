@@ -8,8 +8,7 @@ use std::fmt::Debug;
 
 use crate::cli::commands::get_ipc_agent_url;
 use crate::cli::{CommandLineHandler, GlobalArguments};
-use crate::config::json_rpc_methods;
-use crate::jsonrpc::{JsonRpcClient, JsonRpcClientImpl};
+use crate::sdk::IpcAgentClient;
 use crate::server::join::JoinSubnetParams;
 
 /// The command to join a subnet
@@ -23,7 +22,6 @@ impl CommandLineHandler for JoinSubnet {
         log::debug!("join subnet with args: {:?}", arguments);
 
         let url = get_ipc_agent_url(&arguments.ipc_agent_url, global)?;
-        let json_rpc_client = JsonRpcClientImpl::new(url, None);
 
         // The json rpc server will handle directing the request to
         // the correct parent.
@@ -32,11 +30,11 @@ impl CommandLineHandler for JoinSubnet {
             from: arguments.from.clone(),
             collateral: arguments.collateral,
             validator_net_addr: arguments.validator_net_addr.clone(),
+            worker_addr: arguments.worker_addr.clone(),
         };
 
-        json_rpc_client
-            .request::<()>(json_rpc_methods::JOIN_SUBNET, serde_json::to_value(params)?)
-            .await?;
+        let client = IpcAgentClient::default_from_url(url);
+        client.join_subnet(params).await?;
 
         log::info!("joined subnet: {:}", arguments.subnet);
 
@@ -61,4 +59,10 @@ pub struct JoinSubnetArgs {
     pub collateral: f64,
     #[arg(long, short, help = "The validator net address")]
     pub validator_net_addr: String,
+    #[arg(
+        long,
+        short,
+        help = "The validator worker address. If not set will be the same as `from`"
+    )]
+    pub worker_addr: Option<String>,
 }

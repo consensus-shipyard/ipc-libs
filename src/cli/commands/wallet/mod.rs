@@ -8,11 +8,13 @@ use clap::{Args, Subcommand};
 
 use self::export::{WalletExport, WalletExportArgs};
 use self::import::{WalletImport, WalletImportArgs};
+use self::remove::{WalletRemove, WalletRemoveArgs};
 
 mod balances;
 mod export;
 mod import;
 mod new;
+mod remove;
 
 #[derive(Debug, Args)]
 #[command(name = "wallet", about = "wallet related commands")]
@@ -29,6 +31,7 @@ impl WalletCommandsArgs {
             Commands::Balances(args) => WalletBalances::handle(global, args).await,
             Commands::Import(args) => WalletImport::handle(global, args).await,
             Commands::Export(args) => WalletExport::handle(global, args).await,
+            Commands::Remove(args) => WalletRemove::handle(global, args).await,
         }
     }
 }
@@ -39,4 +42,5 @@ pub(crate) enum Commands {
     Balances(WalletBalancesArgs),
     Import(WalletImportArgs),
     Export(WalletExportArgs),
+    Remove(WalletRemoveArgs),
 }

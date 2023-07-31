@@ -8,18 +8,20 @@ mod crossmsg;
 mod daemon;
 mod subnet;
 mod util;
-mod wallet;
+pub mod wallet;
 
 use crate::cli::commands::checkpoint::CheckpointCommandsArgs;
 use crate::cli::commands::crossmsg::CrossMsgsCommandsArgs;
 use crate::cli::commands::daemon::{LaunchDaemon, LaunchDaemonArgs};
 use crate::cli::commands::util::UtilCommandsArgs;
 use crate::cli::{CommandLineHandler, GlobalArguments};
-use crate::server::new_keystore_from_path;
+use crate::server::{new_evm_keystore_from_path, new_keystore_from_path};
 use anyhow::{Context, Result};
+
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
-use ipc_identity::KeyStore;
+use ipc_identity::{KeyStore, PersistentKeyStore};
+
 use std::fmt::Debug;
 use std::io;
 use subnet::SubnetCommandsArgs;
@@ -30,7 +32,7 @@ use crate::cli::commands::wallet::WalletCommandsArgs;
 
 pub use subnet::*;
 
-use super::DEFAULT_CONFIG_PATH;
+use super::default_repo_path;
 
 /// The collection of all subcommands to be called, see clap's documentation for usage. Internal
 /// to the current mode. Register a new command accordingly.
@@ -52,7 +54,7 @@ enum Commands {
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "ipc",
+    name = "ipc-agent",
     about = "The IPC agent command line tool",
     version = "v0.0.1"
 )]
@@ -145,10 +147,19 @@ pub(crate) fn get_ipc_agent_url(
     Ok(url)
 }
 
-pub(crate) fn get_keystore(path: &Option<String>) -> Result<KeyStore> {
+pub(crate) fn get_fvm_store(path: Option<String>) -> Result<KeyStore> {
     let path = match path {
         Some(p) => p,
-        None => DEFAULT_CONFIG_PATH,
+        None => default_repo_path(),
     };
-    new_keystore_from_path(path)
+    new_keystore_from_path(&path)
+}
+
+pub(crate) fn get_evm_keystore(
+    path: &Option<String>,
+) -> Result<PersistentKeyStore<ethers::types::Address>> {
+    match path {
+        Some(p) => new_evm_keystore_from_path(p),
+        None => new_evm_keystore_from_path(&default_repo_path()),
+    }
 }

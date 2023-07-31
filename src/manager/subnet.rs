@@ -3,20 +3,21 @@
 ///! IPC node-specific traits.
 use std::collections::HashMap;
 
+use crate::checkpoint::NativeBottomUpCheckpoint;
 use anyhow::Result;
 use async_trait::async_trait;
 use cid::Cid;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
-use ipc_gateway::BottomUpCheckpoint;
 use ipc_sdk::subnet_id::SubnetID;
-use ipc_subnet_actor::{ConstructParams, JoinParams};
+use ipc_subnet_actor::ConstructParams;
 
-use crate::lotus::message::{ipc::SubnetInfo, wallet::WalletKeyType};
+use crate::lotus::message::ipc::QueryValidatorSetResponse;
+use crate::lotus::message::ipc::SubnetInfo;
 
 /// Trait to interact with a subnet and handle its lifecycle.
 #[async_trait]
-pub trait SubnetManager {
+pub trait SubnetManager: Send + Sync {
     /// Deploys a new subnet actor on the `parent` subnet and with the
     /// configuration passed in `ConstructParams`.
     /// The result of the function is the ID address for the subnet actor from which the final
@@ -32,7 +33,8 @@ pub trait SubnetManager {
         subnet: SubnetID,
         from: Address,
         collateral: TokenAmount,
-        params: JoinParams,
+        validator_net_addr: String,
+        worker_addr: Address,
     ) -> Result<()>;
 
     /// Sends a request to leave a subnet from a wallet address.
@@ -47,21 +49,25 @@ pub trait SubnetManager {
         gateway_addr: Address,
     ) -> Result<HashMap<SubnetID, SubnetInfo>>;
 
-    /// Fund injects new funds from an account of the parent chain to a subnet
+    /// Fund injects new funds from an account of the parent chain to a subnet.
+    /// Returns the epoch that the fund is executed in the parent.
     async fn fund(
         &self,
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch>;
 
     /// Release creates a new check message to release funds in parent chain
+    /// Returns the epoch that the released is executed in the child.
     async fn release(
         &self,
         subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
+        to: Address,
         amount: TokenAmount,
     ) -> Result<ChainEpoch>;
 
@@ -95,17 +101,11 @@ pub trait SubnetManager {
     /// Send value between two addresses in a subnet
     async fn send_value(&self, from: Address, to: Address, amount: TokenAmount) -> Result<()>;
 
-    /// Create new wallet in a subnet
-    async fn wallet_new(&self, key_type: WalletKeyType) -> Result<Address>;
-
-    /// List wallets in this subnet
-    async fn wallet_list(&self) -> Result<Vec<Address>>;
-
     /// Get the balance of an address
     async fn wallet_balance(&self, address: &Address) -> Result<TokenAmount>;
 
     /// Returns the epoch of the latest top-down checkpoint executed
-    async fn last_topdown_executed(&self) -> Result<ChainEpoch>;
+    async fn last_topdown_executed(&self, gateway_addr: &Address) -> Result<ChainEpoch>;
 
     /// Returns the list of checkpoints from a subnet actor for the given epoch range.
     async fn list_checkpoints(
@@ -113,5 +113,12 @@ pub trait SubnetManager {
         subnet_id: SubnetID,
         from_epoch: ChainEpoch,
         to_epoch: ChainEpoch,
-    ) -> Result<Vec<BottomUpCheckpoint>>;
+    ) -> Result<Vec<NativeBottomUpCheckpoint>>;
+
+    /// Returns the validator set
+    async fn get_validator_set(
+        &self,
+        subnet_id: &SubnetID,
+        gateway: Option<Address>,
+    ) -> Result<QueryValidatorSetResponse>;
 }

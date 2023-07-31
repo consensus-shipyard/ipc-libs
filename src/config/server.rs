@@ -1,11 +1,11 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 
 pub const JSON_RPC_ENDPOINT: &str = "json_rpc";
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Server {
     pub json_rpc_address: SocketAddr,
 }
@@ -26,6 +26,7 @@ pub mod json_rpc_methods {
     pub const SET_VALIDATOR_NET_ADDR: &str = "ipc_setValidatorNetAddr";
     pub const SEND_VALUE: &str = "ipc_sendValue";
     pub const WALLET_NEW: &str = "ipc_walletNew";
+    pub const WALLET_REMOVE: &str = "ipc_walletRemove";
     pub const WALLET_IMPORT: &str = "ipc_walletImport";
     pub const WALLET_EXPORT: &str = "ipc_walletExport";
     pub const WALLET_BALANCES: &str = "ipc_walletBalances";
