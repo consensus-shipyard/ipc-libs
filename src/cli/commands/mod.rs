@@ -61,7 +61,7 @@ enum Commands {
 #[command(propagate_version = true)]
 struct IPCAgentCliCommands {
     // If provided, outputs the completion file for given shell
-    #[arg(long = "generate", value_enum)]
+    #[arg(long = "cli-autocomplete-gen", value_enum)]
     generator: Option<Shell>,
     #[clap(flatten)]
     global_params: GlobalArguments,
