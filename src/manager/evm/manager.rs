@@ -332,7 +332,7 @@ impl SubnetManager for EthSubnetManager {
         &self,
         gateway_addr: Address,
         from: Address,
-        cross_msg: ipc_gateway::CrossMsg,
+        cross_msg: ipc_sdk::cross::CrossMsg,
     ) -> Result<()> {
         self.ensure_same_gateway(&gateway_addr)?;
 
@@ -647,7 +647,7 @@ impl EthManager for EthSubnetManager {
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
         nonce: u64,
-    ) -> Result<Vec<ipc_gateway::CrossMsg>> {
+    ) -> Result<Vec<ipc_sdk::cross::CrossMsg>> {
         let route = agent_subnet_to_evm_addresses(subnet_id)?;
         log::debug!("getting top down messages for route: {route:?}");
 
@@ -675,7 +675,7 @@ impl EthManager for EthSubnetManager {
 
         let mut msgs = vec![];
         for c in raw_msgs {
-            msgs.push(ipc_gateway::CrossMsg::try_from(c)?);
+            msgs.push(ipc_sdk::cross::CrossMsg::try_from(c)?);
         }
         Ok(msgs)
     }
