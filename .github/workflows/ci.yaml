@@ -63,7 +63,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
-          target: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown
           toolchain: ${{ matrix.rust }}
           components: rustfmt,clippy
 
