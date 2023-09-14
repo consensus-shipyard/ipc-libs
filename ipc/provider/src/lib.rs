@@ -22,8 +22,8 @@ use ipc_sdk::{
     subnet::{ConsensusType, ConstructParams},
     subnet_id::SubnetID,
 };
-use lotus::message::{ipc::QueryValidatorSetResponse, wallet::WalletKeyType};
-use manager::{fevm::FevmSubnetManager, LotusSubnetManager, SubnetInfo, SubnetManager};
+use lotus::message::wallet::WalletKeyType;
+use manager::{evm::EthManager, SubnetInfo, SubnetManager};
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -192,14 +192,6 @@ impl IpcProvider {
         // and finally, if there is no sender, use the default and
         // set it as the default sender.
         match &subnet.config {
-            config::subnet::SubnetConfig::Fvm(_) => {
-                if self.sender.is_none() {
-                    let wallet = self.fvm_wallet();
-                    let addr = wallet.write().unwrap().get_default()?;
-                    self.sender = Some(addr);
-                    return Ok(addr);
-                }
-            }
             config::subnet::SubnetConfig::Fevm(_) => {
                 if self.sender.is_none() {
                     let wallet = self.evm_wallet();

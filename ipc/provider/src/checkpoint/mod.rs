@@ -25,7 +25,6 @@ pub use topdown::*;
 
 mod bottomup;
 mod proof;
-mod setup;
 mod topdown;
 
 const TASKS_PROCESS_THRESHOLD_SEC: u64 = 15;
