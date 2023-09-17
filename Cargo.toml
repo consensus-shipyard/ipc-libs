@@ -96,8 +96,8 @@ fvm_ipld_encoding = "0.3.3"
 fvm_shared = { version = "=3.2.0", default-features = false, features = ["crypto"] }
 fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = ["fil-actor"] }
 ipc-sdk = { git = "https://github.com/consensus-shipyard/ipc-actors.git", branch = "main" }
-ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
-ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [] }
+ipc-subnet-actor = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "main" }
+ipc-gateway = { git = "https://github.com/consensus-shipyard/ipc-actors.git", features = [], branch = "main" }
 libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
 primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
 ethers = "2.0.8"

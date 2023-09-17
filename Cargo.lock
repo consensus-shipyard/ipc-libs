@@ -2933,7 +2933,7 @@ checksum = "ec58677acfea8a15352d42fc87d11d63596ade9239e0a7c9352914417515dbe6"
 [[package]]
 name = "ipc-actor-common"
 version = "0.1.0"
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#fccc94bae13c4b72333fdb0a8c826f2eb82d8203"
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git?branch=main#cfe83a1a63945648fb9a73e69231b747310320b5"
 dependencies = [
  "anyhow",
  "fil_actors_runtime",
@@ -3024,7 +3024,7 @@ dependencies = [
 [[package]]
 name = "ipc-gateway"
 version = "0.0.1"
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#fccc94bae13c4b72333fdb0a8c826f2eb82d8203"
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git?branch=main#cfe83a1a63945648fb9a73e69231b747310320b5"
 dependencies = [
  "anyhow",
  "cid",
@@ -3084,7 +3084,7 @@ dependencies = [
 [[package]]
 name = "ipc-sdk"
 version = "0.0.1"
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#fccc94bae13c4b72333fdb0a8c826f2eb82d8203"
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git?branch=main#cfe83a1a63945648fb9a73e69231b747310320b5"
 dependencies = [
  "anyhow",
  "fil_actors_runtime",
@@ -3097,7 +3097,6 @@ dependencies = [
  "lazy_static",
  "log",
  "num-traits",
- "primitives",
  "serde",
  "serde_tuple",
  "thiserror",
@@ -3106,7 +3105,7 @@ dependencies = [
 [[package]]
 name = "ipc-subnet-actor"
 version = "0.0.1"
-source = "git+https://github.com/consensus-shipyard/ipc-actors.git#fccc94bae13c4b72333fdb0a8c826f2eb82d8203"
+source = "git+https://github.com/consensus-shipyard/ipc-actors.git?branch=main#cfe83a1a63945648fb9a73e69231b747310320b5"
 dependencies = [
  "anyhow",
  "cid",
