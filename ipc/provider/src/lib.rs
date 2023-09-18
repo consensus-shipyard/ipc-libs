@@ -6,7 +6,6 @@
 
 use anyhow::anyhow;
 use base64::Engine;
-use checkpoint::NativeBottomUpCheckpoint;
 use config::ReloadableConfig;
 use fvm_shared::{
     address::{set_current_network, Address, Network},
@@ -22,8 +21,8 @@ use ipc_sdk::{
     subnet::{ConsensusType, ConstructParams},
     subnet_id::SubnetID,
 };
-use lotus::message::wallet::WalletKeyType;
-use manager::{evm::EthManager, SubnetInfo, SubnetManager};
+use lotus::message::{ipc::QueryValidatorSetResponse, wallet::WalletKeyType};
+use manager::{EthSubnetManager, SubnetInfo, SubnetManager};
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -34,7 +33,6 @@ use std::{
 };
 use zeroize::Zeroize;
 
-pub mod checkpoint;
 pub mod config;
 pub mod jsonrpc;
 pub mod lotus;
@@ -115,22 +113,11 @@ impl IpcProvider {
         let subnets = &config.subnets;
         match subnets.get(subnet) {
             Some(subnet) => match &subnet.config {
-                config::subnet::SubnetConfig::Fvm(_) => {
-                    let manager = Box::new(LotusSubnetManager::from_subnet_with_wallet_store(
-                        subnet,
-                        self.fvm_wallet.clone(),
-                    ));
-                    Some(Connection {
-                        manager,
-                        subnet: subnet.clone(),
-                    })
-                }
                 config::subnet::SubnetConfig::Fevm(_) => {
                     let manager = Box::new(
-                        FevmSubnetManager::from_subnet_with_wallet_store(
+                        EthSubnetManager::from_subnet_with_wallet_store(
                             subnet,
                             self.evm_keystore.clone(),
-                            self.fvm_wallet.clone(),
                         )
                         .ok()?,
                     );
@@ -157,21 +144,6 @@ impl IpcProvider {
 
     pub fn fvm_wallet(&self) -> Arc<RwLock<Wallet>> {
         self.fvm_wallet.clone()
-    }
-
-    fn check_subnet(&self, subnet: &config::Subnet) -> anyhow::Result<()> {
-        match &subnet.config {
-            config::subnet::SubnetConfig::Fvm(config) => {
-                if config.auth_token.is_none() {
-                    log::error!("subnet {:?} does not have auth token", subnet.id);
-                    return Err(anyhow!("Internal server error"));
-                }
-            }
-            config::subnet::SubnetConfig::Fevm(_) => {
-                // TODO: More checks to come
-            }
-        }
-        Ok(())
     }
 
     fn check_sender(
@@ -235,7 +207,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         let constructor_params = ConstructParams {
@@ -270,7 +241,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         let worker = match worker_addr {
@@ -294,7 +264,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         conn.manager().leave_subnet(subnet, sender).await
@@ -312,7 +281,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         conn.manager().kill_subnet(subnet, sender).await
@@ -329,7 +297,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
 
         let gateway_addr = match gateway_addr {
             None => subnet_config.gateway_addr(),
@@ -356,7 +323,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         let gateway_addr = match gateway_addr {
@@ -385,7 +351,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         let gateway_addr = match gateway_addr {
@@ -434,7 +399,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         conn.manager()
@@ -456,7 +420,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         conn.manager()
@@ -476,9 +439,6 @@ impl IpcProvider {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
-
-        let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
 
         // FIXME: get_validator_set should not acception `Option<Address>` as
         // the type for gateway_addr. This requires changes in all implementations
@@ -502,7 +462,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         let sender = self.check_sender(subnet_config, from)?;
 
         // FIXME: This limits that only value to f-addresses can be sent
@@ -532,8 +491,6 @@ impl IpcProvider {
             Some(conn) => conn,
         };
 
-        let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
         conn.manager().wallet_balance(address).await
     }
 
@@ -549,7 +506,6 @@ impl IpcProvider {
         };
 
         let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
 
         let gateway_addr = match gateway_addr {
             None => subnet_config.gateway_addr(),
@@ -559,24 +515,11 @@ impl IpcProvider {
         conn.manager().last_topdown_executed(&gateway_addr).await
     }
 
-    /// Returns the list of checkpoints from a subnet actor for the given epoch range.
-    pub async fn list_checkpoints(
-        &self,
-        _subnet_id: SubnetID,
-        _from_epoch: ChainEpoch,
-        _to_epoch: ChainEpoch,
-    ) -> anyhow::Result<Vec<NativeBottomUpCheckpoint>> {
-        todo!()
-    }
-
     pub async fn chain_head(&self, subnet: &SubnetID) -> anyhow::Result<ChainEpoch> {
         let conn = match self.connection(subnet) {
             None => return Err(anyhow!("target subnet not found")),
             Some(conn) => conn,
         };
-
-        let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
 
         conn.manager().chain_head_height().await
     }
@@ -593,9 +536,6 @@ impl IpcProvider {
             Some(conn) => conn,
         };
 
-        let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
-
         conn.manager()
             .get_top_down_msgs(subnet, start_epoch, end_epoch)
             .await
@@ -611,9 +551,6 @@ impl IpcProvider {
             Some(conn) => conn,
         };
 
-        let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
-
         conn.manager().get_block_hash(height).await
     }
 
@@ -622,9 +559,6 @@ impl IpcProvider {
             None => return Err(anyhow!("target subnet not found")),
             Some(conn) => conn,
         };
-
-        let subnet_config = conn.subnet();
-        self.check_subnet(subnet_config)?;
 
         conn.manager().get_chain_id().await
     }

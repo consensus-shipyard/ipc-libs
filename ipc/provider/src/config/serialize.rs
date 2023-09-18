@@ -87,7 +87,7 @@ fn address_to_eth_address(addr: &Address) -> anyhow::Result<EthAddress> {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::subnet::{EVMSubnet, FVMSubnet, SubnetConfig};
+    use crate::config::subnet::{EVMSubnet, SubnetConfig};
     use crate::config::{Config, Server, Subnet};
     use fvm_shared::address::Address;
     use ipc_sdk::subnet_id::SubnetID;
