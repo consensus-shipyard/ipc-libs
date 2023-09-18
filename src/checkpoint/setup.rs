@@ -118,10 +118,21 @@ pub async fn setup_manager_from_subnet(
     fvm_wallet_store: Arc<RwLock<Wallet>>,
     evm_wallet_store: Arc<RwLock<PersistentKeyStore<ethers::types::Address>>>,
 ) -> anyhow::Result<Vec<Box<dyn CheckpointManager>>> {
-    let parent = if let Some(p) = s.id.parent() && subnets.contains_key(&p) {
-        subnets.get(&p).unwrap()
+    let parent = if let Some(p) = s.id.parent() {
+        if subnets.contains_key(&p) {
+            subnets.get(&p).unwrap()
+        } else {
+            log::info!(
+                "config has no parent subnet: {:}, not managing checkpoints",
+                s.id
+            );
+            return Ok(vec![]);
+        }
     } else {
-        log::info!("subnet has no parent configured: {:}, not managing checkpoints", s.id);
+        log::info!(
+            "subnet has no parent configured: {:}, not managing checkpoints",
+            s.id
+        );
         return Ok(vec![]);
     };
 

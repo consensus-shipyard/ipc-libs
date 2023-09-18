@@ -617,7 +617,7 @@ impl<T: JsonRpcClient + Send + Sync> LotusJsonRPCClient<T> {
                 .ok_or_else(|| anyhow!("gas_limit should not be empty"))?
                 .atto()
                 .to_u64()
-                .unwrap() as u64,
+                .unwrap(),
             gas_fee_cap: msg
                 .gas_fee_cap
                 .as_ref()

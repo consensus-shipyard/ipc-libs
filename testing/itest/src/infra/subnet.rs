@@ -165,7 +165,7 @@ impl SubnetNode {
 
         if output.status.success() {
             let s: String = String::from_utf8_lossy(&output.stdout).parse()?;
-            Ok(s.split('\n').into_iter().map(|s| s.to_string()).collect())
+            Ok(s.split('\n').map(|s| s.to_string()).collect())
         } else {
             Err(anyhow!(
                 "cannot get network addresses admin token in subnet:{:} with status: {:?}",
@@ -266,7 +266,7 @@ impl SubnetNode {
 
     pub fn gen_genesis(&self) -> Result<()> {
         let genesis_path = self.genesis_path();
-        if fs::metadata(&genesis_path).is_ok() {
+        if fs::metadata(genesis_path).is_ok() {
             return Ok(());
         }
 
