@@ -1,10 +1,10 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
 
+use crate::checkpoint::{BottomUpCheckpoint, Validators};
 use fil_actors_runtime::runtime::Runtime;
 use fvm_shared::address::Address;
 use fvm_shared::econ::TokenAmount;
-use crate::checkpoint::{BottomUpCheckpoint, Validators};
 
 impl BottomUpCheckpoint {
     /// Agents may set the source of a checkpoint using f2-based subnetIDs, \

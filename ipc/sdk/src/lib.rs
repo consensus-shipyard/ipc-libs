@@ -10,10 +10,10 @@ pub mod checkpoint;
 pub mod cross;
 pub mod error;
 pub mod gateway;
-pub mod subnet;
-pub mod subnet_id;
 #[cfg(feature = "fil-actor")]
 mod runtime;
+pub mod subnet;
+pub mod subnet_id;
 
 /// Encodes the a ChainEpoch as a varInt for its use
 /// as a key of a HAMT. This serialization has been
