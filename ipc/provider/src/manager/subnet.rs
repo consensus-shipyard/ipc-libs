@@ -129,6 +129,8 @@ pub trait SubnetManager: Send + Sync + TopDownCheckpointQuery {
 #[async_trait]
 pub trait TopDownCheckpointQuery: Send + Sync {
     /// Returns the chain head height
+    async fn genesis_epoch(&self, subnet_id: &SubnetID) -> Result<ChainEpoch>;
+    /// Returns the chain head height
     async fn chain_head_height(&self) -> Result<ChainEpoch>;
     /// Returns the list of top down messages
     async fn get_top_down_msgs(
