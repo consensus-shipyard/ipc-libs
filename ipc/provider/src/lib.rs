@@ -535,6 +535,7 @@ impl IpcProvider {
         conn.manager().chain_head_height().await
     }
 
+    /// Obtain the genesis epoch of the input subnet.
     pub async fn genesis_epoch(&self, subnet: &SubnetID) -> anyhow::Result<ChainEpoch> {
         let parent = subnet.parent().ok_or_else(|| anyhow!("no parent found"))?;
         let conn = match self.connection(&parent) {
@@ -544,6 +545,7 @@ impl IpcProvider {
         conn.manager().genesis_epoch(subnet).await
     }
 
+    /// Get the changes in subnet validators. This is fetched from parent.
     pub async fn get_validator_changeset(
         &self,
         subnet: &SubnetID,
@@ -602,16 +604,6 @@ impl IpcProvider {
     pub async fn get_chain_head_height(&self, subnet: &SubnetID) -> anyhow::Result<ChainEpoch> {
         let conn = match self.connection(subnet) {
             None => return Err(anyhow!("target subnet not found")),
-            Some(conn) => conn,
-        };
-
-        conn.manager().chain_head_height().await
-    }
-
-    pub async fn get_genesis_epoch(&self, subnet: &SubnetID) -> anyhow::Result<ChainEpoch> {
-        let parent = subnet.parent().ok_or_else(|| anyhow!("no parent found"))?;
-        let conn = match self.connection(&parent) {
-            None => return Err(anyhow!("parent subnet not found")),
             Some(conn) => conn,
         };
 

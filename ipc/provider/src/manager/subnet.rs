@@ -128,7 +128,7 @@ pub trait SubnetManager: Send + Sync + TopDownCheckpointQuery {
 /// Trait to interact with a subnet to query the necessary information for top down checkpoint.
 #[async_trait]
 pub trait TopDownCheckpointQuery: Send + Sync {
-    /// Returns the chain head height
+    /// Returns the genesis epoch that the subnet is created in parent network
     async fn genesis_epoch(&self, subnet_id: &SubnetID) -> Result<ChainEpoch>;
     /// Returns the chain head height
     async fn chain_head_height(&self) -> Result<ChainEpoch>;
