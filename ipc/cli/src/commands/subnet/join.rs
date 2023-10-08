@@ -3,6 +3,7 @@
 //! Join subnet cli command handler.
 
 use async_trait::async_trait;
+use base64::Engine;
 use clap::Args;
 use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
@@ -26,18 +27,14 @@ impl CommandLineHandler for JoinSubnet {
             Some(address) => Some(Address::from_str(address)?),
             None => None,
         };
-        let worker_addr = match &arguments.worker_addr {
-            Some(address) => Some(Address::from_str(address)?),
-            None => None,
-        };
-
+        let metadata =
+            base64::engine::general_purpose::STANDARD_NO_PAD.decode(&arguments.metadata)?;
         provider
             .join_subnet(
                 subnet,
                 from,
                 f64_to_token_amount(arguments.collateral)?,
-                arguments.validator_net_addr.clone(),
-                worker_addr,
+                metadata,
             )
             .await
     }
@@ -56,12 +53,6 @@ pub struct JoinSubnetArgs {
         help = "The collateral to stake in the subnet (in whole FIL units)"
     )]
     pub collateral: f64,
-    #[arg(long, short, help = "The validator net address")]
-    pub validator_net_addr: String,
-    #[arg(
-        long,
-        short,
-        help = "The validator worker address. If not set will be the same as `from`"
-    )]
-    pub worker_addr: Option<String>,
+    #[arg(long, short, help = "The validator's metadata, base64 encoded")]
+    pub metadata: String,
 }
