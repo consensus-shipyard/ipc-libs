@@ -3,11 +3,9 @@
 
 //! Staking module related types and functions
 
-use crate::{eth_to_fil_amount, ethers_address_to_fil_address};
+use crate::ethers_address_to_fil_address;
 use ethers::contract::EthEvent;
-use ethers::types::U256;
 use fvm_shared::address::Address;
-use fvm_shared::econ::TokenAmount;
 
 pub type ConfigurationNumber = u64;
 pub type StakingChangeRequest = (ConfigurationNumber, StakingChange);
@@ -16,14 +14,15 @@ pub type StakingChangeRequest = (ConfigurationNumber, StakingChange);
 pub enum StakingOperation {
     Deposit,
     Withdraw,
+    SetMetadata,
 }
 
 impl From<u8> for StakingOperation {
     fn from(value: u8) -> Self {
-        if value == 0 {
-            Self::Deposit
-        } else {
-            Self::Withdraw
+        match value {
+            0 => Self::Deposit,
+            1 => Self::Withdraw,
+            _ => Self::SetMetadata,
         }
     }
 }
@@ -32,7 +31,7 @@ impl From<u8> for StakingOperation {
 #[derive(Clone, Debug)]
 pub struct StakingChange {
     pub op: StakingOperation,
-    pub amount: TokenAmount,
+    pub payload: Vec<u8>,
     pub validator: Address,
 }
 
@@ -41,7 +40,7 @@ pub struct StakingChange {
 pub struct NewStakingRequest {
     op: u8,
     validator: ethers::types::Address,
-    amount: U256,
+    payload: ethers::types::Bytes,
     configuration_number: u64,
 }
 
@@ -53,7 +52,7 @@ impl TryFrom<NewStakingRequest> for StakingChangeRequest {
             value.configuration_number,
             StakingChange {
                 op: StakingOperation::from(value.op),
-                amount: eth_to_fil_amount(&value.amount)?,
+                payload: value.payload.to_vec(),
                 validator: ethers_address_to_fil_address(&value.validator)?,
             },
         ))
