@@ -38,7 +38,9 @@ impl CreateSubnet {
                 arguments.min_validators,
                 f64_to_token_amount(arguments.min_validator_stake)?,
                 arguments.bottomup_check_period,
-                arguments.active_validators_limit.unwrap_or(DEFAULT_ACTIVE_VALIDATORS),
+                arguments
+                    .active_validators_limit
+                    .unwrap_or(DEFAULT_ACTIVE_VALIDATORS),
             )
             .await?;
 
