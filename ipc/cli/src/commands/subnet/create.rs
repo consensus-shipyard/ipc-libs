@@ -36,7 +36,7 @@ impl CreateSubnet {
                 arguments.min_validators,
                 f64_to_token_amount(arguments.min_validator_stake)?,
                 arguments.bottomup_check_period,
-                arguments.topdown_check_period,
+                arguments.active_validators_limit,
             )
             .await?;
 
@@ -78,6 +78,6 @@ pub struct CreateSubnetArgs {
     pub min_validators: u64,
     #[arg(long, help = "The bottom up checkpoint period in number of blocks")]
     pub bottomup_check_period: ChainEpoch,
-    #[arg(long, help = "The top down checkpoint period in number of blocks")]
-    pub topdown_check_period: ChainEpoch,
+    #[arg(long, help = "The max number of active validators in subnet")]
+    pub active_validators_limit: u16,
 }

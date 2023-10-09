@@ -184,6 +184,7 @@ impl SubnetManager for EthSubnetManager {
             min_validators: params.min_validators,
             bottom_up_check_period: params.bottomup_check_period as u64,
             majority_percentage: SUBNET_MAJORITY_PERCENTAGE,
+            active_validators_limit: params.active_validators_limit
         };
 
         log::info!("creating subnet on evm with params: {params:?}");

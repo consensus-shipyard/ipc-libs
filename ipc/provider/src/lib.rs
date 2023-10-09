@@ -231,7 +231,7 @@ impl IpcProvider {
         min_validators: u64,
         min_validator_stake: TokenAmount,
         bottomup_check_period: ChainEpoch,
-        topdown_check_period: ChainEpoch,
+        active_validators_limit: u16,
     ) -> anyhow::Result<Address> {
         let conn = match self.connection(&parent) {
             None => return Err(anyhow!("target parent subnet not found")),
@@ -249,8 +249,7 @@ impl IpcProvider {
             min_validators,
             min_validator_stake,
             bottomup_check_period,
-            topdown_check_period,
-            genesis: vec![],
+            active_validators_limit,
         };
 
         conn.manager()
