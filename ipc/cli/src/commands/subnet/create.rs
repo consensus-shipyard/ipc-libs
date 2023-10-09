@@ -13,6 +13,8 @@ use std::str::FromStr;
 use crate::commands::get_ipc_provider;
 use crate::{f64_to_token_amount, CommandLineHandler, GlobalArguments};
 
+const DEFAULT_ACTIVE_VALIDATORS: u16 = 100;
+
 /// The command to create a new subnet actor.
 pub struct CreateSubnet;
 
@@ -36,7 +38,7 @@ impl CreateSubnet {
                 arguments.min_validators,
                 f64_to_token_amount(arguments.min_validator_stake)?,
                 arguments.bottomup_check_period,
-                arguments.active_validators_limit,
+                arguments.active_validators_limit.unwrap_or(DEFAULT_ACTIVE_VALIDATORS),
             )
             .await?;
 
@@ -79,5 +81,5 @@ pub struct CreateSubnetArgs {
     #[arg(long, help = "The bottom up checkpoint period in number of blocks")]
     pub bottomup_check_period: ChainEpoch,
     #[arg(long, help = "The max number of active validators in subnet")]
-    pub active_validators_limit: u16,
+    pub active_validators_limit: Option<u16>,
 }

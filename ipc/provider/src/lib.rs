@@ -262,7 +262,7 @@ impl IpcProvider {
         subnet: SubnetID,
         from: Option<Address>,
         collateral: TokenAmount,
-        metadata: Vec<u8>,
+        public_key: Vec<u8>,
     ) -> anyhow::Result<()> {
         let parent = subnet.parent().ok_or_else(|| anyhow!("no parent found"))?;
         let conn = match self.connection(&parent) {
@@ -274,7 +274,7 @@ impl IpcProvider {
         let sender = self.check_sender(subnet_config, from)?;
 
         conn.manager()
-            .join_subnet(subnet, sender, collateral, metadata)
+            .join_subnet(subnet, sender, collateral, public_key)
             .await
     }
 

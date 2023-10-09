@@ -27,14 +27,13 @@ impl CommandLineHandler for JoinSubnet {
             Some(address) => Some(Address::from_str(address)?),
             None => None,
         };
-        let metadata =
-            base64::engine::general_purpose::STANDARD_NO_PAD.decode(&arguments.metadata)?;
+        let public_key = hex::decode(&arguments.public_key)?;
         provider
             .join_subnet(
                 subnet,
                 from,
                 f64_to_token_amount(arguments.collateral)?,
-                metadata,
+                public_key,
             )
             .await
     }
@@ -53,6 +52,6 @@ pub struct JoinSubnetArgs {
         help = "The collateral to stake in the subnet (in whole FIL units)"
     )]
     pub collateral: f64,
-    #[arg(long, short, help = "The validator's metadata, base64 encoded")]
-    pub metadata: String,
+    #[arg(long, short, help = "The validator's metadata, hex encoded")]
+    pub public_key: String,
 }
