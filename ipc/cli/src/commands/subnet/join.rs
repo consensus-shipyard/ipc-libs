@@ -3,7 +3,6 @@
 //! Join subnet cli command handler.
 
 use async_trait::async_trait;
-use base64::Engine;
 use clap::Args;
 use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
