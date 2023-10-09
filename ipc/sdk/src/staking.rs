@@ -8,7 +8,6 @@ use ethers::contract::EthEvent;
 use fvm_shared::address::Address;
 
 pub type ConfigurationNumber = u64;
-pub type StakingChangeRequest = (ConfigurationNumber, StakingChange);
 
 #[derive(Clone, Debug)]
 pub enum StakingOperation {
@@ -25,6 +24,12 @@ impl From<u8> for StakingOperation {
             _ => Self::SetMetadata,
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct StakingChangeRequest {
+    pub configuration_number: ConfigurationNumber,
+    pub change: StakingChange,
 }
 
 /// The change request to validator staking
@@ -48,13 +53,13 @@ impl TryFrom<NewStakingRequest> for StakingChangeRequest {
     type Error = anyhow::Error;
 
     fn try_from(value: NewStakingRequest) -> Result<Self, Self::Error> {
-        Ok((
-            value.configuration_number,
-            StakingChange {
+        Ok(Self {
+            configuration_number: value.configuration_number,
+            change: StakingChange {
                 op: StakingOperation::from(value.op),
                 payload: value.payload.to_vec(),
                 validator: ethers_address_to_fil_address(&value.validator)?,
             },
-        ))
+        })
     }
 }
