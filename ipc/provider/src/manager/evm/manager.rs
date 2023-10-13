@@ -24,7 +24,7 @@ use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::{Signer, SignerMiddleware};
 use ethers::providers::{Authorization, Http, Middleware, Provider};
 use ethers::signers::{LocalWallet, Wallet};
-use ethers::types::{Eip1559TransactionRequest, I256, U256};
+use ethers::types::{BlockId, Eip1559TransactionRequest, I256, U256};
 use futures_util::StreamExt;
 use fvm_shared::clock::ChainEpoch;
 use fvm_shared::{address::Address, econ::TokenAmount};
@@ -113,15 +113,11 @@ impl TopDownCheckpointQuery for EthSubnetManager {
             self.ipc_contract_info.gateway_addr,
             Arc::new(self.ipc_contract_info.provider.clone()),
         );
-        let (raw_msgs, hash) = gateway_contract
-            .method::<_, (Vec<gateway_getter_facet::CrossMsg>, [u8; 32])>(
-                "getTopDownMsgs",
-                gateway_getter_facet::GetTopDownMsgsCall {
-                    subnet_id,
-                    block_number: U256::from(epoch),
-                },
-            )
-            .map_err(|e| anyhow!("cannot create the top down msg call: {e:}"))?
+
+        let call = gateway_contract
+            .get_top_down_msgs(subnet_id, U256::from(epoch))
+            .block(BlockId::from(epoch as u64));
+        let (raw_msgs, hash) = call
             .call()
             .await
             .map_err(|e| anyhow!("cannot get evm top down messages: {e:}"))?;
@@ -186,9 +182,14 @@ impl TopDownCheckpointQuery for EthSubnetManager {
             changes.push(StakingChangeRequest::try_from(event)?);
         }
 
+        let block_hash = if let Some(h) = hash {
+            h.0.to_vec()
+        } else {
+            self.get_block_hash(epoch).await?.block_hash
+        };
         Ok(TopDownQueryPayload {
             value: changes,
-            block_hash: hash.unwrap().0.to_vec(),
+            block_hash,
         })
     }
 }
