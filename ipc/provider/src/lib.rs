@@ -555,14 +555,17 @@ impl IpcProvider {
         &self,
         subnet: &SubnetID,
         epoch: ChainEpoch,
-    ) -> anyhow::Result<TopDownQueryPayload<Vec<CrossMsg>>> {
+        block_hash: &[u8],
+    ) -> anyhow::Result<Vec<CrossMsg>> {
         let parent = subnet.parent().ok_or_else(|| anyhow!("no parent found"))?;
         let conn = match self.connection(&parent) {
             None => return Err(anyhow!("target parent subnet not found")),
             Some(conn) => conn,
         };
 
-        conn.manager().get_top_down_msgs(subnet, epoch).await
+        conn.manager()
+            .get_top_down_msgs(subnet, epoch, block_hash)
+            .await
     }
 
     pub async fn get_block_hash(

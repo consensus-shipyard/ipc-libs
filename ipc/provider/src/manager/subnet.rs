@@ -139,7 +139,8 @@ pub trait TopDownCheckpointQuery: Send + Sync {
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
-    ) -> Result<TopDownQueryPayload<Vec<CrossMsg>>>;
+        block_hash: &[u8],
+    ) -> Result<Vec<CrossMsg>>;
     /// Get the block hash
     async fn get_block_hash(&self, height: ChainEpoch) -> Result<GetBlockHashResult>;
     /// Get the validator change set from start to end block.

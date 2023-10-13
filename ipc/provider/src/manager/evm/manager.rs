@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+use ethers::types::H256;
 use ipc_actors_abis::{
     gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
     subnet_actor_getter_facet, subnet_actor_manager_facet, subnet_registry,
@@ -101,7 +102,12 @@ impl TopDownCheckpointQuery for EthSubnetManager {
         &self,
         subnet_id: &SubnetID,
         epoch: ChainEpoch,
-    ) -> Result<TopDownQueryPayload<Vec<CrossMsg>>> {
+        block_hash: &[u8],
+    ) -> Result<Vec<CrossMsg>> {
+        if block_hash.len() != 32 {
+            return Err(anyhow!("invalid block hash len"));
+        }
+
         let route = subnet_id_to_evm_addresses(subnet_id)?;
         log::debug!("getting top down messages for route: {route:?}");
 
@@ -116,8 +122,8 @@ impl TopDownCheckpointQuery for EthSubnetManager {
 
         let call = gateway_contract
             .get_top_down_msgs(subnet_id, U256::from(epoch))
-            .block(BlockId::from(epoch as u64));
-        let (raw_msgs, hash) = call
+            .block(BlockId::from(H256::from_slice(block_hash)));
+        let raw_msgs = call
             .call()
             .await
             .map_err(|e| anyhow!("cannot get evm top down messages: {e:}"))?;
@@ -126,10 +132,7 @@ impl TopDownCheckpointQuery for EthSubnetManager {
         for c in raw_msgs {
             msgs.push(ipc_sdk::cross::CrossMsg::try_from(c)?);
         }
-        Ok(TopDownQueryPayload {
-            value: msgs,
-            block_hash: hash.to_vec(),
-        })
+        Ok(msgs)
     }
 
     async fn get_block_hash(&self, height: ChainEpoch) -> Result<GetBlockHashResult> {
