@@ -738,7 +738,7 @@ impl EthSubnetManager {
     /// Get the ethers singer instance.
     /// We use filecoin addresses throughout our whole code-base
     /// and translate them to evm addresses when relevant.
-    fn get_signer(&self, addr: &Address) -> Result<DefaultSignerMiddleware> {
+    pub(crate) fn get_signer(&self, addr: &Address) -> Result<DefaultSignerMiddleware> {
         // convert to its underlying eth address
         let addr = payload_to_evm_address(addr.payload())?;
         let keystore = self.keystore.read().unwrap();
@@ -789,7 +789,7 @@ impl EthSubnetManager {
 
 /// Receives an input `FunctionCall` and returns a new instance
 /// after estimating an optimal `gas_premium` for the transaction
-async fn call_with_premium_estimation<B, D, M>(
+pub(crate) async fn call_with_premium_estimation<B, D, M>(
     signer: Arc<DefaultSignerMiddleware>,
     call: ethers_contract::FunctionCall<B, D, M>,
 ) -> Result<ethers_contract::FunctionCall<B, D, M>>
@@ -924,7 +924,7 @@ fn block_number_from_receipt(
 
 /// Convert the ipc SubnetID type to an evm address. It extracts the last address from the Subnet id
 /// children and turns it into evm address.
-fn contract_address_from_subnet(subnet: &SubnetID) -> Result<ethers::types::Address> {
+pub(crate) fn contract_address_from_subnet(subnet: &SubnetID) -> Result<ethers::types::Address> {
     let children = subnet.children();
     let ipc_addr = children
         .last()

@@ -8,7 +8,9 @@ use crate::cross::{CrossMsg, StorableMsg};
 use crate::staking::StakingChange;
 use crate::staking::StakingChangeRequest;
 use crate::subnet_id::SubnetID;
+use crate::checkpoint::BottomUpCheckpoint;
 use crate::{eth_to_fil_amount, ethers_address_to_fil_address};
+use fvm_shared::clock::ChainEpoch;
 use anyhow::anyhow;
 use ethers::types::U256;
 use fvm_ipld_encoding::RawBytes;
@@ -150,6 +152,42 @@ macro_rules! cross_msg_types {
     };
 }
 
+/// The type conversion between different bottom up checkpoint definition in ethers and sdk
+macro_rules! bottom_up_type_conversion {
+    ($module:ident) => {
+        impl TryFrom<BottomUpCheckpoint> for $module::BottomUpCheckpoint {
+            type Error = anyhow::Error;
+
+            fn try_from(checkpoint: BottomUpCheckpoint) -> Result<Self, Self::Error> {
+                Ok($module::BottomUpCheckpoint {
+                    subnet_id: $module::SubnetID::try_from(&checkpoint.subnet_id)?,
+                    block_height: checkpoint.block_height as u64,
+                    block_hash: vec_to_bytes32(checkpoint.block_hash)?,
+                    next_configuration_number: checkpoint.next_configuration_number,
+                    cross_messages_hash: vec_to_bytes32(checkpoint.cross_messages_hash)?,
+                })
+            }
+        }
+
+        impl TryFrom<$module::BottomUpCheckpoint> for BottomUpCheckpoint {
+            type Error = anyhow::Error;
+
+            fn try_from(value: $module::BottomUpCheckpoint) -> Result<Self, Self::Error> {
+                Ok(
+                    BottomUpCheckpoint {
+                        subnet_id: SubnetID::try_from(value.subnet_id)?,
+                        block_height: value.block_height as ChainEpoch,
+                        block_hash: value.block_hash.to_vec(),
+                        next_configuration_number: value.next_configuration_number,
+                        cross_messages_hash: value.cross_messages_hash.to_vec(),
+                    }
+                )
+            }
+        }
+    };
+}
+
+
 base_type_conversion!(gateway_router_facet);
 base_type_conversion!(subnet_actor_getter_facet);
 base_type_conversion!(gateway_manager_facet);
@@ -160,6 +198,10 @@ base_type_conversion!(gateway_messenger_facet);
 cross_msg_types!(gateway_getter_facet);
 cross_msg_types!(gateway_router_facet);
 cross_msg_types!(gateway_messenger_facet);
+cross_msg_types!(subnet_actor_manager_facet);
+
+bottom_up_type_conversion!(gateway_getter_facet);
+bottom_up_type_conversion!(subnet_actor_manager_facet);
 
 /// Convert the ipc SubnetID type to a vec of evm addresses. It extracts all the children addresses
 /// in the subnet id and turns them as a vec of evm addresses.
@@ -211,6 +253,17 @@ impl TryFrom<StakingChangeRequest> for gateway_router_facet::StakingChangeReques
             configuration_number: value.configuration_number,
         })
     }
+}
+
+pub fn vec_to_bytes32(v: Vec<u8>) -> anyhow::Result<[u8; 32]> {
+    if v.len() != 32 {
+        return Err(anyhow!("invalid length"));
+    }
+
+    let mut r = [0u8; 32];
+    r.copy_from_slice(&v);
+
+    Ok(r)
 }
 
 #[cfg(test)]
