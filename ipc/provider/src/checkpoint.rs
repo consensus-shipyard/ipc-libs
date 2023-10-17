@@ -14,7 +14,7 @@ use std::time::Duration;
 
 /// Tracks the metadata required for bottom up checkpoint submissions
 /// parent/child subnet and checkpoint period.
-pub struct CheckpointMetadata {
+pub struct CheckpointConfig {
     parent: Subnet,
     child: Subnet,
     period: ChainEpoch,
