@@ -91,7 +91,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         self.metadata.period
     }
 
-    /// Run the bottom up checkpoint submission daemon in the background
+    /// Run the bottom up checkpoint submission daemon in the foreground
     pub async fn run(self, submitter: Address, submission_interval: Duration) {
         loop {
             if let Err(e) = self.submit_checkpoint(&submitter).await {

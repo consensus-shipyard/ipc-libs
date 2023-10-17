@@ -37,7 +37,7 @@ impl CommandLineHandler for BottomUpRelayer {
                 Address::try_from(addr)?
             }
             _ => {
-                return Err(anyhow!("no validator address provided"));
+                return Err(anyhow!("no submitter address provided"));
             }
         };
 
