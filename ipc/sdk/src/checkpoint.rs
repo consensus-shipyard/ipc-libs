@@ -27,6 +27,7 @@ lazy_static! {
 
 pub type Signature = Vec<u8>;
 
+/// The collection of items for the bottom up checkpoint submission
 #[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct BottomUpCheckpointBundle {
     pub checkpoint: BottomUpCheckpoint,

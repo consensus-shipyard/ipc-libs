@@ -20,6 +20,9 @@ pub struct CheckpointConfig {
     period: ChainEpoch,
 }
 
+/// Manages the submission of bottom up checkpoint. It checks if the submitter has already
+/// submitted in the `last_checkpoint_height`, if not, it will submit the checkpoint at that height.
+/// Then it will submit at the next submission height for the new checkpoint.
 pub struct BottomUpCheckpointManager<T> {
     metadata: CheckpointConfig,
     parent_handler: T,
@@ -88,21 +91,63 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         self.metadata.period
     }
 
-    /// Run the bottom up checkpoint submission daemon in the background
-    pub fn run(self, validator: Address, submission_interval: Duration) {
-        tokio::spawn(async move {
-            loop {
-                if let Err(e) = self.submit_checkpoint(&validator).await {
-                    log::error!("cannot submit checkpoint for validator: {validator} due to {e}");
-                }
-
-                tokio::time::sleep(submission_interval).await;
+    /// Run the bottom up checkpoint submission daemon in the foreground
+    pub async fn run(self, submitter: Address, submission_interval: Duration) {
+        loop {
+            if let Err(e) = self.submit_checkpoint(&submitter).await {
+                log::error!("cannot submit checkpoint for submitter: {submitter} due to {e}");
             }
-        });
+
+            tokio::time::sleep(submission_interval).await;
+        }
     }
 
-    /// Submit the checkpoint from the target validator address
-    pub async fn submit_checkpoint(&self, validator: &Address) -> Result<()> {
+    /// Submit the checkpoint from the target submitter address
+    pub async fn submit_checkpoint(&self, submitter: &Address) -> Result<()> {
+        self.submit_last_epoch(submitter).await?;
+        self.submit_next_epoch(submitter).await
+    }
+
+    /// Derive the next submission checkpoint height
+    async fn next_submission_height(&self) -> Result<ChainEpoch> {
+        let last_checkpoint_epoch = self
+            .parent_handler
+            .last_bottom_up_checkpoint_height(&self.metadata.child.id)
+            .await
+            .map_err(|e| {
+                anyhow!("cannot obtain the last bottom up checkpoint height due to: {e:}")
+            })?;
+        Ok(last_checkpoint_epoch + self.checkpoint_period())
+    }
+
+    /// Checks if the relayer has already submitted at the `last_checkpoint_height`, if not it submits it.
+    async fn submit_last_epoch(&self, submitter: &Address) -> Result<()> {
+        let subnet = &self.metadata.child.id;
+        if self
+            .child_handler
+            .has_submitted_in_last_checkpoint_height(subnet, submitter)
+            .await?
+        {
+            return Ok(());
+        }
+
+        let height = self
+            .child_handler
+            .last_bottom_up_checkpoint_height(subnet)
+            .await?;
+        let bundle = self.child_handler.checkpoint_bundle_at(height).await?;
+        log::debug!("bottom up bundle: {bundle:?}");
+
+        self.parent_handler
+            .submit_checkpoint(submitter, bundle)
+            .await
+            .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
+
+        Ok(())
+    }
+
+    /// Checks if the relayer has already submitted at the next submission epoch, if not it submits it.
+    async fn submit_next_epoch(&self, submitter: &Address) -> Result<()> {
         let next_submission_height = self.next_submission_height().await?;
         let current_height = self.child_handler.current_epoch().await?;
 
@@ -117,21 +162,10 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         log::debug!("bottom up bundle: {bundle:?}");
 
         self.parent_handler
-            .submit_checkpoint(validator, bundle)
+            .submit_checkpoint(submitter, bundle)
             .await
             .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
 
         Ok(())
-    }
-
-    async fn next_submission_height(&self) -> Result<ChainEpoch> {
-        let last_checkpoint_epoch = self
-            .parent_handler
-            .last_bottom_up_checkpoint_height(&self.metadata.child.id)
-            .await
-            .map_err(|e| {
-                anyhow!("cannot obtain the last bottom up checkpoint height due to: {e:}")
-            })?;
-        Ok(last_checkpoint_epoch + self.checkpoint_period())
     }
 }
