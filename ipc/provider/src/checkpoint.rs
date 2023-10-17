@@ -20,18 +20,18 @@ pub struct CheckpointMetadata {
     period: ChainEpoch,
 }
 
-pub struct BottomUpCheckpointManager<P, C> {
+pub struct BottomUpCheckpointManager<T> {
     metadata: CheckpointMetadata,
-    parent_handler: P,
-    child_handler: C,
+    parent_handler: T,
+    child_handler: T,
 }
 
-impl<P: BottomUpCheckpointRelayer, C: BottomUpCheckpointRelayer> BottomUpCheckpointManager<P, C> {
+impl<T: BottomUpCheckpointRelayer> BottomUpCheckpointManager<T> {
     pub async fn new(
         parent: Subnet,
         child: Subnet,
-        parent_handler: P,
-        child_handler: C,
+        parent_handler: T,
+        child_handler: T,
     ) -> Result<Self> {
         let period = parent_handler
             .checkpoint_period(&child.id)
@@ -49,7 +49,7 @@ impl<P: BottomUpCheckpointRelayer, C: BottomUpCheckpointRelayer> BottomUpCheckpo
     }
 }
 
-impl BottomUpCheckpointManager<EthSubnetManager, EthSubnetManager> {
+impl BottomUpCheckpointManager<EthSubnetManager> {
     pub async fn new_evm_manager(
         parent: Subnet,
         child: Subnet,
@@ -62,9 +62,7 @@ impl BottomUpCheckpointManager<EthSubnetManager, EthSubnetManager> {
     }
 }
 
-impl<P: BottomUpCheckpointRelayer, C: BottomUpCheckpointRelayer> Display
-    for BottomUpCheckpointManager<P, C>
-{
+impl<T: BottomUpCheckpointRelayer> Display for BottomUpCheckpointManager<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -74,11 +72,7 @@ impl<P: BottomUpCheckpointRelayer, C: BottomUpCheckpointRelayer> Display
     }
 }
 
-impl<
-        P: BottomUpCheckpointRelayer + Send + Sync + 'static,
-        C: BottomUpCheckpointRelayer + Send + Sync + 'static,
-    > BottomUpCheckpointManager<P, C>
-{
+impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointManager<T> {
     /// Getter for the parent subnet this checkpoint manager is handling
     pub fn parent_subnet(&self) -> &Subnet {
         &self.metadata.parent
