@@ -17,13 +17,13 @@ pub const MANIFEST_ID: &str = "ipc_subnet_actor";
 #[derive(Clone, Debug, Serialize_tuple, Deserialize_tuple, PartialEq, Eq)]
 pub struct ConstructParams {
     pub parent: SubnetID,
-    pub name: String,
     pub ipc_gateway_addr: Address,
     pub consensus: ConsensusType,
     pub min_validator_stake: TokenAmount,
     pub min_validators: u64,
     pub bottomup_check_period: ChainEpoch,
     pub active_validators_limit: u16,
+    pub min_cross_msg_fee: TokenAmount,
 }
 
 /// Consensus types supported by hierarchical consensus
