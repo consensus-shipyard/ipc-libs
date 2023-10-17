@@ -15,7 +15,7 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-const DEFAULT_CHECKPOINT_INTERVAL: u64 = 15;
+const DEFAULT_POLLING_INTERVAL: u64 = 15;
 
 /// The command to run the bottom up relayer in the background.
 pub(crate) struct BottomUpRelayer;
@@ -30,8 +30,8 @@ impl CommandLineHandler for BottomUpRelayer {
         let config_path = global.config_path();
 
         let mut keystore = new_evm_keystore_from_path(&config_path)?;
-        let validator = match (arguments.validator.as_ref(), keystore.get_default()?) {
-            (Some(validator), _) => Address::from_str(validator)?,
+        let submitter = match (arguments.submitter.as_ref(), keystore.get_default()?) {
+            (Some(submitter), _) => Address::from_str(submitter)?,
             (None, Some(addr)) => {
                 log::info!("using default address: {addr:?}");
                 Address::try_from(addr)?
@@ -59,9 +59,9 @@ impl CommandLineHandler for BottomUpRelayer {
         let interval = Duration::from_secs(
             arguments
                 .checkpoint_interval_sec
-                .unwrap_or(DEFAULT_CHECKPOINT_INTERVAL),
+                .unwrap_or(DEFAULT_POLLING_INTERVAL),
         );
-        manager.run(validator, interval).await;
+        manager.run(submitter, interval).await;
 
         Ok(())
     }
@@ -74,6 +74,6 @@ pub(crate) struct BottomUpRelayerArgs {
     pub subnet: String,
     #[arg(long, short, help = "The number of seconds to submit checkpoint")]
     pub checkpoint_interval_sec: Option<u64>,
-    #[arg(long, short, help = "The hex encoded address of the validator")]
-    pub validator: Option<String>,
+    #[arg(long, short, help = "The hex encoded address of the submitter")]
+    pub submitter: Option<String>,
 }
