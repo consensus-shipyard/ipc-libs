@@ -116,6 +116,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         Ok(last_checkpoint_epoch + self.checkpoint_period())
     }
 
+    /// Checks if the relayer has already submitted the last checkpoint, if not it submits it.
     async fn submit_last_epoch(&self, validator: &Address) -> Result<()> {
         let subnet = &self.metadata.child.id;
         if self
