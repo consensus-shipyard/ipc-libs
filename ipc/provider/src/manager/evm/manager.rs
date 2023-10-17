@@ -841,6 +841,23 @@ impl BottomUpCheckpointRelayer for EthSubnetManager {
         Ok(epoch as ChainEpoch)
     }
 
+    async fn has_submitted_in_last_checkpoint_height(
+        &self,
+        subnet_id: &SubnetID,
+        submitter: &Address,
+    ) -> Result<bool> {
+        let address = contract_address_from_subnet(subnet_id)?;
+        let contract = subnet_actor_getter_facet::SubnetActorGetterFacet::new(
+            address,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
+        let addr = payload_to_evm_address(submitter.payload())?;
+        Ok(contract
+            .has_submitted_in_last_bottom_up_checkpoint_height(addr)
+            .call()
+            .await?)
+    }
+
     async fn checkpoint_period(&self, subnet_id: &SubnetID) -> anyhow::Result<ChainEpoch> {
         let address = contract_address_from_subnet(subnet_id)?;
         let contract = subnet_actor_getter_facet::SubnetActorGetterFacet::new(

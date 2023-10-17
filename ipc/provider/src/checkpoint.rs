@@ -101,6 +101,47 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
 
     /// Submit the checkpoint from the target validator address
     pub async fn submit_checkpoint(&self, validator: &Address) -> Result<()> {
+        self.submit_last_epoch(validator).await?;
+        self.submit_next_epoch(validator).await
+    }
+
+    async fn next_submission_height(&self) -> Result<ChainEpoch> {
+        let last_checkpoint_epoch = self
+            .parent_handler
+            .last_bottom_up_checkpoint_height(&self.metadata.child.id)
+            .await
+            .map_err(|e| {
+                anyhow!("cannot obtain the last bottom up checkpoint height due to: {e:}")
+            })?;
+        Ok(last_checkpoint_epoch + self.checkpoint_period())
+    }
+
+    async fn submit_last_epoch(&self, validator: &Address) -> Result<()> {
+        let subnet = &self.metadata.child.id;
+        if self
+            .child_handler
+            .has_submitted_in_last_checkpoint_height(subnet, validator)
+            .await?
+        {
+            return Ok(());
+        }
+
+        let height = self
+            .child_handler
+            .last_bottom_up_checkpoint_height(subnet)
+            .await?;
+        let bundle = self.child_handler.checkpoint_bundle_at(height).await?;
+        log::debug!("bottom up bundle: {bundle:?}");
+
+        self.parent_handler
+            .submit_checkpoint(validator, bundle)
+            .await
+            .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
+
+        Ok(())
+    }
+
+    async fn submit_next_epoch(&self, validator: &Address) -> Result<()> {
         let next_submission_height = self.next_submission_height().await?;
         let current_height = self.child_handler.current_epoch().await?;
 
@@ -120,16 +161,5 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
             .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
 
         Ok(())
-    }
-
-    async fn next_submission_height(&self) -> Result<ChainEpoch> {
-        let last_checkpoint_epoch = self
-            .parent_handler
-            .last_bottom_up_checkpoint_height(&self.metadata.child.id)
-            .await
-            .map_err(|e| {
-                anyhow!("cannot obtain the last bottom up checkpoint height due to: {e:}")
-            })?;
-        Ok(last_checkpoint_epoch + self.checkpoint_period())
     }
 }

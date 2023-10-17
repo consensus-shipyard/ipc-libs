@@ -165,6 +165,12 @@ pub trait BottomUpCheckpointRelayer: Send + Sync {
     ) -> Result<()>;
     /// The last confirmed/submitted checkpoint height.
     async fn last_bottom_up_checkpoint_height(&self, subnet_id: &SubnetID) -> Result<ChainEpoch>;
+    /// Check if the submitter has already submitted in the `last_bottom_up_checkpoint_height`
+    async fn has_submitted_in_last_checkpoint_height(
+        &self,
+        subnet_id: &SubnetID,
+        submitter: &Address,
+    ) -> Result<bool>;
     /// Get the checkpoint period, i.e the number of blocks to submit bottom up checkpoints.
     async fn checkpoint_period(&self, subnet_id: &SubnetID) -> Result<ChainEpoch>;
     /// Get the checkpoint at a specific height. If it does not exist, it will through error.
