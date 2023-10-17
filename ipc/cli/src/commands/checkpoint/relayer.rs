@@ -68,7 +68,7 @@ impl CommandLineHandler for BottomUpRelayer {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "Start the bottom up relayer")]
+#[command(about = "Start the bottom up relayer daemon")]
 pub(crate) struct BottomUpRelayerArgs {
     #[arg(long, short, help = "The subnet id of the checkpointing subnet")]
     pub subnet: String,
