@@ -56,7 +56,7 @@ pub struct BottomUpCheckpoint {
     /// By not including cross messages here directly, we can be compatible with IPLD Resolver based
     /// approach where the messages are fetched with Bitswap and provided by Fendermint, or the full-fat
     /// approach we need with Lotus, where the messages are part of the relayed transaction.
-    pub cross_messages_hash: Vec<u8>
+    pub cross_messages_hash: Vec<u8>,
 }
 
 /// Validators tracks all the validator in the subnet. It is useful in handling top-down checkpoints.
@@ -82,6 +82,4 @@ impl Validators {
 }
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}

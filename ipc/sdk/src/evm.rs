@@ -4,17 +4,17 @@
 //! Type conversion for IPC Agent struct with solidity contract struct
 
 use crate::address::IPCAddress;
+use crate::checkpoint::BottomUpCheckpoint;
 use crate::cross::{CrossMsg, StorableMsg};
 use crate::staking::StakingChange;
 use crate::staking::StakingChangeRequest;
 use crate::subnet_id::SubnetID;
-use crate::checkpoint::BottomUpCheckpoint;
 use crate::{eth_to_fil_amount, ethers_address_to_fil_address};
-use fvm_shared::clock::ChainEpoch;
 use anyhow::anyhow;
 use ethers::types::U256;
 use fvm_ipld_encoding::RawBytes;
 use fvm_shared::address::{Address, Payload};
+use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use ipc_actors_abis::{
@@ -173,20 +173,17 @@ macro_rules! bottom_up_type_conversion {
             type Error = anyhow::Error;
 
             fn try_from(value: $module::BottomUpCheckpoint) -> Result<Self, Self::Error> {
-                Ok(
-                    BottomUpCheckpoint {
-                        subnet_id: SubnetID::try_from(value.subnet_id)?,
-                        block_height: value.block_height as ChainEpoch,
-                        block_hash: value.block_hash.to_vec(),
-                        next_configuration_number: value.next_configuration_number,
-                        cross_messages_hash: value.cross_messages_hash.to_vec(),
-                    }
-                )
+                Ok(BottomUpCheckpoint {
+                    subnet_id: SubnetID::try_from(value.subnet_id)?,
+                    block_height: value.block_height as ChainEpoch,
+                    block_hash: value.block_hash.to_vec(),
+                    next_configuration_number: value.next_configuration_number,
+                    cross_messages_hash: value.cross_messages_hash.to_vec(),
+                })
             }
         }
     };
 }
-
 
 base_type_conversion!(gateway_router_facet);
 base_type_conversion!(subnet_actor_getter_facet);
