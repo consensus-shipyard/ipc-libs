@@ -89,16 +89,14 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
     }
 
     /// Run the bottom up checkpoint submission daemon in the background
-    pub fn run(self, validator: Address, submission_interval: Duration) {
-        tokio::spawn(async move {
-            loop {
-                if let Err(e) = self.submit_checkpoint(&validator).await {
-                    log::error!("cannot submit checkpoint for validator: {validator} due to {e}");
-                }
-
-                tokio::time::sleep(submission_interval).await;
+    pub async fn run(self, validator: Address, submission_interval: Duration) {
+        loop {
+            if let Err(e) = self.submit_checkpoint(&validator).await {
+                log::error!("cannot submit checkpoint for validator: {validator} due to {e}");
             }
-        });
+
+            tokio::time::sleep(submission_interval).await;
+        }
     }
 
     /// Submit the checkpoint from the target validator address
