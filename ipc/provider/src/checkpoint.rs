@@ -20,6 +20,9 @@ pub struct CheckpointConfig {
     period: ChainEpoch,
 }
 
+/// Manages the submission of bottom up checkpoint. It checks if the submitter has already
+/// submitted in the `last_checkpoint_height`, if not, it will submit the checkpoint at that height.
+/// Then it will submit at the next submission height for the new checkpoint.
 pub struct BottomUpCheckpointManager<T> {
     metadata: CheckpointConfig,
     parent_handler: T,
@@ -105,6 +108,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         self.submit_next_epoch(submitter).await
     }
 
+    /// Derive the next submission checkpoint height
     async fn next_submission_height(&self) -> Result<ChainEpoch> {
         let last_checkpoint_epoch = self
             .parent_handler
@@ -116,7 +120,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         Ok(last_checkpoint_epoch + self.checkpoint_period())
     }
 
-    /// Checks if the relayer has already submitted the last checkpoint, if not it submits it.
+    /// Checks if the relayer has already submitted at the `last_checkpoint_height`, if not it submits it.
     async fn submit_last_epoch(&self, submitter: &Address) -> Result<()> {
         let subnet = &self.metadata.child.id;
         if self
@@ -142,6 +146,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         Ok(())
     }
 
+    /// Checks if the relayer has already submitted at the next submission epoch, if not it submits it.
     async fn submit_next_epoch(&self, submitter: &Address) -> Result<()> {
         let next_submission_height = self.next_submission_height().await?;
         let current_height = self.child_handler.current_epoch().await?;
