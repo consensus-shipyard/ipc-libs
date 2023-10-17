@@ -12,7 +12,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-/// Tracks the metadata required for bottom up checkpoint submissions
+/// Tracks the config required for bottom up checkpoint submissions
 /// parent/child subnet and checkpoint period.
 pub struct CheckpointConfig {
     parent: Subnet,
