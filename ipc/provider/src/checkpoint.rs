@@ -21,7 +21,7 @@ pub struct CheckpointConfig {
 }
 
 pub struct BottomUpCheckpointManager<T> {
-    metadata: CheckpointMetadata,
+    metadata: CheckpointConfig,
     parent_handler: T,
     child_handler: T,
 }
@@ -38,7 +38,7 @@ impl<T: BottomUpCheckpointRelayer> BottomUpCheckpointManager<T> {
             .await
             .map_err(|e| anyhow!("cannot get bottom up checkpoint period: {e}"))?;
         Ok(Self {
-            metadata: CheckpointMetadata {
+            metadata: CheckpointConfig {
                 parent,
                 child,
                 period,
