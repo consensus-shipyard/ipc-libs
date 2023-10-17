@@ -8,7 +8,6 @@ use crate::lotus::message::deserialize::{
     deserialize_ipc_address_from_map, deserialize_subnet_id_from_map,
     deserialize_token_amount_from_str,
 };
-use crate::lotus::message::ipc::BottomUpCheckpointWrapper;
 use crate::manager::SubnetInfo;
 use fvm_shared::econ::TokenAmount;
 use ipc_sdk::address::IPCAddress;
