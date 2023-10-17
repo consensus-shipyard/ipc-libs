@@ -92,17 +92,17 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
     pub async fn run(self, submitter: Address, submission_interval: Duration) {
         loop {
             if let Err(e) = self.submit_checkpoint(&submitter).await {
-                log::error!("cannot submit checkpoint for validator: {submitter} due to {e}");
+                log::error!("cannot submit checkpoint for submitter: {submitter} due to {e}");
             }
 
             tokio::time::sleep(submission_interval).await;
         }
     }
 
-    /// Submit the checkpoint from the target validator address
-    pub async fn submit_checkpoint(&self, validator: &Address) -> Result<()> {
-        self.submit_last_epoch(validator).await?;
-        self.submit_next_epoch(validator).await
+    /// Submit the checkpoint from the target submitter address
+    pub async fn submit_checkpoint(&self, submitter: &Address) -> Result<()> {
+        self.submit_last_epoch(submitter).await?;
+        self.submit_next_epoch(submitter).await
     }
 
     async fn next_submission_height(&self) -> Result<ChainEpoch> {
@@ -117,11 +117,11 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
     }
 
     /// Checks if the relayer has already submitted the last checkpoint, if not it submits it.
-    async fn submit_last_epoch(&self, validator: &Address) -> Result<()> {
+    async fn submit_last_epoch(&self, submitter: &Address) -> Result<()> {
         let subnet = &self.metadata.child.id;
         if self
             .child_handler
-            .has_submitted_in_last_checkpoint_height(subnet, validator)
+            .has_submitted_in_last_checkpoint_height(subnet, submitter)
             .await?
         {
             return Ok(());
@@ -135,14 +135,14 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         log::debug!("bottom up bundle: {bundle:?}");
 
         self.parent_handler
-            .submit_checkpoint(validator, bundle)
+            .submit_checkpoint(submitter, bundle)
             .await
             .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
 
         Ok(())
     }
 
-    async fn submit_next_epoch(&self, validator: &Address) -> Result<()> {
+    async fn submit_next_epoch(&self, submitter: &Address) -> Result<()> {
         let next_submission_height = self.next_submission_height().await?;
         let current_height = self.child_handler.current_epoch().await?;
 
@@ -157,7 +157,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         log::debug!("bottom up bundle: {bundle:?}");
 
         self.parent_handler
-            .submit_checkpoint(validator, bundle)
+            .submit_checkpoint(submitter, bundle)
             .await
             .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
 
