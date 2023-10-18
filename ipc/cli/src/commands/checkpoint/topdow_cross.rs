@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 //! List top down cross messages
 
+use anyhow::anyhow;
 use std::fmt::Debug;
 use std::str::FromStr;
-use anyhow::anyhow;
 
 use async_trait::async_trait;
 use clap::Args;
@@ -30,7 +30,9 @@ impl CommandLineHandler for ListTopdownCrossMessages {
         let hash = if let Some(hash) = &arguments.block_hash {
             hex::decode(hash)?
         } else {
-            let parent = subnet.parent().ok_or_else(|| anyhow!("subnet has not parent"))?;
+            let parent = subnet
+                .parent()
+                .ok_or_else(|| anyhow!("subnet has not parent"))?;
             let epoch = provider.get_chain_head_height(&parent).await?;
             let hash = provider.get_block_hash(&parent, epoch).await?;
             hash.block_hash

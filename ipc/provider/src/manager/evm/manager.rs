@@ -1104,6 +1104,7 @@ impl TryFrom<gateway_getter_facet::Subnet> for SubnetInfo {
             id: SubnetID::try_from(value.id)?,
             stake: eth_to_fil_amount(&value.stake)?,
             circ_supply: eth_to_fil_amount(&value.circ_supply)?,
+            genesis_epoch: value.genesis_epoch.as_u64() as ChainEpoch,
             status: match value.status {
                 1 => Status::Active,
                 2 => Status::Inactive,
