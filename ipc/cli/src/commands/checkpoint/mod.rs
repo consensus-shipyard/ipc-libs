@@ -9,6 +9,7 @@ use clap::{Args, Subcommand};
 
 mod list_checkpoints;
 mod relayer;
+mod topdow_cross;
 
 #[derive(Debug, Args)]
 #[command(name = "checkpoint", about = "checkpoint related commands")]
