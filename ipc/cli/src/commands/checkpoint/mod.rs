@@ -4,6 +4,9 @@ use crate::commands::checkpoint::list_checkpoints::{
     ListBottomUpCheckpoints, ListBottomUpCheckpointsArgs,
 };
 use crate::commands::checkpoint::relayer::{BottomUpRelayer, BottomUpRelayerArgs};
+use crate::commands::checkpoint::topdow_cross::{
+    ListTopdownCrossMessages, ListTopdownCrossMessagesArgs,
+};
 use crate::{CommandLineHandler, GlobalArguments};
 use clap::{Args, Subcommand};
 
@@ -24,6 +27,9 @@ impl CheckpointCommandsArgs {
         match &self.command {
             Commands::ListBottomup(args) => ListBottomUpCheckpoints::handle(global, args).await,
             Commands::Relayer(args) => BottomUpRelayer::handle(global, args).await,
+            Commands::ListTopdownCrossMsgs(args) => {
+                ListTopdownCrossMessages::handle(global, args).await
+            }
         }
     }
 }
@@ -32,4 +38,5 @@ impl CheckpointCommandsArgs {
 pub(crate) enum Commands {
     ListBottomup(ListBottomUpCheckpointsArgs),
     Relayer(BottomUpRelayerArgs),
+    ListTopdownCrossMsgs(ListTopdownCrossMessagesArgs),
 }
