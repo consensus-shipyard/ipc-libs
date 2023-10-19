@@ -126,7 +126,8 @@ impl TopDownCheckpointQuery for EthSubnetManager {
 
         let call = gateway_contract
             .get_top_down_msgs(subnet_id, U256::from(epoch))
-            .block(BlockId::from(H256::from_slice(block_hash)));
+            // .block(BlockId::from(H256::from_slice(block_hash)));
+            .block(BlockId::from(epoch as u64));
         let raw_msgs = call
             .call()
             .await
