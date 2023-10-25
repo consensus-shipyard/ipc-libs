@@ -13,7 +13,7 @@ use ipc_sdk::subnet_id::SubnetID;
 use crate::commands::get_ipc_provider;
 use crate::{CommandLineHandler, GlobalArguments};
 
-/// The command to list checkpoints committed in a subnet actor.
+/// The command to list validator changes committed in a subnet.
 pub(crate) struct ListValidatorChanges;
 
 #[async_trait]
