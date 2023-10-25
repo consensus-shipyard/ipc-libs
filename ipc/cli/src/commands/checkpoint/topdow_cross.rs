@@ -49,7 +49,7 @@ impl CommandLineHandler for ListTopdownCrossMessages {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "List topdown cross messages")]
+#[command(about = "List topdown cross messages for a specific epoch")]
 pub(crate) struct ListTopdownCrossMessagesArgs {
     #[arg(long, short, help = "The subnet id of the topdown subnet")]
     pub subnet: String,
