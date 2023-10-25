@@ -41,7 +41,7 @@ impl CommandLineHandler for ListTopdownCrossMessages {
             .get_top_down_msgs(&subnet, arguments.epoch, &hash)
             .await?;
         for msg in msgs {
-            println!("message: {msg:?}");
+            println!("{msg:?}");
         }
 
         Ok(())
