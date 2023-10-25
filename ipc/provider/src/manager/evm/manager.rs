@@ -286,7 +286,7 @@ impl SubnetManager for EthSubnetManager {
         from: Address,
         collateral: TokenAmount,
         pub_key: Vec<u8>,
-    ) -> Result<()> {
+    ) -> Result<ChainEpoch> {
         let collateral = collateral
             .atto()
             .to_u128()
@@ -305,9 +305,9 @@ impl SubnetManager for EthSubnetManager {
         txn.tx.set_value(collateral);
         let txn = call_with_premium_estimation(signer, txn).await?;
 
-        txn.send().await?.await?;
-
-        Ok(())
+        let pending_tx = txn.send().await?;
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn stake(&self, subnet: SubnetID, from: Address, collateral: TokenAmount) -> Result<()> {

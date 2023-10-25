@@ -11,6 +11,7 @@ use crate::{CommandLineHandler, GlobalArguments};
 use clap::{Args, Subcommand};
 
 mod list_checkpoints;
+mod list_validator_changes;
 mod relayer;
 mod topdow_cross;
 
