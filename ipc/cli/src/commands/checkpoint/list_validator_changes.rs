@@ -36,7 +36,7 @@ impl CommandLineHandler for ListValidatorChanges {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "List bottom-up checkpoints")]
+#[command(about = "List of validator changes commmitted for a child subnet")]
 pub(crate) struct ListValidatorChangesArgs {
     #[arg(long, short, help = "The subnet id of the checkpointing subnet")]
     pub subnet: String,
