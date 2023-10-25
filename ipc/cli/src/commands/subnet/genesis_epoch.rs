@@ -18,7 +18,7 @@ impl CommandLineHandler for GenesisEpoch {
     type Arguments = GenesisEpochArgs;
 
     async fn handle(global: &GlobalArguments, arguments: &Self::Arguments) -> anyhow::Result<()> {
-        log::debug!("list subnets with args: {:?}", arguments);
+        log::debug!("get genesis epoch with args: {:?}", arguments);
 
         let provider = get_ipc_provider(global)?;
         let subnet = SubnetID::from_str(&arguments.subnet)?;
