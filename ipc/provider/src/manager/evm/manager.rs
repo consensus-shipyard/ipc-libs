@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use ethers::types::H256;
 use ipc_actors_abis::{
-    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
+    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet, lib_staking_change_log,
     subnet_actor_getter_facet, subnet_actor_manager_facet, subnet_registry,
 };
 use ipc_sdk::evm::{fil_to_eth_amount, payload_to_evm_address, subnet_id_to_evm_addresses};
@@ -36,7 +36,7 @@ use ipc_identity::{EthKeyAddress, EvmKeyStore, PersistentKeyStore};
 use ipc_sdk::checkpoint::{BottomUpCheckpoint, BottomUpCheckpointBundle};
 use ipc_sdk::cross::CrossMsg;
 use ipc_sdk::gateway::Status;
-use ipc_sdk::staking::{NewStakingRequest, StakingChangeRequest};
+use ipc_sdk::staking::StakingChangeRequest;
 use ipc_sdk::subnet::ConstructParams;
 use ipc_sdk::subnet_id::SubnetID;
 use num_traits::ToPrimitive;
@@ -171,7 +171,7 @@ impl TopDownCheckpointQuery for EthSubnetManager {
         );
 
         let ev = contract
-            .event::<NewStakingRequest>()
+            .event::<lib_staking_change_log::NewStakingChangeRequestFilter>()
             .from_block(epoch as u64)
             .to_block(epoch as u64);
 
