@@ -3,6 +3,9 @@
 use crate::commands::checkpoint::list_checkpoints::{
     ListBottomUpCheckpoints, ListBottomUpCheckpointsArgs,
 };
+use crate::commands::checkpoint::list_validator_changes::{
+    ListValidatorChanges, ListValidatorChangesArgs,
+};
 use crate::commands::checkpoint::relayer::{BottomUpRelayer, BottomUpRelayerArgs};
 use crate::commands::checkpoint::topdow_cross::{
     ListTopdownCrossMessages, ListTopdownCrossMessagesArgs,
@@ -31,6 +34,9 @@ impl CheckpointCommandsArgs {
             Commands::ListTopdownCrossMsgs(args) => {
                 ListTopdownCrossMessages::handle(global, args).await
             }
+            Commands::ListValidatorChanges(args) => {
+                ListValidatorChanges::handle(global, args).await
+            }
         }
     }
 }
@@ -40,4 +46,5 @@ pub(crate) enum Commands {
     ListBottomup(ListBottomUpCheckpointsArgs),
     Relayer(BottomUpRelayerArgs),
     ListTopdownCrossMsgs(ListTopdownCrossMessagesArgs),
+    ListValidatorChanges(ListValidatorChangesArgs),
 }
