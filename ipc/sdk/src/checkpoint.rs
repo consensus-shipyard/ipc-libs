@@ -10,6 +10,7 @@ use cid::Cid;
 use fvm_ipld_encoding::DAG_CBOR;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
+use fvm_shared::econ::TokenAmount;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +23,14 @@ lazy_static! {
 }
 
 pub type Signature = Vec<u8>;
+
+/// The event emitted
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
+pub struct QuorumReachedEvent {
+    pub height: ChainEpoch,
+    pub checkpoint: Vec<u8>,
+    pub quorum_weight: TokenAmount,
+}
 
 /// The collection of items for the bottom up checkpoint submission
 #[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]

@@ -156,16 +156,27 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
             return Ok(());
         }
 
-        let bundle = self
-            .child_handler
-            .checkpoint_bundle_at(next_submission_height)
-            .await?;
-        log::debug!("bottom up bundle: {bundle:?}");
+        let prev_submission_height = next_submission_height - self.checkpoint_period();
 
-        self.parent_handler
-            .submit_checkpoint(submitter, bundle)
-            .await
-            .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
+        for h in (prev_submission_height + 1)..=current_height {
+            let events = self.child_handler.quorum_reached_events(h).await?;
+            if events.is_empty() {
+                continue;
+            }
+
+            for event in events {
+                let bundle = self
+                    .child_handler
+                    .checkpoint_bundle_at(event.height)
+                    .await?;
+                log::debug!("bottom up bundle: {bundle:?}");
+
+                self.parent_handler
+                    .submit_checkpoint(submitter, bundle)
+                    .await
+                    .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
+            }
+        }
 
         Ok(())
     }
