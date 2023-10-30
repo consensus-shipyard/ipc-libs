@@ -514,6 +514,7 @@ impl SubnetManager for EthSubnetManager {
                     self.ipc_contract_info.gateway_addr,
                     Arc::new(self.ipc_contract_info.provider.clone()),
                 );
+                // use default cross-message fee if not set.
                 gateway_getter.cross_msg_fee().call().await?
             }
         };
