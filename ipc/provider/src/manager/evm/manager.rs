@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use ethers::types::H256;
+use fvm_shared::BLOCK_GAS_LIMIT;
 use ipc_actors_abis::{
     gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet, lib_staking_change_log,
     subnet_actor_getter_facet, subnet_actor_manager_facet, subnet_registry,
@@ -485,6 +486,7 @@ impl SubnetManager for EthSubnetManager {
             gateway_manager_facet::FvmAddress::try_from(to)?,
         );
         txn.tx.set_value(value);
+        txn.tx.set_gas(BLOCK_GAS_LIMIT);
         let txn = call_with_premium_estimation(signer, txn).await?;
 
         let pending_tx = txn.send().await?;
@@ -494,7 +496,6 @@ impl SubnetManager for EthSubnetManager {
 
     async fn release(
         &self,
-        _subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
         to: Address,
