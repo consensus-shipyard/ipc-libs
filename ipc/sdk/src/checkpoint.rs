@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 //! Cross network messages related struct and utility functions.
 
-use std::fmt::{Display, Formatter};
 use crate::cross::CrossMsg;
 use crate::subnet_id::SubnetID;
 use cid::multihash::Code;
@@ -15,6 +14,7 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 lazy_static! {
     // Default CID used for the genesis checkpoint. Using
@@ -40,7 +40,9 @@ impl Display for QuorumReachedEvent {
         write!(
             f,
             "QuorumReachedEvent<height: {}, checkpoint: {}, quorum_weight: {}>",
-            self.height, hex::encode(&self.checkpoint), self.quorum_weight
+            self.height,
+            hex::encode(&self.checkpoint),
+            self.quorum_weight
         )
     }
 }

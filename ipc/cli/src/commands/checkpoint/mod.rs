@@ -16,6 +16,7 @@ use crate::commands::checkpoint::quorum_reached::{
 use crate::commands::checkpoint::relayer::{BottomUpRelayer, BottomUpRelayerArgs};
 use crate::{CommandLineHandler, GlobalArguments};
 use clap::{Args, Subcommand};
+use crate::commands::checkpoint::bottomup_submitted::{SubmittedInBottomUpHeight, SubmittedInBottomUpHeightArgs};
 
 mod bottomup_bundles;
 mod bottomup_height;
@@ -48,6 +49,9 @@ impl CheckpointCommandsArgs {
             Commands::LastBottomUpCheckpointHeight(args) => {
                 LastBottomUpCheckpointHeight::handle(global, args).await
             }
+            Commands::HasSubmittedBottomUpHeight(args) => {
+                SubmittedInBottomUpHeight::handle(global, args).await
+            }
         }
     }
 }
@@ -60,4 +64,5 @@ pub(crate) enum Commands {
     ListBottomupBundle(GetBottomUpBundlesArgs),
     QuorumReachedEvents(GetQuorumReachedEventsArgs),
     LastBottomUpCheckpointHeight(LastBottomUpCheckpointHeightArgs),
+    HasSubmittedBottomUpHeight(SubmittedInBottomUpHeightArgs),
 }
