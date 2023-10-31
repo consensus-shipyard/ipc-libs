@@ -1,10 +1,17 @@
 // Copyright 2022-2023 Protocol Labs
 // SPDX-License-Identifier: MIT
+use crate::commands::checkpoint::bottomup_bundles::{GetBottomUpBundles, GetBottomUpBundlesArgs};
+use crate::commands::checkpoint::bottomup_height::{
+    LastBottomUpCheckpointHeight, LastBottomUpCheckpointHeightArgs,
+};
 use crate::commands::checkpoint::list_checkpoints::{
     ListBottomUpCheckpoints, ListBottomUpCheckpointsArgs,
 };
 use crate::commands::checkpoint::list_validator_changes::{
     ListValidatorChanges, ListValidatorChangesArgs,
+};
+use crate::commands::checkpoint::quorum_reached::{
+    GetQuorumReacehdEvents, GetQuorumReachedEventsArgs,
 };
 use crate::commands::checkpoint::relayer::{BottomUpRelayer, BottomUpRelayerArgs};
 use crate::commands::checkpoint::topdow_cross::{
@@ -13,8 +20,12 @@ use crate::commands::checkpoint::topdow_cross::{
 use crate::{CommandLineHandler, GlobalArguments};
 use clap::{Args, Subcommand};
 
+mod bottomup_bundles;
+mod bottomup_height;
+mod bottomup_submitted;
 mod list_checkpoints;
 mod list_validator_changes;
+mod quorum_reached;
 mod relayer;
 mod topdow_cross;
 
@@ -37,6 +48,13 @@ impl CheckpointCommandsArgs {
             Commands::ListValidatorChanges(args) => {
                 ListValidatorChanges::handle(global, args).await
             }
+            Commands::ListBottomupBundle(args) => GetBottomUpBundles::handle(global, args).await,
+            Commands::QuorumReachedEvents(args) => {
+                GetQuorumReacehdEvents::handle(global, args).await
+            }
+            Commands::LastBottomUpCheckpointHeight(args) => {
+                LastBottomUpCheckpointHeight::handle(global, args).await
+            }
         }
     }
 }
@@ -47,4 +65,7 @@ pub(crate) enum Commands {
     Relayer(BottomUpRelayerArgs),
     ListTopdownCrossMsgs(ListTopdownCrossMessagesArgs),
     ListValidatorChanges(ListValidatorChangesArgs),
+    ListBottomupBundle(GetBottomUpBundlesArgs),
+    QuorumReachedEvents(GetQuorumReachedEventsArgs),
+    LastBottomUpCheckpointHeight(LastBottomUpCheckpointHeightArgs),
 }

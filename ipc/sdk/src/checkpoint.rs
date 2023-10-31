@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: MIT
 //! Cross network messages related struct and utility functions.
 
+use std::fmt::{Display, Formatter};
 use crate::cross::CrossMsg;
 use crate::subnet_id::SubnetID;
 use cid::multihash::Code;
 use cid::multihash::MultihashDigest;
 use cid::Cid;
+use ethers::utils::hex;
 use fvm_ipld_encoding::DAG_CBOR;
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
@@ -28,8 +30,19 @@ pub type Signature = Vec<u8>;
 #[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct QuorumReachedEvent {
     pub height: ChainEpoch,
+    /// The checkpoint hash
     pub checkpoint: Vec<u8>,
     pub quorum_weight: TokenAmount,
+}
+
+impl Display for QuorumReachedEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "QuorumReachedEvent<height: {}, checkpoint: {}, quorum_weight: {}>",
+            self.height, hex::encode(&self.checkpoint), self.quorum_weight
+        )
+    }
 }
 
 /// The collection of items for the bottom up checkpoint submission

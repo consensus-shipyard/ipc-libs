@@ -8,6 +8,7 @@ use anyhow::{anyhow, Result};
 use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_identity::{EthKeyAddress, PersistentKeyStore};
+use std::cmp::max;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -27,6 +28,8 @@ pub struct BottomUpCheckpointManager<T> {
     metadata: CheckpointConfig,
     parent_handler: T,
     child_handler: T,
+    /// The number of blocks away from the chain head that is considered final
+    finalization_blocks: ChainEpoch,
 }
 
 impl<T: BottomUpCheckpointRelayer> BottomUpCheckpointManager<T> {
@@ -48,7 +51,13 @@ impl<T: BottomUpCheckpointRelayer> BottomUpCheckpointManager<T> {
             },
             parent_handler,
             child_handler,
+            finalization_blocks: 0,
         })
+    }
+
+    pub fn with_finalization_blocks(mut self, finalization_blocks: ChainEpoch) -> Self {
+        self.finalization_blocks = finalization_blocks;
+        self
     }
 }
 
@@ -151,18 +160,25 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
     async fn submit_next_epoch(&self, submitter: &Address) -> Result<()> {
         let next_submission_height = self.next_submission_height().await?;
         let current_height = self.child_handler.current_epoch().await?;
+        let finalized_height = max(1, current_height - self.finalization_blocks);
 
-        if current_height < next_submission_height {
+        log::debug!("next_submission_height: {next_submission_height}, current height: {current_height}, finalized_height: {finalized_height}");
+
+        if finalized_height < next_submission_height {
             return Ok(());
         }
 
-        let prev_submission_height = next_submission_height - self.checkpoint_period();
+        let prev_h = next_submission_height - self.checkpoint_period();
+        log::debug!("start querying quorum reached events from : {prev_h} to {finalized_height}");
 
-        for h in (prev_submission_height + 1)..=current_height {
+        for h in (prev_h + 1)..=finalized_height {
             let events = self.child_handler.quorum_reached_events(h).await?;
             if events.is_empty() {
+                log::debug!("no reached events at height : {h}");
                 continue;
             }
+
+            log::debug!("found reached events at height : {h}");
 
             for event in events {
                 let bundle = self
