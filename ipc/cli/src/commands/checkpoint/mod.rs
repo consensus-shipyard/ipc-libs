@@ -14,9 +14,6 @@ use crate::commands::checkpoint::quorum_reached::{
     GetQuorumReacehdEvents, GetQuorumReachedEventsArgs,
 };
 use crate::commands::checkpoint::relayer::{BottomUpRelayer, BottomUpRelayerArgs};
-use crate::commands::checkpoint::topdow_cross::{
-    ListTopdownCrossMessages, ListTopdownCrossMessagesArgs,
-};
 use crate::{CommandLineHandler, GlobalArguments};
 use clap::{Args, Subcommand};
 
@@ -27,7 +24,6 @@ mod list_checkpoints;
 mod list_validator_changes;
 mod quorum_reached;
 mod relayer;
-mod topdow_cross;
 
 #[derive(Debug, Args)]
 #[command(name = "checkpoint", about = "checkpoint related commands")]
@@ -42,9 +38,6 @@ impl CheckpointCommandsArgs {
         match &self.command {
             Commands::ListBottomup(args) => ListBottomUpCheckpoints::handle(global, args).await,
             Commands::Relayer(args) => BottomUpRelayer::handle(global, args).await,
-            Commands::ListTopdownCrossMsgs(args) => {
-                ListTopdownCrossMessages::handle(global, args).await
-            }
             Commands::ListValidatorChanges(args) => {
                 ListValidatorChanges::handle(global, args).await
             }
@@ -63,7 +56,6 @@ impl CheckpointCommandsArgs {
 pub(crate) enum Commands {
     ListBottomup(ListBottomUpCheckpointsArgs),
     Relayer(BottomUpRelayerArgs),
-    ListTopdownCrossMsgs(ListTopdownCrossMessagesArgs),
     ListValidatorChanges(ListValidatorChangesArgs),
     ListBottomupBundle(GetBottomUpBundlesArgs),
     QuorumReachedEvents(GetQuorumReachedEventsArgs),

@@ -12,6 +12,8 @@ use ipc_actors_abis::{
 };
 use ipc_sdk::evm::{fil_to_eth_amount, payload_to_evm_address, subnet_id_to_evm_addresses};
 use ipc_sdk::validator::from_contract_validators;
+use std::net::{IpAddr, SocketAddr};
+
 use ipc_sdk::{eth_to_fil_amount, ethers_address_to_fil_address};
 
 use crate::config::subnet::SubnetConfig;
@@ -492,7 +494,6 @@ impl SubnetManager for EthSubnetManager {
 
     async fn release(
         &self,
-        _subnet: SubnetID,
         gateway_addr: Address,
         from: Address,
         to: Address,
@@ -513,6 +514,7 @@ impl SubnetManager for EthSubnetManager {
                     self.ipc_contract_info.gateway_addr,
                     Arc::new(self.ipc_contract_info.provider.clone()),
                 );
+                // use default cross-message fee if not set.
                 gateway_getter.cross_msg_fee().call().await?
             }
         };
@@ -655,6 +657,40 @@ impl SubnetManager for EthSubnetManager {
             msg_fee: eth_to_fil_amount(&contract.min_cross_msg_fee().call().await?)?,
             validators: from_contract_validators(contract.genesis_validators().call().await?)?,
         })
+    }
+
+    async fn add_bootstrap(
+        &self,
+        subnet: &SubnetID,
+        from: &Address,
+        endpoint: String,
+    ) -> Result<()> {
+        let address = contract_address_from_subnet(subnet)?;
+
+        if is_valid_bootstrap_addr(&endpoint).is_none() {
+            return Err(anyhow!("wrong format for bootstrap endpoint"));
+        }
+
+        let signer = Arc::new(self.get_signer(from)?);
+        let contract =
+            subnet_actor_manager_facet::SubnetActorManagerFacet::new(address, signer.clone());
+
+        call_with_premium_estimation(signer, contract.add_bootstrap_node(endpoint))
+            .await?
+            .send()
+            .await?
+            .await?;
+
+        Ok(())
+    }
+
+    async fn list_bootstrap_nodes(&self, subnet: &SubnetID) -> Result<Vec<String>> {
+        let address = contract_address_from_subnet(subnet)?;
+        let contract = subnet_actor_getter_facet::SubnetActorGetterFacet::new(
+            address,
+            Arc::new(self.ipc_contract_info.provider.clone()),
+        );
+        Ok(contract.get_bootstrap_nodes().call().await?)
     }
 }
 
@@ -1131,6 +1167,21 @@ fn block_number_from_receipt(
             "txn sent to network, but receipt cannot be obtained, please check scanner"
         )),
     }
+}
+
+fn is_valid_bootstrap_addr(input: &str) -> Option<(String, IpAddr, u16)> {
+    let parts: Vec<&str> = input.split('@').collect();
+
+    if parts.len() == 2 {
+        let pubkey = parts[0].to_string();
+        let addr_str = parts[1];
+
+        if let Ok(addr) = addr_str.parse::<SocketAddr>() {
+            return Some((pubkey, addr.ip(), addr.port()));
+        }
+    }
+
+    None
 }
 
 /// Convert the ipc SubnetID type to an evm address. It extracts the last address from the Subnet id

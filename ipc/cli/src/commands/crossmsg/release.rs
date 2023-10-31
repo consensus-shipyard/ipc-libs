@@ -4,7 +4,6 @@
 
 use async_trait::async_trait;
 use clap::Args;
-use fvm_shared::address::Address;
 use ipc_sdk::subnet_id::SubnetID;
 use std::{fmt::Debug, str::FromStr};
 
@@ -26,7 +25,7 @@ impl CommandLineHandler for Release {
         let mut provider = get_ipc_provider(global)?;
         let subnet = SubnetID::from_str(&arguments.subnet)?;
         let from = match &arguments.from {
-            Some(address) => Some(Address::from_str(address)?),
+            Some(address) => Some(require_fil_addr_from_str(address)?),
             None => None,
         };
         let to = match &arguments.to {
@@ -75,8 +74,8 @@ pub(crate) struct ReleaseArgs {
     pub to: Option<String>,
     #[arg(long, short, help = "The subnet to release funds from")]
     pub subnet: String,
+    #[arg(long, help = "The fee to pay for the cross-net message, in whole FIL")]
+    pub fee: Option<f64>,
     #[arg(help = "The amount to release in FIL, in whole FIL")]
     pub amount: f64,
-    #[arg(help = "The fee to pay for the cross-net message, in whole FIL")]
-    pub fee: Option<f64>,
 }
