@@ -660,7 +660,8 @@ impl IpcProvider {
         subnet: &SubnetID,
         addr: &Address,
     ) -> anyhow::Result<bool> {
-        let conn = match self.connection(subnet) {
+        let parent = subnet.parent().ok_or_else(|| anyhow!("no parent found"))?;
+        let conn = match self.connection(&parent) {
             None => return Err(anyhow!("target subnet not found")),
             Some(conn) => conn,
         };
@@ -674,7 +675,8 @@ impl IpcProvider {
         &self,
         subnet: &SubnetID,
     ) -> anyhow::Result<ChainEpoch> {
-        let conn = match self.connection(subnet) {
+        let parent = subnet.parent().ok_or_else(|| anyhow!("no parent found"))?;
+        let conn = match self.connection(&parent) {
             None => return Err(anyhow!("target subnet not found")),
             Some(conn) => conn,
         };

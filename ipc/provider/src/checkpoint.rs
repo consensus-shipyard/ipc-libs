@@ -134,7 +134,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
     async fn submit_last_epoch(&self, submitter: &Address) -> Result<()> {
         let subnet = &self.metadata.child.id;
         if self
-            .child_handler
+            .parent_handler
             .has_submitted_in_last_checkpoint_height(subnet, submitter)
             .await?
         {
@@ -142,7 +142,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         }
 
         let height = self
-            .child_handler
+            .parent_handler
             .last_bottom_up_checkpoint_height(subnet)
             .await?;
         let bundle = self.child_handler.checkpoint_bundle_at(height).await?;
