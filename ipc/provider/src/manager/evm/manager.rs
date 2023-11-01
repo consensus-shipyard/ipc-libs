@@ -887,7 +887,7 @@ impl BottomUpCheckpointRelayer for EthSubnetManager {
         &self,
         submitter: &Address,
         bundle: BottomUpCheckpointBundle,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<ChainEpoch> {
         let BottomUpCheckpointBundle {
             checkpoint,
             signatures,
@@ -896,7 +896,7 @@ impl BottomUpCheckpointRelayer for EthSubnetManager {
         } = bundle;
 
         let address = contract_address_from_subnet(&checkpoint.subnet_id)?;
-        log::info!(
+        log::debug!(
             "submit bottom up checkpoint: {checkpoint:?} in evm subnet contract: {address:}"
         );
 
@@ -918,12 +918,13 @@ impl BottomUpCheckpointRelayer for EthSubnetManager {
         let contract =
             subnet_actor_manager_facet::SubnetActorManagerFacet::new(address, signer.clone());
         let call = contract.submit_checkpoint(checkpoint, cross_msgs, signatories, signatures);
-        call_with_premium_estimation(signer, call)
+        let pending_tx = call_with_premium_estimation(signer, call)
             .await?
             .send()
             .await?;
 
-        Ok(())
+        let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
+        block_number_from_receipt(receipt)
     }
 
     async fn last_bottom_up_checkpoint_height(

@@ -154,10 +154,11 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
         let bundle = self.child_handler.checkpoint_bundle_at(height).await?;
         log::debug!("bottom up bundle: {bundle:?}");
 
-        self.parent_handler
+        let epoch = self.parent_handler
             .submit_checkpoint(submitter, bundle)
             .await
             .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
+        log::info!("submitted bottom up checkpoint({}) in parent at height {}", height, epoch);
 
         Ok(())
     }
@@ -193,10 +194,12 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
                     .await?;
                 log::debug!("bottom up bundle: {bundle:?}");
 
-                self.parent_handler
+                let epoch = self.parent_handler
                     .submit_checkpoint(submitter, bundle)
                     .await
                     .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
+
+                log::info!("submitted bottom up checkpoint({}) in parent at height {}", height, epoch);
             }
         }
 

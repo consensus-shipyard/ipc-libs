@@ -188,11 +188,12 @@ pub trait TopDownCheckpointQuery: Send + Sync {
 pub trait BottomUpCheckpointRelayer: Send + Sync {
     /// Submit a checkpoint for execution.
     /// It triggers the commitment of the checkpoint and the execution of related cross-net messages.
+    /// Returns the epoch that the execution is successful
     async fn submit_checkpoint(
         &self,
         submitter: &Address,
         bundle: BottomUpCheckpointBundle,
-    ) -> Result<()>;
+    ) -> Result<ChainEpoch>;
     /// The last confirmed/submitted checkpoint height.
     async fn last_bottom_up_checkpoint_height(&self, subnet_id: &SubnetID) -> Result<ChainEpoch>;
     /// Check if the submitter has already submitted in the `last_bottom_up_checkpoint_height`
