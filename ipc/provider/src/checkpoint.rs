@@ -145,6 +145,12 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
             .parent_handler
             .last_bottom_up_checkpoint_height(subnet)
             .await?;
+
+        if height == 0 {
+            log::debug!("no previous checkpoint yet");
+            return Ok(());
+        }
+
         let bundle = self.child_handler.checkpoint_bundle_at(height).await?;
         log::debug!("bottom up bundle: {bundle:?}");
 
