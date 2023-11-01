@@ -519,7 +519,7 @@ impl SubnetManager for EthSubnetManager {
             }
         };
 
-        log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}");
+        log::info!("release with evm gateway contract: {gateway_addr:} with value: {value:}, fee: {fee}");
 
         let signer = Arc::new(self.get_signer(&from)?);
         let gateway_contract = gateway_manager_facet::GatewayManagerFacet::new(
@@ -530,6 +530,7 @@ impl SubnetManager for EthSubnetManager {
             gateway_contract.release(gateway_manager_facet::FvmAddress::try_from(to)?, fee);
         txn.tx.set_value(value);
         let txn = call_with_premium_estimation(signer, txn).await?;
+        log::debug!("txn: {txn:?}");
 
         let pending_tx = txn.send().await?;
         let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
