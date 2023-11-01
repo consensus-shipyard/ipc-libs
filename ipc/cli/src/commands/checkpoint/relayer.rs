@@ -10,7 +10,8 @@ use fvm_shared::address::Address;
 use fvm_shared::clock::ChainEpoch;
 use ipc_identity::EvmKeyStore;
 use ipc_provider::checkpoint::BottomUpCheckpointManager;
-use ipc_provider::new_evm_keystore_from_path;
+use ipc_provider::config::Config;
+use ipc_provider::new_evm_keystore_from_config;
 use ipc_sdk::subnet_id::SubnetID;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
@@ -29,8 +30,8 @@ impl CommandLineHandler for BottomUpRelayer {
         log::debug!("start bottom up relayer with args: {:?}", arguments);
 
         let config_path = global.config_path();
-
-        let mut keystore = new_evm_keystore_from_path(&config_path)?;
+        let config = Arc::new(Config::from_file(&config_path)?);
+        let mut keystore = new_evm_keystore_from_config(config)?;
         let submitter = match (arguments.submitter.as_ref(), keystore.get_default()?) {
             (Some(submitter), _) => Address::from_str(submitter)?,
             (None, Some(addr)) => {

@@ -831,7 +831,7 @@ fn new_fvm_wallet_from_config(config: Arc<Config>) -> anyhow::Result<KeyStore> {
     }
 }
 
-fn new_evm_keystore_from_config(
+pub fn new_evm_keystore_from_config(
     config: Arc<Config>,
 ) -> anyhow::Result<PersistentKeyStore<EthKeyAddress>> {
     let repo_str = &config.keystore_path;

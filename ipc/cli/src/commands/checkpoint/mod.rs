@@ -4,6 +4,9 @@ use crate::commands::checkpoint::bottomup_bundles::{GetBottomUpBundles, GetBotto
 use crate::commands::checkpoint::bottomup_height::{
     LastBottomUpCheckpointHeight, LastBottomUpCheckpointHeightArgs,
 };
+use crate::commands::checkpoint::bottomup_submitted::{
+    SubmittedInBottomUpHeight, SubmittedInBottomUpHeightArgs,
+};
 use crate::commands::checkpoint::list_checkpoints::{
     ListBottomUpCheckpoints, ListBottomUpCheckpointsArgs,
 };
@@ -16,7 +19,6 @@ use crate::commands::checkpoint::quorum_reached::{
 use crate::commands::checkpoint::relayer::{BottomUpRelayer, BottomUpRelayerArgs};
 use crate::{CommandLineHandler, GlobalArguments};
 use clap::{Args, Subcommand};
-use crate::commands::checkpoint::bottomup_submitted::{SubmittedInBottomUpHeight, SubmittedInBottomUpHeightArgs};
 
 mod bottomup_bundles;
 mod bottomup_height;
