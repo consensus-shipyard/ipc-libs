@@ -918,11 +918,9 @@ impl BottomUpCheckpointRelayer for EthSubnetManager {
         let contract =
             subnet_actor_manager_facet::SubnetActorManagerFacet::new(address, signer.clone());
         let call = contract.submit_checkpoint(checkpoint, cross_msgs, signatories, signatures);
-        let pending_tx = call_with_premium_estimation(signer, call)
-            .await?
-            .send()
-            .await?;
+        let call = call_with_premium_estimation(signer, call).await?;
 
+        let pending_tx = call.send().await?;
         let receipt = pending_tx.retries(TRANSACTION_RECEIPT_RETRIES).await?;
         block_number_from_receipt(receipt)
     }

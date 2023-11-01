@@ -199,7 +199,7 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
                     .await
                     .map_err(|e| anyhow!("cannot submit bottom up checkpoint due to: {e:}"))?;
 
-                log::info!("submitted bottom up checkpoint({}) in parent at height {}", height, epoch);
+                log::info!("submitted bottom up checkpoint({}) in parent at height {}", event.height, epoch);
             }
         }
 
