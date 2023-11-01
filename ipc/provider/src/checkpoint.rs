@@ -79,7 +79,7 @@ impl<T: BottomUpCheckpointRelayer> Display for BottomUpCheckpointManager<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "bottom-up, parent: {:}, child: {:}",
+            "bottom-up relayer, parent: {:}, child: {:}",
             self.metadata.parent.id, self.metadata.child.id
         )
     }
@@ -103,6 +103,8 @@ impl<T: BottomUpCheckpointRelayer + Send + Sync + 'static> BottomUpCheckpointMan
 
     /// Run the bottom up checkpoint submission daemon in the foreground
     pub async fn run(self, submitter: Address, submission_interval: Duration) {
+        log::info!("launching {self} for {submitter}");
+
         loop {
             if let Err(e) = self.submit_checkpoint(&submitter).await {
                 log::error!("cannot submit checkpoint for submitter: {submitter} due to {e}");
