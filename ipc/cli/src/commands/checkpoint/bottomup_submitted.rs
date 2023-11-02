@@ -40,7 +40,7 @@ impl CommandLineHandler for SubmittedInBottomUpHeight {
 
 #[derive(Debug, Args)]
 #[command(
-    about = "Check if the address has submitted in the last bottom up checkpoint of a child subnet"
+    about = "Check if the address has submitted a signature in the last bottom up checkpoint of a child subnet"
 )]
 pub(crate) struct SubmittedInBottomUpHeightArgs {
     #[arg(long, short, help = "The target subnet to perform query")]
