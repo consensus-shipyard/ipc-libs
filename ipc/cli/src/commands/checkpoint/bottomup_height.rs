@@ -35,7 +35,7 @@ impl CommandLineHandler for LastBottomUpCheckpointHeight {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "Last bottom up checkpoint height for a child subnet")]
+#[command(about = "Last bottom up checkpoint height committed in a child subnet")]
 pub(crate) struct LastBottomUpCheckpointHeightArgs {
     #[arg(long, short, help = "The target subnet to perform query")]
     pub subnet: String,
