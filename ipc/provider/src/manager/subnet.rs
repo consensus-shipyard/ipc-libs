@@ -206,7 +206,7 @@ pub trait BottomUpCheckpointRelayer: Send + Sync {
     async fn checkpoint_period(&self, subnet_id: &SubnetID) -> Result<ChainEpoch>;
     /// Get the checkpoint bundle at a specific height. If it does not exist, it will through error.
     async fn checkpoint_bundle_at(&self, height: ChainEpoch) -> Result<BottomUpCheckpointBundle>;
-    /// Queries the quorum reached events at target height.
+    /// Queries the signature quorum reached events at target height.
     async fn quorum_reached_events(&self, height: ChainEpoch) -> Result<Vec<QuorumReachedEvent>>;
     /// Get the current epoch in the current subnet
     async fn current_epoch(&self) -> Result<ChainEpoch>;
