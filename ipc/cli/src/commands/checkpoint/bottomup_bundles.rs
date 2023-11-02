@@ -36,7 +36,7 @@ impl CommandLineHandler for GetBottomUpBundles {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "List bottom up checkpoint bundles for a child subnet")]
+#[command(about = "List bottom up checkpoint signature bundle for a child subnet")]
 pub(crate) struct GetBottomUpBundlesArgs {
     #[arg(long, short, help = "The target subnet to perform query")]
     pub subnet: String,
