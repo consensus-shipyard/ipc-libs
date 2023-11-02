@@ -83,6 +83,7 @@ pub(crate) struct BottomUpRelayerArgs {
     #[arg(
         long,
         short,
+        default_value = "0",
         help = "The number of blocks away from chain head that is considered final"
     )]
     pub finalization_blocks: Option<u64>,
