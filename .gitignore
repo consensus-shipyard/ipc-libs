@@ -6,3 +6,4 @@ bin
 /lotus
 fx.dot
 testing/itest/logs
+node_modules
