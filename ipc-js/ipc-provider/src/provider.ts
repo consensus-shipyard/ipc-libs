@@ -1,90 +1,75 @@
 import { ethers } from 'ethers';
+import { Config, newConfigForNetwork } from './config';
+import { importABIs } from './config';
+import log from 'loglevel';
+
+import { Contract, Wallet, JsonRpcProvider } from 'ethers';
+import { SubnetID } from './subnet';
+
+// Import IPC ABIs to make it available throughout the provider.
+const contractABIs = importABIs();
+
+class Connection {
+	provider: JsonRpcProvider;
+	gateway: string;
+
+	constructor(provider: JsonRpcProvider, gateway: string) {
+		this.provider = provider;
+		this.gateway = gateway;
+	}
+
+	getContract(contractName: string, address: string): Contract {
+		const abi = contractABIs.get(contractName);
+
+		if (!abi) {
+			throw new Error(`ABI for contract ${contractName} not found.`);
+		}
+
+		const contract = new Contract(address, abi, this.provider);
+		if (contract) {
+			return contract
+		}
+
+		throw new Error("contract not found")
+	}
+
+	getGatewayFacet(facetName: string): Contract {
+		return this.getContract(facetName, this.gateway)
+	}
+}
 
 export class IpcProvider {
-	private sender: any;
 	private config: Config;
-	private fvm_wallet?: Wallet;
-	private evm_keystore?: EvmKeystore;
 
 	constructor(
 		config: Config,
-		fvm_wallet?: Wallet,
-		evm_keystore?: EvmKeystore
 	) {
-		this.sender = null;
 		this.config = config;
-		this.fvm_wallet = fvm_wallet;
-		this.evm_keystore = evm_keystore;
 	}
 
-	static newFromConfig(configPath: string): IpcProvider {
-		const config = Config.fromFile(configPath);
-		const fvm_wallet = Wallet.new(
-			newFvmWalletFromConfig(config)
-		);
-		const evm_keystore = newEvmKeystoreFromConfig(config);
-		return new IpcProvider(config, fvm_wallet, evm_keystore);
+	static newForNetwork(network: string): IpcProvider {
+		return new IpcProvider(newConfigForNetwork(network));
 	}
 
-	static newWithSubnet(
-		keystorePath: string | undefined,
-		subnet: Subnet
-	): IpcProvider {
-		const config = new Config();
-		config.addSubnet(subnet);
 
-		if (keystorePath) {
-			const fvm_wallet = Wallet.new(
-				newFvmKeystoreFromPath(keystorePath)
-			);
-			const evm_keystore = newEvmKeystoreFromPath(keystorePath);
-			return new IpcProvider(config, fvm_wallet, evm_keystore);
-		} else {
-			return new IpcProvider(config);
-		}
-	}
-
-	static newDefault(): IpcProvider {
-		const configPath = defaultConfigPath();
-		return IpcProvider.newFromConfig(configPath);
-	}
-
-	connection(subnet: SubnetID): Connection | undefined {
-		const subnets = this.config.subnets;
-		const subnetConfig = subnets.get(subnet);
-		if (subnetConfig && subnetConfig instanceof FevmSubnetConfig) {
-			try {
-				const wallet = this.evm_wallet();
-				const manager = EthSubnetManager.from_subnet_with_wallet_store(subnetConfig, wallet);
-				return new Connection(manager, subnet);
-			} catch (e) {
-				console.warn(`Error initializing evm wallet: ${e}`);
+	connection(subnet: SubnetID): Connection {
+		const endpoint = this.config.subnets.get(subnet.toString())?.fevm.provider_http;
+		if (endpoint) {
+			const gateway = this.config.subnets.get(subnet.toString())?.fevm.gateway_addr;
+			if (gateway === undefined) {
+				throw new Error("Gateway is undefined");
 			}
+			return new Connection(
+				new JsonRpcProvider(endpoint),
+				gateway,
+			);
 		}
-		return undefined;
+		throw new Error("Subnet not configured in provider: " + subnet);
 	}
 
-	private evm_wallet(): Wallet | undefined {
-		if (this.fvm_wallet) {
-			return this.fvm_wallet.read();
-		}
-		return undefined;
+	async listSubnets(subnet: SubnetID) {
+		let contract = this.connection(subnet).getGatewayFacet("Gateway")
+		// Try manually
+		console.log(await contract.listSubnets())
 	}
 }
-
-// Example usage:
-async function example() {
-	const configPath = 'path/to/config';
-	const keystorePath = 'path/to/keystore';
-
-	const ipcProvider1 = IpcProvider.newFromConfig(configPath);
-	const ipcProvider2 = IpcProvider.newWithSubnet(keystorePath, subnet);
-
-	const connection = ipcProvider1.connection(subnet);
-	if (connection) {
-		const response = await connection.manager.send('eth_getBlockByNumber', ['latest', true]);
-		console.log('Response:', response);
-	}
-}
-
-example();
