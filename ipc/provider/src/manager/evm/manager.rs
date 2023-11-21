@@ -126,7 +126,7 @@ impl TopDownFinalityQuery for EthSubnetManager {
             "getting top down messages for subnet: {:?} with topic 1: {}, block hash equals: {}",
             subnet_id,
             topic1,
-            hex::encode(&block_hash),
+            hex::encode(block_hash),
         );
 
         let ev = gateway_contract
