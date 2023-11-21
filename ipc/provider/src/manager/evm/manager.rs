@@ -123,9 +123,10 @@ impl TopDownFinalityQuery for EthSubnetManager {
 
         let topic1 = contract_address_from_subnet(subnet_id)?;
         log::debug!(
-            "getting top down messages for subnet: {:?} with topic 1: {}",
+            "getting top down messages for subnet: {:?} with topic 1: {}, block hash equals: {}",
             subnet_id,
-            topic1
+            topic1,
+            hex::encode(&block_hash),
         );
 
         let ev = gateway_contract
@@ -137,7 +138,11 @@ impl TopDownFinalityQuery for EthSubnetManager {
         let mut messages = vec![];
         for (event, meta) in query_with_meta(ev, gateway_contract.client()).await? {
             if meta.block_hash.0 != block_hash {
-                return Err(anyhow!("block hash not equal"));
+                return Err(anyhow!(
+                    "block hash not equal, input: {}, received: {}",
+                    hex::encode(block_hash),
+                    hex::encode(meta.block_hash.0)
+                ));
             }
             messages.push(CrossMsg::try_from(event.message)?);
         }
