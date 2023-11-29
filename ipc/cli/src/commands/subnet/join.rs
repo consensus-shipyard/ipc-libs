@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: MIT
 //! Join subnet cli command handler.
 
+use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Args;
 use ipc_sdk::subnet_id::SubnetID;
+use num_traits::Zero;
 use std::{fmt::Debug, str::FromStr};
 
 use crate::{
@@ -31,9 +33,19 @@ impl CommandLineHandler for JoinSubnet {
         let public_key = hex::decode(&arguments.public_key)?;
         if let Some(initial_balance) = arguments.initial_balance {
             log::info!("pre-funding address with {initial_balance}");
-            provider
-                .pre_fund(subnet.clone(), from, f64_to_token_amount(initial_balance)?)
-                .await?;
+            if initial_balance.is_zero() {
+                return Err(anyhow!("not enough balance"));
+            }
+            let amount = f64_to_token_amount(initial_balance)?;
+            if let Err(e) = provider
+                .pre_fund(subnet.clone(), from, amount.clone())
+                .await
+            {
+                log::info!("pre fund failed with: {}, attend to fund to self", e);
+                provider
+                    .fund(subnet.clone(), None, from, from, amount)
+                    .await?;
+            }
         }
         let epoch = provider
             .join_subnet(
