@@ -23,7 +23,7 @@ base64 = "0.21.0"
 lazy_static = "1.4"
 log = "0.4"
 env_logger = "0.10"
-cid = { version = "0.8.3", default-features = false, features = ["serde-codec"] }
+cid = { version = "0.10.1", default-features = false, features = ["serde-codec"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 prometheus = "0.13"
 serde = { version = "1.0", features = ["derive"] }
@@ -39,28 +39,38 @@ hex = "0.4.3"
 tempfile = "3.4.0"
 serde_json = { version = "1.0.91", features = ["raw_value"] }
 
-ipc_actors_abis = { git = "https://github.com/consensus-shipyard/ipc-solidity-actors.git", branch = "dev" }
+#ipc_actors_abis = { git = "https://github.com/consensus-shipyard/ipc-solidity-actors.git", branch = "dev" }
 
-libipld = { version = "0.14", default-features = false, features = ["dag-cbor"] }
+libipld = { version = "0.16", default-features = false, features = ["dag-cbor"] }
 libsecp256k1 = "0.7"
 ethers = "2.0.8"
 ethers-contract = "2.0.8"
 
 ipc-sdk = { path = "./ipc/sdk" }
 
-fvm_ipld_blockstore = "0.1.1"
-fvm_ipld_encoding = "0.3.3"
-fvm_ipld_hamt = "0.6"
-fvm_shared = { version = "=3.2.0", default-features = false, features = ["crypto"] }
-fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = [
-	"fil-actor",
-] }
-primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
+#fvm_ipld_blockstore = "0.1.1"
+#fvm_ipld_encoding = "0.3.3"
+#fvm_ipld_hamt = "0.6"
+#fvm_shared = { version = "=3.2.0", default-features = false, features = ["crypto"] }
+fvm_ipld_blockstore = { path = "../ref-fvm/ipld/blockstore" }
+fvm_ipld_encoding = { path = "../ref-fvm/ipld/encoding" }
+fvm_ipld_hamt = { path = "../ref-fvm/ipld/hamt" }
+fvm_shared = { path = "../ref-fvm/shared", features = ["crypto"] }
+fvm_sdk = { path = "../ref-fvm/sdk" }
+
+primitives = { path = "../fvm-utils/primitives" }
+fil_actors_runtime = { path = "../fvm-utils/runtime" }
+ipc_actors_abis = { path = "../ipc-solidity-actors/binding" }
+
+#fil_actors_runtime = { git = "https://github.com/consensus-shipyard/fvm-utils", features = [
+#	"fil-actor",
+#] }
+#primitives = { git = "https://github.com/consensus-shipyard/fvm-utils" }
 
 # Uncomment to point to you local versions
-# [patch."https://github.com/consensus-shipyard/fvm-utils"]
-# primitives = { path = "../fvm-utils/primitives" }
-# fil_actors_runtime = { path = "../fvm-utils/runtime" }
+#[patch."https://github.com/consensus-shipyard/fvm-utils"]
+#primitives = { path = "../fvm-utils/primitives" }
+#fil_actors_runtime = { path = "../fvm-utils/runtime" }
 
-# [patch."https://github.com/consensus-shipyard/ipc-solidity-actors.git"]
-# ipc_actors_abis = { path = "../ipc-solidity-actors/binding" }
+#[patch."https://github.com/consensus-shipyard/ipc-solidity-actors.git"]
+#ipc_actors_abis = { path = "../ipc-solidity-actors/binding" }
