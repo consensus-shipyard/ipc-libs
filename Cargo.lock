@@ -1726,7 +1726,7 @@ dependencies = [
 [[package]]
 name = "fil_actors_runtime"
 version = "0.0.1"
-source = "git+https://github.com/consensus-shipyard/fvm-utils?branch=upgrade-fvm-workspace#7e3f4b6eb049bb4aa5706a74a566de2e877496da"
+source = "git+https://github.com/consensus-shipyard/fvm-utils?branch=upgrade-fvm-workspace#3553432d4d795b4eaf1295e51d0e69c844b6e854"
 dependencies = [
  "anyhow",
  "base64 0.13.1",
@@ -2090,7 +2090,7 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_amt"
 version = "0.6.2"
-source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#e5a08066a58330267915a7ab62bf1fd3a76fad8c"
+source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#bfc7e4d51f20756fdda015a0c43b088a7052e397"
 dependencies = [
  "anyhow",
  "cid 0.10.1",
@@ -2116,7 +2116,7 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_blockstore"
 version = "0.2.0"
-source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#e5a08066a58330267915a7ab62bf1fd3a76fad8c"
+source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#bfc7e4d51f20756fdda015a0c43b088a7052e397"
 dependencies = [
  "anyhow",
  "cid 0.10.1",
@@ -2143,7 +2143,7 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_encoding"
 version = "0.4.0"
-source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#e5a08066a58330267915a7ab62bf1fd3a76fad8c"
+source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#bfc7e4d51f20756fdda015a0c43b088a7052e397"
 dependencies = [
  "anyhow",
  "cid 0.10.1",
@@ -2159,7 +2159,7 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_hamt"
 version = "0.9.0"
-source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#e5a08066a58330267915a7ab62bf1fd3a76fad8c"
+source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#bfc7e4d51f20756fdda015a0c43b088a7052e397"
 dependencies = [
  "anyhow",
  "byteorder",
@@ -2194,7 +2194,7 @@ dependencies = [
 [[package]]
 name = "fvm_sdk"
 version = "4.0.0"
-source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#e5a08066a58330267915a7ab62bf1fd3a76fad8c"
+source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#bfc7e4d51f20756fdda015a0c43b088a7052e397"
 dependencies = [
  "byteorder",
  "cid 0.10.1",
@@ -2234,7 +2234,7 @@ dependencies = [
 [[package]]
 name = "fvm_shared"
 version = "4.0.0"
-source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#e5a08066a58330267915a7ab62bf1fd3a76fad8c"
+source = "git+https://github.com/filecoin-project/ref-fvm?branch=upgrade-fvm#bfc7e4d51f20756fdda015a0c43b088a7052e397"
 dependencies = [
  "anyhow",
  "bitflags 2.4.1",
@@ -2808,7 +2808,7 @@ dependencies = [
 [[package]]
 name = "ipc_actors_abis"
 version = "0.1.0"
-source = "git+https://github.com/consensus-shipyard/ipc-solidity-actors.git?branch=upgrade-fvm-workspace#26e9fe781a706d4a3d2d899af7c70f5bf4a2e3df"
+source = "git+https://github.com/consensus-shipyard/ipc-solidity-actors.git?branch=upgrade-fvm-workspace#999e8542e29b9f9713321a83af5266b4d784fe1b"
 dependencies = [
  "anyhow",
  "ethers",
@@ -3791,7 +3791,7 @@ dependencies = [
 [[package]]
 name = "primitives"
 version = "0.1.0"
-source = "git+https://github.com/consensus-shipyard/fvm-utils?branch=upgrade-fvm-workspace#7e3f4b6eb049bb4aa5706a74a566de2e877496da"
+source = "git+https://github.com/consensus-shipyard/fvm-utils?branch=upgrade-fvm-workspace#3553432d4d795b4eaf1295e51d0e69c844b6e854"
 dependencies = [
  "anyhow",
  "cid 0.10.1",
