@@ -1726,6 +1726,7 @@ dependencies = [
 [[package]]
 name = "fil_actors_runtime"
 version = "0.0.1"
+source = "git+https://github.com/consensus-shipyard/fvm-utils?branch=upgrade-fvm-workspace#7e3f4b6eb049bb4aa5706a74a566de2e877496da"
 dependencies = [
  "anyhow",
  "base64 0.13.1",
@@ -2807,6 +2808,7 @@ dependencies = [
 [[package]]
 name = "ipc_actors_abis"
 version = "0.1.0"
+source = "git+https://github.com/consensus-shipyard/ipc-solidity-actors.git?branch=upgrade-fvm-workspace#26e9fe781a706d4a3d2d899af7c70f5bf4a2e3df"
 dependencies = [
  "anyhow",
  "ethers",
@@ -3789,6 +3791,7 @@ dependencies = [
 [[package]]
 name = "primitives"
 version = "0.1.0"
+source = "git+https://github.com/consensus-shipyard/fvm-utils?branch=upgrade-fvm-workspace#7e3f4b6eb049bb4aa5706a74a566de2e877496da"
 dependencies = [
  "anyhow",
  "cid 0.10.1",
