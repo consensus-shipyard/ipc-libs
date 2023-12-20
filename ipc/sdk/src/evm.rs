@@ -5,9 +5,11 @@
 
 use crate::address::IPCAddress;
 use crate::checkpoint::BottomUpCheckpoint;
+use crate::checkpoint::BottomUpMsgBatch;
 use crate::cross::{CrossMsg, StorableMsg};
 use crate::staking::StakingChange;
 use crate::staking::StakingChangeRequest;
+use crate::subnet::{SupplyKind, SupplySource};
 use crate::subnet_id::SubnetID;
 use crate::{eth_to_fil_amount, ethers_address_to_fil_address};
 use anyhow::anyhow;
@@ -19,7 +21,7 @@ use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use ipc_actors_abis::{
     gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet, gateway_router_facet,
-    lib_gateway, subnet_actor_getter_facet, subnet_actor_manager_facet,
+    lib_gateway, register_subnet_facet, subnet_actor_getter_facet, subnet_actor_manager_facet,
 };
 
 /// The type conversion for IPC structs to evm solidity contracts. We need this convenient macro because
@@ -155,16 +157,31 @@ macro_rules! cross_msg_types {
 /// The type conversion between different bottom up checkpoint definition in ethers and sdk
 macro_rules! bottom_up_type_conversion {
     ($module:ident) => {
+        impl TryFrom<BottomUpMsgBatch> for $module::BottomUpMsgBatch {
+            type Error = anyhow::Error;
+
+            fn try_from(batch: BottomUpMsgBatch) -> Result<Self, Self::Error> {
+                Ok($module::BottomUpMsgBatch {
+                    subnet_id: $module::SubnetID::try_from(&batch.subnet_id)?,
+                    block_height: ethers::core::types::U256::from(batch.block_height),
+                    msgs: batch
+                        .msgs
+                        .into_iter()
+                        .map($module::CrossMsg::try_from)
+                        .collect::<Result<Vec<_>, _>>()?,
+                })
+            }
+        }
+
         impl TryFrom<BottomUpCheckpoint> for $module::BottomUpCheckpoint {
             type Error = anyhow::Error;
 
             fn try_from(checkpoint: BottomUpCheckpoint) -> Result<Self, Self::Error> {
                 Ok($module::BottomUpCheckpoint {
                     subnet_id: $module::SubnetID::try_from(&checkpoint.subnet_id)?,
-                    block_height: checkpoint.block_height as u64,
+                    block_height: ethers::core::types::U256::from(checkpoint.block_height),
                     block_hash: vec_to_bytes32(checkpoint.block_hash)?,
                     next_configuration_number: checkpoint.next_configuration_number,
-                    cross_messages_hash: vec_to_bytes32(checkpoint.cross_messages_hash)?,
                 })
             }
         }
@@ -175,10 +192,9 @@ macro_rules! bottom_up_type_conversion {
             fn try_from(value: $module::BottomUpCheckpoint) -> Result<Self, Self::Error> {
                 Ok(BottomUpCheckpoint {
                     subnet_id: SubnetID::try_from(value.subnet_id)?,
-                    block_height: value.block_height as ChainEpoch,
+                    block_height: value.block_height.as_u128() as ChainEpoch,
                     block_hash: value.block_hash.to_vec(),
                     next_configuration_number: value.next_configuration_number,
-                    cross_messages_hash: value.cross_messages_hash.to_vec(),
                 })
             }
         }
@@ -201,6 +217,35 @@ cross_msg_types!(lib_gateway);
 
 bottom_up_type_conversion!(gateway_getter_facet);
 bottom_up_type_conversion!(subnet_actor_manager_facet);
+
+impl TryFrom<SupplySource> for register_subnet_facet::SupplySource {
+    type Error = anyhow::Error;
+
+    fn try_from(value: SupplySource) -> Result<Self, Self::Error> {
+        let token_address = if let Some(token_address) = value.token_address {
+            payload_to_evm_address(token_address.payload())?
+        } else {
+            ethers::types::Address::zero()
+        };
+
+        Ok(Self {
+            kind: value.kind as u8,
+            token_address,
+        })
+    }
+}
+
+impl TryFrom<u8> for SupplyKind {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => SupplyKind::Native,
+            1 => SupplyKind::ERC20,
+            _ => return Err(anyhow!("invalid supply kind {value}")),
+        })
+    }
+}
 
 /// Convert the ipc SubnetID type to a vec of evm addresses. It extracts all the children addresses
 /// in the subnet id and turns them as a vec of evm addresses.
