@@ -8,7 +8,7 @@ use ipc_sdk::subnet_id::SubnetID;
 use primitives::EthAddress;
 use url::Url;
 
-use crate::config::{Config};
+use crate::config::Config;
 
 // Arguments for the config's fields
 const REPO_PATH: &str = "~/.ipc";
