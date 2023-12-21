@@ -20,9 +20,9 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use ipc_actors_abis::{
-    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
+    bottom_up_router_facet, gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
     lib_gateway, register_subnet_facet, subnet_actor_getter_facet, subnet_actor_manager_facet,
-    bottom_up_router_facet, top_down_finality_facet
+    top_down_finality_facet,
 };
 
 /// The type conversion for IPC structs to evm solidity contracts. We need this convenient macro because

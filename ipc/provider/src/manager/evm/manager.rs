@@ -8,9 +8,9 @@ use std::time::Duration;
 
 use ethers_contract::{ContractError, EthLogDecode, LogMeta};
 use ipc_actors_abis::{
-    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
+    bottom_up_router_facet, gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
     lib_gateway, lib_quorum, lib_staking_change_log, register_subnet_facet,
-    subnet_actor_getter_facet, subnet_actor_manager_facet, bottom_up_router_facet,
+    subnet_actor_getter_facet, subnet_actor_manager_facet,
 };
 use ipc_sdk::evm::{fil_to_eth_amount, payload_to_evm_address, subnet_id_to_evm_addresses};
 use ipc_sdk::validator::from_contract_validators;
