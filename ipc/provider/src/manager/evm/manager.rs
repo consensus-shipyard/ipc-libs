@@ -8,9 +8,9 @@ use std::time::Duration;
 
 use ethers_contract::{ContractError, EthLogDecode, LogMeta};
 use ipc_actors_abis::{
-    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet, gateway_router_facet,
+    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
     lib_gateway, lib_quorum, lib_staking_change_log, register_subnet_facet,
-    subnet_actor_getter_facet, subnet_actor_manager_facet,
+    subnet_actor_getter_facet, subnet_actor_manager_facet, bottom_up_router_facet,
 };
 use ipc_sdk::evm::{fil_to_eth_amount, payload_to_evm_address, subnet_id_to_evm_addresses};
 use ipc_sdk::validator::from_contract_validators;
@@ -41,7 +41,6 @@ use ipc_sdk::checkpoint::{
     BottomUpCheckpoint, BottomUpCheckpointBundle, BottomUpMsgBatch, QuorumReachedEvent, Signature,
 };
 use ipc_sdk::cross::CrossMsg;
-use ipc_sdk::gateway::Status;
 use ipc_sdk::staking::{StakingChangeRequest, ValidatorInfo, ValidatorStakingInfo};
 use ipc_sdk::subnet::ConstructParams;
 use ipc_sdk::subnet_id::SubnetID;
@@ -1070,7 +1069,7 @@ impl BottomUpCheckpointRelayer for EthSubnetManager {
     }
 
     async fn quorum_reached_events(&self, height: ChainEpoch) -> Result<Vec<QuorumReachedEvent>> {
-        let contract = gateway_router_facet::GatewayRouterFacet::new(
+        let contract = bottom_up_router_facet::BottomUpRouterFacet::new(
             self.ipc_contract_info.gateway_addr,
             Arc::new(self.ipc_contract_info.provider.clone()),
         );
@@ -1350,12 +1349,6 @@ impl TryFrom<gateway_getter_facet::Subnet> for SubnetInfo {
             stake: eth_to_fil_amount(&value.stake)?,
             circ_supply: eth_to_fil_amount(&value.circ_supply)?,
             genesis_epoch: value.genesis_epoch.as_u64() as ChainEpoch,
-            status: match value.status {
-                1 => Status::Active,
-                2 => Status::Inactive,
-                3 => Status::Killed,
-                _ => return Err(anyhow!("invalid status: {:}", value.status)),
-            },
         })
     }
 }

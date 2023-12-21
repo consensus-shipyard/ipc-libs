@@ -20,8 +20,9 @@ use fvm_shared::clock::ChainEpoch;
 use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 use ipc_actors_abis::{
-    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet, gateway_router_facet,
+    gateway_getter_facet, gateway_manager_facet, gateway_messenger_facet,
     lib_gateway, register_subnet_facet, subnet_actor_getter_facet, subnet_actor_manager_facet,
+    bottom_up_router_facet, top_down_finality_facet
 };
 
 /// The type conversion for IPC structs to evm solidity contracts. We need this convenient macro because
@@ -201,7 +202,7 @@ macro_rules! bottom_up_type_conversion {
     };
 }
 
-base_type_conversion!(gateway_router_facet);
+base_type_conversion!(bottom_up_router_facet);
 base_type_conversion!(subnet_actor_getter_facet);
 base_type_conversion!(gateway_manager_facet);
 base_type_conversion!(subnet_actor_manager_facet);
@@ -210,7 +211,7 @@ base_type_conversion!(gateway_messenger_facet);
 base_type_conversion!(lib_gateway);
 
 cross_msg_types!(gateway_getter_facet);
-cross_msg_types!(gateway_router_facet);
+cross_msg_types!(bottom_up_router_facet);
 cross_msg_types!(gateway_messenger_facet);
 cross_msg_types!(subnet_actor_manager_facet);
 cross_msg_types!(lib_gateway);
@@ -276,11 +277,11 @@ pub fn fil_to_eth_amount(amount: &TokenAmount) -> anyhow::Result<U256> {
     Ok(U256::from_dec_str(&str)?)
 }
 
-impl TryFrom<StakingChange> for gateway_router_facet::StakingChange {
+impl TryFrom<StakingChange> for top_down_finality_facet::StakingChange {
     type Error = anyhow::Error;
 
     fn try_from(value: StakingChange) -> Result<Self, Self::Error> {
-        Ok(gateway_router_facet::StakingChange {
+        Ok(top_down_finality_facet::StakingChange {
             op: value.op as u8,
             payload: ethers::core::types::Bytes::from(value.payload),
             validator: payload_to_evm_address(value.validator.payload())?,
@@ -288,12 +289,12 @@ impl TryFrom<StakingChange> for gateway_router_facet::StakingChange {
     }
 }
 
-impl TryFrom<StakingChangeRequest> for gateway_router_facet::StakingChangeRequest {
+impl TryFrom<StakingChangeRequest> for top_down_finality_facet::StakingChangeRequest {
     type Error = anyhow::Error;
 
     fn try_from(value: StakingChangeRequest) -> Result<Self, Self::Error> {
-        Ok(gateway_router_facet::StakingChangeRequest {
-            change: gateway_router_facet::StakingChange::try_from(value.change)?,
+        Ok(top_down_finality_facet::StakingChangeRequest {
+            change: top_down_finality_facet::StakingChange::try_from(value.change)?,
             configuration_number: value.configuration_number,
         })
     }
